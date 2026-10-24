@@ -31,10 +31,13 @@ else if (_childId == Guid.Empty)
 else
 {
     <div class="page-head">
-        <div>
-            <div class="eyebrow"><a href="@("/luna?child=" + _childId)">@L["Luna.Review.Breadcrumb", _childName]</a></div>
-            <h1>@L["Luna.Review.Title", _childName]</h1>
-            <p>@L["Luna.Review.Subtitle", _childName]</p>
+        <div class="luna-page-title">
+            <LunaMoon State="MoonState" />
+            <div>
+                <div class="eyebrow"><a href="@("/luna?child=" + _childId)">@L["Luna.Review.Breadcrumb", _childName]</a></div>
+                <h1>@L["Luna.Review.Title", _childName]</h1>
+                <p>@L["Luna.Review.Subtitle", _childName]</p>
+            </div>
         </div>
         @if (_chats.Count > 0)
         {
@@ -56,6 +59,30 @@ else
         </nav>
     }
 
+    @if (_chats.Count == 0)
+    {
+        <section class="card">
+            <div class="luna-empty-state">
+                <LunaMoon State="LunaMoonState.Happy" Size="72" />
+                <b>@L["Luna.Review.AllCaughtUp"]</b>
+                <p>@L["Luna.Review.NothingToReview", _childName]</p>
+            </div>
+        </section>
+    }
+    else
+    {
+        @if (_needsReviewChats == 0)
+        {
+            <section class="card">
+                <div class="luna-empty-state compact">
+                    <LunaMoon State="LunaMoonState.Happy" Size="52" />
+                    <div>
+                        <b>@L["Luna.Review.AllCaughtUp"]</b>
+                        <p>@L["Luna.Review.NothingToReview", _childName]</p>
+                    </div>
+                </div>
+            </section>
+        }
     <div class="luna-review-grid">
         <section class="card">
             <div class="card-title-row" style="padding-bottom: 10px">
@@ -183,6 +210,7 @@ else
             }
         </section>
     </div>
+    }
 }
 
 @code {
@@ -210,6 +238,8 @@ else
     private LunaChatDto? _selectedChat;
     private Guid _selectedChatId;
     private string _filter = "all";
+    private LunaSettingsDto? _familySettings;
+    private ChildLunaDto? _childDto;
 
     private List<ChatRow> FilteredChats => _filter switch
     {
@@ -219,6 +249,10 @@ else
     };
 
     private int _needsReviewChats => _chats.Count(c => c.HasUnreviewed);
+
+    private LunaMoonState MoonState =>
+        LunaUi.HeaderMoon(_familySettings?.LastTestOk == true, _familySettings?.LastTestError,
+            _childDto?.Enabled == true && _childDto.SetupValid);
 
     protected override async Task OnInitializedAsync()
     {
@@ -260,7 +294,10 @@ else
             using var scope = Scopes.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
             var parent = scope.ServiceProvider.GetRequiredService<LunaParentService>();
+            var settingsService = scope.ServiceProvider.GetRequiredService<LunaSettingsService>();
             _childName = _children.FirstOrDefault(c => c.Id == _childId)?.Name ?? "";
+            _familySettings = await settingsService.GetAsync(_familyId);
+            _childDto = await parent.GetChildAsync(_familyId, _childId);
             var chats = await parent.ListChatsAsync(_familyId, _childId);
             var flags = await db.LunaMessages.AsNoTracking()
                 .Where(m => m.FamilyId == _familyId && m.ChildId == _childId)

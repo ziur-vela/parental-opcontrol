@@ -117,12 +117,16 @@ public static class LunaPrompts
     public const string SummaryPrompt =
         "Summarize the older part of this tutoring chat in at most 120 words. " +
         "Keep only what helps continue teaching: the topics, what the child understood, what they found hard, " +
-        "and any preference they stated. Do not include personal information. Reply with the summary only.";
+        "and any preference they stated. Do not include personal information such as schools, addresses or phone numbers. " +
+        "If you refer to the child, use the child's name; never use he, she, him, her or his. " +
+        "In Spanish, avoid gendered forms for the child. Reply with the summary only.";
 
     public const string ProfilePrompt =
         "Update the learner profile for this child from the chat summary. Use at most 120 words, in plain English. " +
         "Include: grade or age if known, subjects, what is going well, what is hard, and useful teaching preferences. " +
-        "Do not include names, schools, addresses or other personal information. Reply with the profile only.";
+        "Do not include schools, addresses, phone numbers or other personal information. " +
+        "If you refer to the child, use the child's name; never use he, she, him, her or his. " +
+        "In Spanish, avoid gendered forms for the child. Reply with the profile only.";
 
     public static int? AgeFrom(DateOnly? dateOfBirth, DateTime utcNow)
     {

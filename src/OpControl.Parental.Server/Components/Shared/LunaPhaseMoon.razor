@@ -1,0 +1,20 @@
+@* Copyright (c) 2026 Ziur / OpControl IT Solutions
+   SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 *@
+
+@inject IStringLocalizer<AppStrings> L
+
+<div class="luna-phase" style="width:@(Size)px;height:@(Size)px">
+    <svg viewBox="0 0 172 172" role="img" aria-label="@L["Luna.Moon.Phase"]">
+        <g aria-hidden="true">
+            <g class="luna-phase-spin">
+                <circle cx="86" cy="86" r="70" fill="#f6dc7e" />
+                <circle cx="58" cy="58" r="12" fill="#ecc964" />
+            </g>
+            <circle class="luna-phase-shade" cx="86" cy="86" r="62" />
+        </g>
+    </svg>
+</div>
+
+@code {
+    [Parameter] public int Size { get; set; } = 20;
+}

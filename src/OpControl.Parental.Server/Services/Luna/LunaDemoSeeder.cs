@@ -17,6 +17,7 @@ public static class LunaDemoSeeder
     public const string DemoEmail = "parent@demo.local";
     public const string DemoPassword = "LunaDemo!2026";
     public const string OpsEmail = "preview-ops@demo.local";
+    public const string PausedEmail = "paused@demo.local";
 
     public static async Task SeedAsync(IServiceProvider services, CancellationToken ct = default)
     {
@@ -66,12 +67,12 @@ public static class LunaDemoSeeder
             {
                 FamilyId = family.Id, ChildId = ana.Id, Enabled = true, EnabledUtc = now.AddDays(-5),
                 DailyMessageLimit = 60,
-                ExtraInstructions = "Ana is in 5th grade. She is working on fractions and times tables. Answer in Spanish unless she writes in English.",
+                ExtraInstructions = "Ana is in 5th grade. Ana is working on fractions and times tables. Answer in Spanish unless Ana writes in English.",
                 Theme = LunaThemes.Night, UpdatedUtc = now
             },
             new ChildLunaSettings
             {
-                FamilyId = family.Id, ChildId = leo.Id, Enabled = true, EnabledUtc = now.AddDays(-3),
+                FamilyId = family.Id, ChildId = leo.Id, Enabled = false, EnabledUtc = null,
                 DailyMessageLimit = 30, ExtraInstructions = "Leo is in 2nd grade. Keep answers very short and use simple words.",
                 Theme = LunaThemes.Gray, UpdatedUtc = now
             });
@@ -99,11 +100,6 @@ public static class LunaDemoSeeder
             {
                 FamilyId = family.Id, ChildId = ana.Id, Date = today.AddDays(-2), Messages = 41,
                 PromptTokens = 62_000, CompletionTokens = 12_000, UpdatedUtc = now
-            },
-            new LunaUsageDay
-            {
-                FamilyId = family.Id, ChildId = leo.Id, Date = today, Messages = 12,
-                PromptTokens = 15_000, CompletionTokens = 3_000, UpdatedUtc = now
             });
 
         var request = new LunaMoreRequest
@@ -137,19 +133,10 @@ public static class LunaDemoSeeder
             db.LunaChats.Add(chat);
         }
 
-        var leoChat = new LunaChat
-        {
-            FamilyId = family.Id, ChildId = leo.Id, DeviceId = leoDevice.Id, Subject = LunaSubjects.Math,
-            Title = "Adding to 100", CreatedUtc = now.AddDays(-1), LastMessageUtc = now.AddHours(-3),
-            UpdatedUtc = now.AddHours(-3)
-        };
-        db.LunaChats.Add(leoChat);
-
         AddCleanExchange(db, chats["Times tables"], now.AddMinutes(-5), "Can you help me with 7 times 8?", "What do you think 7 × 8 is? Try counting in sevens: 7, 14, 21…");
         AddCleanExchange(db, chats["Spanish practice"], now.AddMinutes(-420), "How do I say \"my favourite animal is a dog\" in Spanish?", "Try: \"Mi animal favorito es un perro\". Which word means \"favourite\"?");
         AddCleanExchange(db, chats["Why is the sky blue?"], now.AddMinutes(-1_500), "Why is the sky blue?", "Sunlight has many colours. Air scatters the blue light more than the red light, so blue reaches your eyes from all over the sky. What colour do you think sunsets are, and why?");
         AddCleanExchange(db, chats["What does \"enormous\" mean?"], now.AddMinutes(-240), "What does \"enormous\" mean?", "Meaning: very, very big.\nExample: An enormous elephant stood by the river.\nSpanish: enorme\nEnglish: enormous");
-        AddCleanExchange(db, leoChat, now.AddHours(-3), "What is 48 plus 7?", "Start at 48 and count on 7. Can you take 2 first to reach 50, then add the other 5?");
 
         // Blocked child message + the fixed kind reply the child saw.
         AddMessage(db, chats["Ancient Egypt"], LunaChatRoles.Child, now.AddMinutes(-20),
@@ -216,6 +203,58 @@ public static class LunaDemoSeeder
         if (!opsResult.Succeeded)
             throw new InvalidOperationException(AppText.Get("Luna.Error.DemoSeedFailed",
                 string.Join("; ", opsResult.Errors.Select(e => e.Description))));
+
+        // A second family with a broken Luna setup so the Paused moon can be reviewed without breaking the main demo.
+        var pausedFamily = new Family { Name = "Luna Paused Demo", DefaultLanguage = "en", CreatedUtc = now };
+        var pausedChild = new Child
+        {
+            FamilyId = pausedFamily.Id, Name = "Ana", DateOfBirth = new DateOnly(2016, 3, 12), CreatedUtc = now
+        };
+        db.Families.Add(pausedFamily);
+        db.Children.Add(pausedChild);
+        db.LunaFamilySettings.Add(new LunaFamilySettings
+        {
+            FamilyId = pausedFamily.Id,
+            Setup = LunaSetup.A,
+            ChatProvider = LunaChatProviders.OpenRouter,
+            ChatModel = "anthropic/claude-haiku-5.5",
+            ChatKeyProtected = providers.Protect("sk-or-demo-paused"),
+            LastTestUtc = now.AddMinutes(-3),
+            LastTestOk = false,
+            LastTestError = AppText.Get("Luna.Error.BadKey", "en"),
+            MonthlyTokenCap = 2_000_000,
+            HelplineText = "Please talk to a grown-up you trust right now.",
+            UpdatedUtc = now
+        });
+        db.ChildLunaSettings.Add(new ChildLunaSettings
+        {
+            FamilyId = pausedFamily.Id, ChildId = pausedChild.Id, Enabled = true, EnabledUtc = now.AddDays(-4),
+            DailyMessageLimit = 60, Theme = LunaThemes.Night, UpdatedUtc = now
+        });
+        db.Alerts.Add(new Alert
+        {
+            FamilyId = pausedFamily.Id, ChildId = pausedChild.Id, Type = "luna-setup-broken",
+            Title = AppText.Get("Alert.Luna.SetupBroken.Title", "en"),
+            Detail = AppText.Get("Alert.Luna.SetupBroken.Detail", "en"),
+            TitleKey = "Alert.Luna.SetupBroken.Title", DetailKey = "Alert.Luna.SetupBroken.Detail",
+            ArgsJson = "[]", CreatedUtc = now.AddMinutes(-3)
+        });
+        var pausedOwner = new ParentUser
+        {
+            FamilyId = pausedFamily.Id,
+            DisplayName = "Parent",
+            UserName = PausedEmail,
+            Email = PausedEmail,
+            EmailConfirmed = true,
+            RoleInFamily = FamilyRole.Owner,
+            Permissions = ParentPermissions.All,
+            PreferredLanguage = "en",
+            CreatedUtc = now
+        };
+        var pausedResult = await users.CreateAsync(pausedOwner, DemoPassword);
+        if (!pausedResult.Succeeded)
+            throw new InvalidOperationException(AppText.Get("Luna.Error.DemoSeedFailed",
+                string.Join("; ", pausedResult.Errors.Select(e => e.Description))));
 
         await db.SaveChangesAsync(ct);
     }

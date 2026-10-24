@@ -1392,4 +1392,25 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Luna.Error.DemoSeedFailed" xml:space="preserve"><value>Could not create the demo account: {0}</value></data>
   <data name="Luna.Alias" xml:space="preserve"><value>Luna AI</value></data>
   <data name="Luna.Child.Paused" xml:space="preserve"><value>Luna AI is paused until the setup passes Test connection.</value></data>
+  <data name="Luna.Moon.Awake" xml:space="preserve"><value>Luna AI is awake</value></data>
+  <data name="Luna.Moon.Asleep" xml:space="preserve"><value>Luna AI is asleep</value></data>
+  <data name="Luna.Moon.Paused" xml:space="preserve"><value>Luna AI is paused</value></data>
+  <data name="Luna.Moon.Happy" xml:space="preserve"><value>Luna AI is happy</value></data>
+  <data name="Luna.Moon.Looking" xml:space="preserve"><value>Luna AI is looking around</value></data>
+  <data name="Luna.Moon.Phase" xml:space="preserve"><value>Luna AI is thinking</value></data>
+  <data name="Luna.Why.Title" xml:space="preserve"><value>Why Luna instead of a free AI website</value></data>
+  <data name="Luna.Why.Text" xml:space="preserve"><value>Sooner or later, kids this age find an AI chat on their own, at school, at a friend's house, or built into a search engine. Public AI chats are made for everyone, not for kids, and you can't see what your child asks them. Luna meets your child halfway: a real AI they can use every day, with you in charge.</value></data>
+  <data name="Luna.Why.Bullet.Kids" xml:space="preserve"><value>Made for kids: Luna helps them think and learn instead of just giving answers.</value></data>
+  <data name="Luna.Why.Bullet.Filter" xml:space="preserve"><value>Every message and every answer passes a safety filter first.</value></data>
+  <data name="Luna.Why.Bullet.Alerts" xml:space="preserve"><value>You can read every chat and get alerts when something needs you.</value></data>
+  <data name="Luna.Why.Bullet.NoAds" xml:space="preserve"><value>No ads, no account for your child, and zero data retention with Setup A.</value></data>
+  <data name="Luna.Why.Bullet.Limits" xml:space="preserve"><value>Daily limits, schedules and locks apply to Luna too.</value></data>
+  <data name="Luna.Why.Footer" xml:space="preserve"><value>Recommended: turn on Block public AI chats in Websites. It blocks sites like ChatGPT, Gemini and the AI chats built into search engines and browsers, so Luna becomes the AI your child uses.</value></data>
+  <data name="Luna.Child.AiBlockTip" xml:space="preserve"><value>Tip: Block public AI chats is off for {0}. Turn it on in Websites so Luna is the AI {0} uses.</value></data>
+  <data name="Luna.Child.OpenWebsites" xml:space="preserve"><value>Open Websites</value></data>
+  <data name="Luna.Child.NoChats" xml:space="preserve"><value>No chats yet</value></data>
+  <data name="Luna.Child.NoChatsText" xml:space="preserve"><value>{0} hasn't talked to Luna yet. {0}'s chats will show up here.</value></data>
+  <data name="Luna.Review.AllCaughtUp" xml:space="preserve"><value>All caught up</value></data>
+  <data name="Luna.Review.NothingToReview" xml:space="preserve"><value>Nothing from {0} needs your review.</value></data>
+  <data name="Luna.Child.TestFailed" xml:space="preserve"><value>last test failed</value></data>
 </root>

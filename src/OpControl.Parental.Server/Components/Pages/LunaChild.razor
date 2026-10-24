@@ -30,10 +30,13 @@ else if (_childId == Guid.Empty)
 else
 {
     <div class="page-head">
-        <div>
-            <div class="eyebrow">@L["Luna.Child.Eyebrow"]</div>
-            <h1>@L["Luna.Child.Title", _childName]</h1>
-            <p>@Subtitle</p>
+        <div class="luna-page-title">
+            <LunaMoon State="MoonState" />
+            <div>
+                <div class="eyebrow">@L["Luna.Child.Eyebrow"]</div>
+                <h1>@L["Luna.Child.Title", _childName]</h1>
+                <p>@Subtitle</p>
+            </div>
         </div>
         <div class="button-row">
             <a class="btn" href="/luna/setup">@L["Luna.Child.SetupButton"]</a>
@@ -148,6 +151,13 @@ else
                 {
                     <div class="luna-reason">@L["Luna.Child.NoDobInfo"]</div>
                 }
+                @if (ShowAiBlockTip)
+                {
+                    <div class="luna-tip">
+                        <span>@L["Luna.Child.AiBlockTip", _childName]</span>
+                        <a class="btn btn-ghost" href="/websites">@L["Luna.Child.OpenWebsites"]</a>
+                    </div>
+                }
             </section>
 
             <section class="card">
@@ -176,32 +186,45 @@ else
         </div>
 
         <div class="stack">
-            <section class="card">
-                <div class="card-title-row">
-                    <h2>@L["Luna.Child.NeedsReview"]</h2>
-                    <a class="small" href="@ReviewUrl()">@L["Luna.Child.SeeAll"]</a>
-                </div>
-                @if (_reviewItems.Count == 0)
-                {
-                    <p class="muted">@L["Luna.Child.NothingToReview"]</p>
-                }
-                else
-                {
-                    <div class="luna-chat-list">
-                        @foreach (var item in _reviewItems)
-                        {
-                            <a class="luna-chat-row" href="@ReviewUrl(item.ChatId)">
-                                <span class="luna-dot" style="background:@LunaUi.Subject(item.Subject).Color"></span>
-                                <span class="luna-chat-main">
-                                    <span class="luna-chat-title">@item.Title · @L[LunaUi.Subject(item.Subject).NameKey]</span>
-                                    <span class="luna-chat-meta">@L[LunaUi.FlagLabelKey(item.Flag)] · @FormatLocal(item.CreatedUtc)</span>
-                                </span>
-                                <span class="luna-tag @LunaUi.FlagClass(item.Flag)">@L[LunaUi.FlagLabelKey(item.Flag)]</span>
-                            </a>
-                        }
+            @if (_totalChats == 0)
+            {
+                <section class="card">
+                    <div class="luna-empty-state">
+                        <LunaMoon State="LunaMoonState.Looking" Size="72" />
+                        <b>@L["Luna.Child.NoChats"]</b>
+                        <p>@L["Luna.Child.NoChatsText", _childName]</p>
                     </div>
-                }
-            </section>
+                </section>
+            }
+            else
+            {
+                <section class="card">
+                    <div class="card-title-row">
+                        <h2>@L["Luna.Child.NeedsReview"]</h2>
+                        <a class="small" href="@ReviewUrl()">@L["Luna.Child.SeeAll"]</a>
+                    </div>
+                    @if (_reviewItems.Count == 0)
+                    {
+                        <p class="muted">@L["Luna.Child.NothingToReview"]</p>
+                    }
+                    else
+                    {
+                        <div class="luna-chat-list">
+                            @foreach (var item in _reviewItems)
+                            {
+                                <a class="luna-chat-row" href="@ReviewUrl(item.ChatId)">
+                                    <span class="luna-dot" style="background:@LunaUi.Subject(item.Subject).Color"></span>
+                                    <span class="luna-chat-main">
+                                        <span class="luna-chat-title">@item.Title · @L[LunaUi.Subject(item.Subject).NameKey]</span>
+                                        <span class="luna-chat-meta">@L[LunaUi.FlagLabelKey(item.Flag)] · @FormatLocal(item.CreatedUtc)</span>
+                                    </span>
+                                    <span class="luna-tag @LunaUi.FlagClass(item.Flag)">@L[LunaUi.FlagLabelKey(item.Flag)]</span>
+                                </a>
+                            }
+                        </div>
+                    }
+                </section>
+            }
 
             <section class="card">
                 <div class="card-title-row">
@@ -270,6 +293,7 @@ else
     private List<ReviewItem> _reviewItems = [];
     private int _needsReview;
     private int _chatsThisWeek;
+    private int _totalChats;
     private readonly Dictionary<string, int> _subjectCounts = new(StringComparer.Ordinal);
     private int _messagesUsed;
     private int _extraAllowed;
@@ -358,6 +382,7 @@ else
 
             _needsReview = await db.LunaMessages.AsNoTracking().CountAsync(m => m.FamilyId == _familyId
                 && m.ChildId == _childId && m.Flag != LunaMessageFlag.None && m.ReviewedUtc == null);
+            _totalChats = await db.LunaChats.AsNoTracking().CountAsync(c => c.FamilyId == _familyId && c.ChildId == _childId);
             _reviewItems = await (from m in db.LunaMessages.AsNoTracking()
                                   join c in db.LunaChats.AsNoTracking() on m.ChatId equals c.Id
                                   where m.FamilyId == _familyId && m.ChildId == _childId
@@ -506,6 +531,13 @@ else
 
     public void Dispose() => Events.LunaChanged -= OnLunaChanged;
 
+    private LunaMoonState MoonState =>
+        LunaUi.HeaderMoon(_familySettings?.LastTestOk == true, _familySettings?.LastTestError,
+            _child.Enabled && _child.SetupValid);
+
+    private bool ShowAiBlockTip =>
+        LunaUi.ShowPublicAiBlockTip(_child.Enabled && _child.SetupValid, null);
+
     private string Subtitle
     {
         get
@@ -519,7 +551,9 @@ else
                 ? (_familySettings.LastTestUtc is { } at && at.Date == DateTime.UtcNow.Date
                     ? L["Luna.Child.TestToday"].Value
                     : L["Luna.Child.TestOn", _familySettings.LastTestUtc is { } d ? FormatLocal(d) : ""].Value)
-                : L["Luna.Child.NotTested"].Value;
+                : !string.IsNullOrWhiteSpace(_familySettings.LastTestError)
+                    ? L["Luna.Child.TestFailed"].Value
+                    : L["Luna.Child.NotTested"].Value;
             return L["Luna.Child.Subtitle", setup, provider, _familySettings.ChatModel, tested].Value;
         }
     }

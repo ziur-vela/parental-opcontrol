@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 using System.Globalization;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using OpControl.Parental.Server.Data;
@@ -139,6 +140,48 @@ public class LocalizationTests
             "Luna.Setup.Check.Chat", "Luna.Setup.Check.Ok", "Luna.Alias"
         };
         Assert.All(identical, key => Assert.Contains(key, allowed));
+    }
+
+    [Fact]
+    public void Child_gender_pronouns_are_not_used_in_dashboard_strings()
+    {
+        var english = ReadResx("AppStrings.resx");
+        var spanish = ReadResx("AppStrings.es-MX.resx");
+        var englishPronouns = new Regex(@"\b(he|him|his|she|her|hers|himself|herself)\b", RegexOptions.IgnoreCase);
+        var spanishGendered = new Regex(@"\b(él|ella|ellas|ellos|niño|niña|cansado|cansada)\b", RegexOptions.IgnoreCase);
+        // Luna's own gender is allowed. This one string is about Luna, not the child.
+        var allowedEnglishKeys = new HashSet<string>(StringComparer.Ordinal) { "Luna.Child.MonthlyCap" };
+        var failures = new List<string>();
+
+        foreach (var (key, value) in english)
+        {
+            if (!allowedEnglishKeys.Contains(key) && englishPronouns.IsMatch(value))
+                failures.Add($"en {key}: {value}");
+        }
+        foreach (var (key, value) in spanish)
+        {
+            if (spanishGendered.IsMatch(value))
+                failures.Add($"es-MX {key}: {value}");
+        }
+
+        foreach (var (key, value) in ReadJsonValues("en.json"))
+        {
+            if (englishPronouns.IsMatch(value)) failures.Add($"en.json {key}: {value}");
+        }
+        foreach (var (key, value) in ReadJsonValues("es-MX.json"))
+        {
+            if (spanishGendered.IsMatch(value)) failures.Add($"es-MX.json {key}: {value}");
+        }
+
+        Assert.True(failures.Count == 0, "Gendered child wording found:\n" + string.Join('\n', failures));
+    }
+
+    private static Dictionary<string, string> ReadJsonValues(string name)
+    {
+        var path = Path.Combine(Root, "src", "OpControl.Parental.Localization", name);
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        return document.RootElement.EnumerateObject()
+            .ToDictionary(p => p.Name, p => p.Value.GetString() ?? "");
     }
 
     [Fact]

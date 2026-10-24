@@ -485,6 +485,17 @@ public class LunaTests
     }
 
     [Fact]
+    public void Summary_and_profile_prompts_forbid_gendered_child_pronouns()
+    {
+        foreach (var prompt in new[] { LunaPrompts.SummaryPrompt, LunaPrompts.ProfilePrompt })
+        {
+            Assert.Contains("use the child's name", prompt);
+            Assert.Contains("never use he, she, him, her or his", prompt);
+            Assert.Contains("avoid gendered forms for the child", prompt);
+        }
+    }
+
+    [Fact]
     public async Task Clean_first_message_still_generates_a_title()
     {
         await using var h = await NewHarnessAsync();

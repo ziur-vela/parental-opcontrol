@@ -40,20 +40,23 @@ public sealed class FakeLunaChatProvider : ILunaChatProvider
 {
     public string ProviderId => "fake";
 
-    public Task<LunaChatResult> CompleteAsync(LunaProviderConfig config, LunaChatRequest request, CancellationToken ct)
+    public async Task<LunaChatResult> CompleteAsync(LunaProviderConfig config, LunaChatRequest request, CancellationToken ct)
     {
         if (request.SystemPrompt == LunaPrompts.TitlePrompt)
-            return Task.FromResult(new LunaChatResult("Fractions practice", 4, 2));
+            return new LunaChatResult("Fractions practice", 4, 2);
         if (request.SystemPrompt.StartsWith(LunaPrompts.SummaryPrompt, StringComparison.Ordinal))
-            return Task.FromResult(new LunaChatResult("The child practised fractions and times tables.", 8, 6));
+            return new LunaChatResult("The child practised fractions and times tables.", 8, 6);
         if (request.SystemPrompt.StartsWith(LunaPrompts.ProfilePrompt, StringComparison.Ordinal))
-            return Task.FromResult(new LunaChatResult("Grade 5. Practising fractions and the 7 and 8 times tables.", 8, 6));
+            return new LunaChatResult("Grade 5. Practising fractions and the 7 and 8 times tables.", 8, 6);
+
+        if (request.SystemPrompt.Contains("setup health check", StringComparison.Ordinal))
+            await Task.Delay(1_200, ct);
 
         var last = request.Messages.LastOrDefault()?.Content ?? "";
         var reply = last.Contains("7", StringComparison.Ordinal)
             ? "Let's work it out together. What is 7 × 8? Try counting in sevens: 7, 14, 21…"
             : "That's a good question. What do you already know about it? We can work out the next step together.";
-        return Task.FromResult(new LunaChatResult(reply, 12, 8));
+        return new LunaChatResult(reply, 12, 8);
     }
 }
 

@@ -1,0 +1,92 @@
+@* Copyright (c) 2026 Ziur / OpControl IT Solutions
+   SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 *@
+
+@using OpControl.Parental.Server.Services.Luna
+@inject IStringLocalizer<AppStrings> L
+
+<div class="luna-moon luna-moon-@State.ToString().ToLowerInvariant()" style="width:@(Size)px;height:@(Size)px">
+    <svg viewBox="0 0 172 172" role="img" aria-label="@Label">
+        <g aria-hidden="true">
+            @switch (State)
+            {
+                case LunaMoonState.Awake:
+                    <g class="luna-moon-float">
+                        <circle class="luna-moon-face" cx="86" cy="86" r="84" />
+                        <circle cx="50" cy="46" r="12" fill="#ecc964" />
+                        <circle cx="130" cy="122" r="8" fill="#ecc964" />
+                        <g class="luna-moon-blink">
+                            <ellipse cx="64" cy="80" rx="9" ry="12" fill="#2b2f3a" />
+                            <ellipse cx="108" cy="80" rx="9" ry="12" fill="#2b2f3a" />
+                        </g>
+                        <path d="M60 108 Q86 134 112 108" stroke="#2b2f3a" stroke-width="9" fill="none" stroke-linecap="round" />
+                    </g>
+                    break;
+                case LunaMoonState.Asleep:
+                    <g class="luna-moon-tilt">
+                        <g class="luna-moon-breathe">
+                            <circle class="luna-moon-face" cx="86" cy="86" r="84" />
+                            <circle cx="50" cy="46" r="12" fill="#ecc964" />
+                            <circle cx="130" cy="122" r="8" fill="#ecc964" />
+                            <path d="M52 82 q12 10 24 0" stroke="#2b2f3a" stroke-width="8" fill="none" stroke-linecap="round" />
+                            <path d="M96 82 q12 10 24 0" stroke="#2b2f3a" stroke-width="8" fill="none" stroke-linecap="round" />
+                            <path d="M76 114 q10 6 20 0" stroke="#2b2f3a" stroke-width="7" fill="none" stroke-linecap="round" />
+                        </g>
+                    </g>
+                    break;
+                case LunaMoonState.Paused:
+                    <g class="luna-moon-tilt">
+                        <g class="luna-moon-breathe">
+                            <circle class="luna-moon-face" cx="86" cy="86" r="84" />
+                            <circle cx="50" cy="46" r="12" fill="#ecc964" />
+                            <circle cx="130" cy="122" r="8" fill="#ecc964" />
+                            <path d="M52 82 q12 10 24 0" stroke="#2b2f3a" stroke-width="8" fill="none" stroke-linecap="round" />
+                            <path d="M96 82 q12 10 24 0" stroke="#2b2f3a" stroke-width="8" fill="none" stroke-linecap="round" />
+                            <path d="M74 118 q12 -7 24 0" stroke="#2b2f3a" stroke-width="7" fill="none" stroke-linecap="round" />
+                        </g>
+                    </g>
+                    break;
+                case LunaMoonState.Happy:
+                    <g>
+                        <circle class="luna-moon-face" cx="86" cy="86" r="84" />
+                        <circle cx="50" cy="46" r="12" fill="#ecc964" />
+                        <circle cx="130" cy="122" r="8" fill="#ecc964" />
+                        <path d="M54 82 q10 -12 20 0" stroke="#2b2f3a" stroke-width="8" fill="none" stroke-linecap="round" />
+                        <path d="M98 82 q10 -12 20 0" stroke="#2b2f3a" stroke-width="8" fill="none" stroke-linecap="round" />
+                        <path d="M56 104 Q86 140 116 104" stroke="#2b2f3a" stroke-width="9" fill="none" stroke-linecap="round" />
+                        <g class="luna-stars" fill="#fff6c8">
+                            <path class="luna-star" d="M30 40 l4 9 9 4 -9 4 -4 9 -4 -9 -9 -4 9 -4z" />
+                            <path class="luna-star luna-star-2" d="M134 58 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z" />
+                        </g>
+                    </g>
+                    break;
+                case LunaMoonState.Looking:
+                    <g>
+                        <circle class="luna-moon-face" cx="86" cy="86" r="84" />
+                        <circle cx="50" cy="46" r="12" fill="#ecc964" />
+                        <circle cx="130" cy="122" r="8" fill="#ecc964" />
+                        <g class="luna-look">
+                            <ellipse cx="64" cy="80" rx="9" ry="12" fill="#2b2f3a" />
+                            <ellipse cx="108" cy="80" rx="9" ry="12" fill="#2b2f3a" />
+                        </g>
+                        <path d="M70 112 Q86 122 102 112" stroke="#2b2f3a" stroke-width="7" fill="none" stroke-linecap="round" />
+                    </g>
+                    break;
+            }
+        </g>
+    </svg>
+    @if (State == LunaMoonState.Asleep)
+    {
+        <span class="luna-zzz" aria-hidden="true"><span>z</span><span>z</span><span>Z</span></span>
+    }
+    @if (State == LunaMoonState.Paused)
+    {
+        <span class="luna-paused-badge" aria-hidden="true">!</span>
+    }
+</div>
+
+@code {
+    [Parameter] public LunaMoonState State { get; set; } = LunaMoonState.Awake;
+    [Parameter] public int Size { get; set; } = 52;
+
+    private string Label => L[$"Luna.Moon.{State}"].Value;
+}

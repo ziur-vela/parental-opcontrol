@@ -6,6 +6,15 @@ using OpControl.Parental.Server.Data;
 
 namespace OpControl.Parental.Server.Services.Luna;
 
+public enum LunaMoonState
+{
+    Awake,
+    Asleep,
+    Paused,
+    Happy,
+    Looking
+}
+
 /// <summary>Shared subject colours, names and flag labels for the parent dashboard.</summary>
 public static class LunaUi
 {
@@ -43,4 +52,17 @@ public static class LunaUi
 
     public static bool NeedsReview(LunaMessage message) =>
         message.Flag != LunaMessageFlag.None && message.ReviewedUtc is null;
+
+    /// <summary>The header moon for a child page, the review page or the setup page.</summary>
+    public static LunaMoonState HeaderMoon(bool lastTestOk, string? lastTestError, bool childOn) =>
+        !lastTestOk && !string.IsNullOrWhiteSpace(lastTestError)
+            ? LunaMoonState.Paused
+            : lastTestOk && childOn ? LunaMoonState.Awake : LunaMoonState.Asleep;
+
+    /// <summary>
+    /// One place for the public-AI-block tip condition. The setting does not exist yet;
+    /// pass null for now. A later job passes the real setting so the tip hides when it is on.
+    /// </summary>
+    public static bool ShowPublicAiBlockTip(bool lunaOn, bool? publicAiChatsBlocked) =>
+        lunaOn && publicAiChatsBlocked != true;
 }

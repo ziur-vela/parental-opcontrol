@@ -26,10 +26,13 @@
 else
 {
     <div class="page-head">
-        <div>
-            <div class="eyebrow">@L["Luna.Setup.Eyebrow"]</div>
-            <h1>@L["Luna.Setup.Title"]</h1>
-            <p>@L["Luna.Setup.Subtitle"]</p>
+        <div class="luna-page-title">
+            <LunaMoon State="MoonState" />
+            <div>
+                <div class="eyebrow">@L["Luna.Setup.Eyebrow"]</div>
+                <h1>@L["Luna.Setup.Title"]</h1>
+                <p>@L["Luna.Setup.Subtitle"]</p>
+            </div>
         </div>
         <a class="btn" href="/luna">@L["Luna.Setup.Back"]</a>
     </div>
@@ -77,6 +80,18 @@ else
         </div>
         @if (_guideOpen)
         {
+            <div class="luna-why">
+                <h3>@L["Luna.Why.Title"]</h3>
+                <p>@L["Luna.Why.Text"]</p>
+                <ul>
+                    <li>@L["Luna.Why.Bullet.Kids"]</li>
+                    <li>@L["Luna.Why.Bullet.Filter"]</li>
+                    <li>@L["Luna.Why.Bullet.Alerts"]</li>
+                    <li>@L["Luna.Why.Bullet.NoAds"]</li>
+                    <li>@L["Luna.Why.Bullet.Limits"]</li>
+                </ul>
+                <p class="luna-why-foot">@L["Luna.Why.Footer"]</p>
+            </div>
             <div class="luna-guide-grid">
                 <div><div class="lbl">@L["Luna.Guide.Checks.Title"]</div><p class="small">@L["Luna.Guide.Checks.Text"]</p></div>
                 <div><div class="lbl">@L["Luna.Guide.Charge.Title"]</div><p class="small">@L["Luna.Guide.Charge.Text"]</p></div>
@@ -232,7 +247,25 @@ else
             }
         </div>
         <div class="button-row">
-            <button type="button" class="btn btn-primary" disabled="@_busy" @onclick="() => TestAsync()">@(_busy ? L["Luna.Setup.Testing"] : L["Luna.Setup.Test"])</button>
+            <button id="luna-test" type="button" class="btn luna-test-button @(_busy ? "" : "btn-primary")"
+                    disabled="@_busy"
+                    aria-label="@(_busy ? L["Luna.Setup.Testing"].Value : L["Luna.Setup.Test"].Value)"
+                    @onclick="TestAsync">
+                @if (_busy)
+                {
+                    <LunaPhaseMoon Size="20" />
+                    <span class="luna-wave" aria-hidden="true">
+                        @for (var i = 0; i < TestingText.Length; i++)
+                        {
+                            <span style="--i:@i">@TestingText[i]</span>
+                        }
+                    </span>
+                }
+                else
+                {
+                    @L["Luna.Setup.Test"]
+                }
+            </button>
             @if (_testResult is not null)
             {
                 <span class="luna-check-line">
@@ -299,6 +332,9 @@ else
     private int _monthUsage;
     private decimal _monthCost;
     private bool _ready;
+
+    private LunaMoonState MoonState => LunaUi.HeaderMoon(_lastTestOk == true, _lastTestError, _ready);
+    private string TestingText => L["Luna.Setup.Testing"].Value;
 
     protected override async Task OnInitializedAsync()
     {
