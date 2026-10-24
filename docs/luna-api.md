@@ -182,7 +182,7 @@ Returns the family provider setup. Keys are never returned, only `hasKey` and th
 
 ```json
 {
-  "setup": "B",
+  "setup": "A",
   "chatProvider": "openrouter",
   "chatModel": "vendor/model",
   "hasChatKey": true,
@@ -197,13 +197,13 @@ Returns the family provider setup. Keys are never returned, only `hasKey` and th
 }
 ```
 
-`setup`: `A` (OpenAI, Anthropic, Gemini or DeepSeek chat + OpenAI moderation) or `B` (one OpenRouter key: chat + Llama Guard 4).
+`setup`: `A` (one OpenRouter key: chat + Llama Guard 4, zero data retention) or `B` (OpenAI, Anthropic, Gemini or DeepSeek chat + OpenAI moderation).
 
 ### `POST /api/luna/settings`
 
 ```json
 {
-  "setup": "B",
+  "setup": "A",
   "chatProvider": "openrouter",
   "chatModel": "vendor/model",
   "chatKey": "sk-…",
@@ -215,15 +215,15 @@ Returns the family provider setup. Keys are never returned, only `hasKey` and th
 
 - `chatKey` / `moderationKey` are optional on update; omit to keep the saved key. New keys are encrypted with DataProtection protector `OpControl.Parental.Luna.Keys`.
 - Changing setup/provider/model/key resets the last test; Luna cannot be enabled until the test passes.
-- Setup A with OpenAI chat may reuse the chat key for moderation (`moderationKey` optional).
+- Setup A needs the OpenRouter key only. Setup B needs the chat provider key and an OpenAI moderation key; when the chat provider is OpenAI, the same key is reused and `moderationKey` is optional.
 - `helplineText` max 500; empty restores the default short sentence (no phone numbers until verified).
 
 ### `POST /api/luna/settings/test`
 
-Owner only. Makes one tiny real chat call and one tiny moderation call with the configured keys. For OpenRouter it first checks `https://openrouter.ai/api/v1/endpoints/zdr` for the chosen chat model and `meta-llama/llama-guard-4-12b`; every OpenRouter request (chat and Llama Guard) sends `"provider":{"zdr":true}`.
+Owner only. Makes one tiny real chat call and one tiny moderation call with the configured keys. For Setup A (or any OpenRouter setup) it first checks `https://openrouter.ai/api/v1/endpoints/zdr` for the chosen chat model and `meta-llama/llama-guard-4-12b`; every OpenRouter request (chat and Llama Guard) sends `"provider":{"zdr":true}`.
 
 ```json
-{ "ok": false, "error": "The provider rejected the key. Check the key and try again." }
+{ "ok": false, "error": "The provider rejected the key. Check the key and try again.", "chatOk": true, "safetyOk": false, "zdrOk": true }
 ```
 
 `200` for both outcomes; `lastTestUtc`, `lastTestOk` and `lastTestError` are stored.
@@ -257,8 +257,8 @@ Owner only. Makes one tiny real chat call and one tiny moderation call with the 
 { "enabled": true, "dailyMessageLimit": 60, "extraInstructions": "Be encouraging.", "underThirteenAcknowledged": false }
 ```
 
-- Enabling requires `setupValid` (`lastTestOk == true`).
-- Under-13 rule: when the family uses Setup A and the child is under 13 **or has no date of birth**, the request must set `underThirteenAcknowledged: true` the first time (or an acknowledgement must already exist). Otherwise `400`.
+- Enabling requires `setupValid`: every key the setup needs is saved and the last Test connection passed.
+- Under-13 rule: when the family uses Setup B and the child is under 13 **or has no date of birth**, the request must set `underThirteenAcknowledged: true` the first time (or an acknowledgement must already exist). Otherwise `400`.
 - `dailyMessageLimit` 1–500, default 60. Extra instructions max 1,000 characters.
 - Returns the child Luna object above.
 

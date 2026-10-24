@@ -18,8 +18,13 @@ public sealed class LunaTokenService
 {
     public static readonly TimeSpan Lifetime = TimeSpan.FromMinutes(15);
     private readonly ParentalDbContext _db;
+    private readonly LunaSettingsService? _settings;
 
-    public LunaTokenService(ParentalDbContext db) => _db = db;
+    public LunaTokenService(ParentalDbContext db, LunaSettingsService? settings = null)
+    {
+        _db = db;
+        _settings = settings;
+    }
 
     public async Task<(string Token, DateTime ExpiresUtc)> IssueAsync(Device device, CancellationToken ct = default)
     {
@@ -28,8 +33,9 @@ public sealed class LunaTokenService
         if (settings is not { Enabled: true })
             throw new InvalidOperationException(AppText.Get("Luna.Error.Disabled"));
 
-        var setupValid = await _db.LunaFamilySettings.AsNoTracking()
-            .AnyAsync(s => s.FamilyId == device.FamilyId && s.LastTestOk == true, ct);
+        var family = await _db.LunaFamilySettings.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.FamilyId == device.FamilyId, ct);
+        var setupValid = family is not null && (_settings?.IsReady(family) ?? family.LastTestOk == true);
         if (!setupValid)
             throw new InvalidOperationException(AppText.Get("Luna.Error.SetupNotTested"));
 

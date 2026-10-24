@@ -59,6 +59,13 @@
                     @if (_messageUnread > 0) { <span class="nav-count">@_messageUnread</span> }
                 </NavLink>
             }
+            @if (Can(PermissionFlags.Luna))
+            {
+                <NavLink class="nav-link" href="/luna">
+                    <span class="nav-ico">☾</span> @L["Nav.Luna"]
+                    @if (_lunaOpen > 0) { <span class="nav-count">@_lunaOpen</span> }
+                </NavLink>
+            }
             @if (Can(PermissionFlags.ViewReports))
             {
                 <NavLink class="nav-link" href="/alerts">
@@ -124,6 +131,7 @@
 @code {
     private int _unread;
     private int _messageUnread;
+    private int _lunaOpen;
     private bool _isOwner;
     private bool _isServerAdmin;
     private ParentPermissions _permissions;
@@ -140,7 +148,8 @@
         ManageDevices = 32,
         ManagePin = 64,
         RemoteView = 128,
-        Messaging = 256
+        Messaging = 256,
+        Luna = 512
     }
 
     private bool IsSpanish => System.Globalization.CultureInfo.CurrentUICulture.Name.StartsWith("es", StringComparison.OrdinalIgnoreCase);
@@ -166,6 +175,7 @@
         _permissions = int.TryParse(auth.User.FindFirst("permissions")?.Value, out var value) ? (ParentPermissions)value : ParentPermissions.None;
         Events.AlertChanged += OnAlertChanged;
         Events.MessageChanged += OnMessageChanged;
+        Events.LunaChanged += OnLunaChanged;
         await RefreshAsync();
     }
 
@@ -173,6 +183,9 @@
         _ = InvokeAsync(async () => { await RefreshAsync(); StateHasChanged(); });
 
     private void OnMessageChanged(OpControl.Parental.Contracts.ChildMessageDto message) =>
+        _ = InvokeAsync(async () => { await RefreshAsync(); StateHasChanged(); });
+
+    private void OnLunaChanged() =>
         _ = InvokeAsync(async () => { await RefreshAsync(); StateHasChanged(); });
 
     private async Task RefreshAsync()
@@ -192,6 +205,10 @@
             _unread = await db.Alerts.AsNoTracking().CountAsync(a => a.FamilyId == familyId && a.ChildId == childId && a.ReadUtc == null);
             _messageUnread = await db.ChildMessages.AsNoTracking().CountAsync(m => m.FamilyId == familyId
                 && m.Direction == MessageDirection.ChildToParent && m.ParentReadUtc == null && m.DeletedUtc == null);
+            _lunaOpen = await db.LunaMessages.AsNoTracking().CountAsync(m => m.FamilyId == familyId
+                    && m.Flag != LunaMessageFlag.None && m.ReviewedUtc == null)
+                + await db.LunaMoreRequests.AsNoTracking().CountAsync(r => r.FamilyId == familyId
+                    && r.Status == LunaMoreRequestStatus.Pending);
         }
         catch { }
     }
@@ -200,5 +217,6 @@
     {
         Events.AlertChanged -= OnAlertChanged;
         Events.MessageChanged -= OnMessageChanged;
+        Events.LunaChanged -= OnLunaChanged;
     }
 }

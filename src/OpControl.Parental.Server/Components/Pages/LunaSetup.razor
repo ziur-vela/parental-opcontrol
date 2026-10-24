@@ -1,0 +1,487 @@
+@* Copyright (c) 2026 Ziur / OpControl IT Solutions
+   SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 *@
+
+@page "/luna/setup"
+@attribute [Authorize(Policy = ParentalPolicies.Owner)]
+@rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using OpControl.Parental.Contracts
+@using OpControl.Parental.Server.Auth
+@using OpControl.Parental.Server.Data
+@using OpControl.Parental.Server.Services
+@using OpControl.Parental.Server.Services.Luna
+@inject AuthenticationStateProvider AuthState
+@inject IServiceScopeFactory Scopes
+@inject DashboardEventBus Events
+@inject IStringLocalizer<AppStrings> L
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<PageTitle>@L["Luna.Setup.PageTitle"]</PageTitle>
+
+@if (_loading)
+{
+    <div class="card"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
+}
+else
+{
+    <div class="page-head">
+        <div>
+            <div class="eyebrow">@L["Luna.Setup.Eyebrow"]</div>
+            <h1>@L["Luna.Setup.Title"]</h1>
+            <p>@L["Luna.Setup.Subtitle"]</p>
+        </div>
+        <a class="btn" href="/luna">@L["Luna.Setup.Back"]</a>
+    </div>
+
+    @if (_error is not null) { <div class="alert danger">@_error</div> }
+    @if (_notice is not null) { <div class="alert ok">@_notice</div> }
+
+    <section class="card">
+        <div class="card-title-row"><h2>@L["Luna.Setup.StatusTitle"]</h2></div>
+        <div class="luna-switch-row">
+            <span class="luna-status-dot @(_ready ? "" : "bad")"></span>
+            <div class="luna-switch-main">
+                @if (_ready)
+                {
+                    <b>@L["Luna.Setup.StatusReady", _setup]</b>
+                }
+                else
+                {
+                    <b>@L["Luna.Setup.StatusNotReady"]</b>
+                }
+                <span class="muted small">
+                    @if (_lastTestUtc is { } tested)
+                    {
+                        @L["Luna.Setup.LastTest", FormatDateTime(tested)]
+                    }
+                    else
+                    {
+                        @L["Luna.Setup.NeverTested"]
+                    }
+                </span>
+                @if (!string.IsNullOrWhiteSpace(_lastTestError) && _lastTestOk != true)
+                {
+                    <span class="small danger-text">@_lastTestError</span>
+                }
+            </div>
+        </div>
+    </section>
+
+    <section class="card luna-guide">
+        <div class="card-title-row">
+            <h2>@L["Luna.Setup.Guide"]</h2>
+            <button type="button" class="ghost-btn" @onclick="ToggleGuideAsync">
+                @(_guideOpen ? L["Luna.Setup.Guide.Hide"] : L["Luna.Setup.Guide.Show"])
+            </button>
+        </div>
+        @if (_guideOpen)
+        {
+            <div class="luna-guide-grid">
+                <div><div class="lbl">@L["Luna.Guide.Checks.Title"]</div><p class="small">@L["Luna.Guide.Checks.Text"]</p></div>
+                <div><div class="lbl">@L["Luna.Guide.Charge.Title"]</div><p class="small">@L["Luna.Guide.Charge.Text"]</p></div>
+                <div><div class="lbl">@L["Luna.Guide.TwoSetups.Title"]</div><p class="small">@L["Luna.Guide.TwoSetups.Text"]</p></div>
+                <div><div class="lbl">@L["Luna.Guide.Under13.Title"]</div><p class="small">@L["Luna.Guide.Under13.Text"]</p></div>
+                <div><div class="lbl">@L["Luna.Guide.Cost.Title"]</div><p class="small">@L["Luna.Guide.Cost.Text"]</p></div>
+                <div>
+                    <div class="lbl">@L["Luna.Guide.GetKey.Title"]</div>
+                    <ol class="small">
+                        <li>@L["Luna.Guide.GetKey.Step1"]</li>
+                        <li>@L["Luna.Guide.GetKey.Step2"]</li>
+                        <li>@L["Luna.Guide.GetKey.Step3"]</li>
+                    </ol>
+                    <details class="inline-message small">
+                        <summary class="ghost-btn">@L["Luna.Guide.GetKey.SetupB"]</summary>
+                        <p class="muted small">@L["Luna.Guide.GetKey.SetupBText"]</p>
+                    </details>
+                </div>
+            </div>
+        }
+    </section>
+
+    <section class="card">
+        <div class="card-title-row"><h2>@L["Luna.Setup.Choose"]</h2></div>
+        <div class="luna-setup-grid">
+            <label class="luna-choice @(_setup == "A" ? "selected" : "")">
+                <input type="radio" name="setup" checked="@(_setup == "A")" @onchange='() => SetSetup("A")' />
+                <span class="luna-choice-main">
+                    <span class="luna-choice-title">@L["Luna.Setup.SetupAName"] <span class="luna-badge">@L["Luna.Setup.Recommended"]</span></span>
+                    <span class="muted small">@L["Luna.Setup.SetupADesc"]</span>
+                </span>
+            </label>
+            <label class="luna-choice @(_setup == "B" ? "selected" : "")">
+                <input type="radio" name="setup" checked="@(_setup == "B")" @onchange='() => SetSetup("B")' />
+                <span class="luna-choice-main">
+                    <span class="luna-choice-title">@L["Luna.Setup.SetupBName"]</span>
+                    <span class="muted small">@L["Luna.Setup.SetupBDesc"]</span>
+                </span>
+            </label>
+        </div>
+        <div class="luna-hard-rule">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="1"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+            <span class="small"><b>@L["Luna.Setup.HardRule"]</b> @L["Luna.Setup.HardRuleText"]</span>
+        </div>
+    </section>
+
+    <section class="card">
+        <div class="card-title-row"><h2>@L["Luna.Setup.KeysModel"]</h2><span class="muted tiny">@L["Luna.Setup.KeysNote"]</span></div>
+        <div class="luna-setup-grid">
+            @if (_setup == "A")
+            {
+                <div class="stack">
+                    <label class="lbl">@L["Luna.Setup.OpenRouterKey"]</label>
+                    <div class="luna-key-row">
+                        @if (_hasChatKey && !_replaceChatKey)
+                        {
+                            <input class="luna-key-saved" readonly value="@L["Luna.Setup.KeySaved", _chatKeyLast4]" />
+                            <button type="button" class="btn" @onclick="() => _replaceChatKey = true">@L["Luna.Setup.Replace"]</button>
+                        }
+                        else
+                        {
+                            <input type="password" autocomplete="off" @bind="_chatKeyValue" placeholder="@L["Luna.Setup.OpenRouterKey"]" />
+                            @if (_hasChatKey)
+                            {
+                                <button type="button" class="btn" @onclick="() => _replaceChatKey = false">@L["Luna.Common.Cancel"]</button>
+                            }
+                        }
+                    </div>
+                </div>
+                <div class="stack">
+                    <label class="lbl">@L["Luna.Setup.ChatModel"]</label>
+                    <select value="@_modelChoice" @onchange="OnModelChoiceChanged">
+                        @foreach (var model in LunaModels.All)
+                        {
+                            <option value="@model.Id">@ModelLabel(model)</option>
+                        }
+                        <option value="@LunaModels.Other">@L["Luna.Model.Other"]</option>
+                    </select>
+                    @if (_modelChoice == LunaModels.Other)
+                    {
+                        <input @bind="_customModel" placeholder="@L["Luna.Setup.ModelId"]" />
+                    }
+                    else if (LunaModels.Find(_modelChoice) is { } selected)
+                    {
+                        <span class="muted tiny">@L[selected.EstimateKey]</span>
+                    }
+                    <span class="muted tiny">@L["Luna.Model.PriceNote"]</span>
+                </div>
+                <div class="stack">
+                    <span class="lbl">@L["Luna.Setup.SafetyFilter"]</span>
+                    <span class="pill">@L["Luna.Setup.SafetyFilterA"]</span>
+                </div>
+            }
+            else
+            {
+                <div class="stack">
+                    <label class="lbl">@L["Luna.Setup.ChatProvider"]</label>
+                    <select @bind="_provider">
+                        @foreach (var provider in ProvidersB)
+                        {
+                            <option value="@provider">@ProviderLabel(provider)</option>
+                        }
+                    </select>
+                </div>
+                <div class="stack">
+                    <label class="lbl">@L["Luna.Setup.ChatProviderKey"]</label>
+                    <div class="luna-key-row">
+                        @if (_hasChatKey && !_replaceChatKey)
+                        {
+                            <input class="luna-key-saved" readonly value="@L["Luna.Setup.KeySaved", _chatKeyLast4]" />
+                            <button type="button" class="btn" @onclick="() => _replaceChatKey = true">@L["Luna.Setup.Replace"]</button>
+                        }
+                        else
+                        {
+                            <input type="password" autocomplete="off" @bind="_chatKeyValue" />
+                            @if (_hasChatKey)
+                            {
+                                <button type="button" class="btn" @onclick="() => _replaceChatKey = false">@L["Luna.Common.Cancel"]</button>
+                            }
+                        }
+                    </div>
+                </div>
+                <div class="stack">
+                    <label class="lbl">@L["Luna.Setup.ModerationKey"]</label>
+                    <div class="luna-key-row">
+                        @if (_hasModerationKey && !_replaceModerationKey)
+                        {
+                            <input class="luna-key-saved" readonly value="@L["Luna.Setup.KeySaved", _moderationKeyLast4]" />
+                            <button type="button" class="btn" @onclick="() => _replaceModerationKey = true">@L["Luna.Setup.Replace"]</button>
+                        }
+                        else
+                        {
+                            <input type="password" autocomplete="off" @bind="_moderationKeyValue" />
+                            @if (_hasModerationKey)
+                            {
+                                <button type="button" class="btn" @onclick="() => _replaceModerationKey = false">@L["Luna.Common.Cancel"]</button>
+                            }
+                        }
+                    </div>
+                    @if (_provider == LunaChatProviders.OpenAi)
+                    {
+                        <span class="muted tiny">@L["Luna.Setup.SafetyFilter"] · @L["Luna.Setup.SafetyFilterB"]</span>
+                    }
+                </div>
+                <div class="stack">
+                    <label class="lbl">@L["Luna.Setup.ChatModel"]</label>
+                    <input @bind="_modelB" placeholder="@L["Luna.Setup.ModelId"]" />
+                </div>
+                <div class="stack">
+                    <span class="lbl">@L["Luna.Setup.SafetyFilter"]</span>
+                    <span class="pill">@L["Luna.Setup.SafetyFilterB"]</span>
+                </div>
+            }
+        </div>
+        <div class="button-row">
+            <button type="button" class="btn btn-primary" disabled="@_busy" @onclick="() => TestAsync()">@(_busy ? L["Luna.Setup.Testing"] : L["Luna.Setup.Test"])</button>
+            @if (_testResult is not null)
+            {
+                <span class="luna-check-line">
+                    <span class="luna-check @CheckClass(_testResult.ChatOk)">@CheckGlyph(_testResult.ChatOk) @L["Luna.Setup.Check.Chat"]</span>
+                    <span class="luna-check @CheckClass(_testResult.SafetyOk)">@CheckGlyph(_testResult.SafetyOk) @L["Luna.Setup.Check.Safety"]</span>
+                    <span class="luna-check @CheckClass(_testResult.ZdrOk)">@CheckGlyph(_testResult.ZdrOk) @L["Luna.Setup.Check.Zdr"]</span>
+                </span>
+            }
+        </div>
+    </section>
+
+    <section class="card">
+        <div class="card-title-row"><h2>@L["Luna.Setup.Limits"]</h2></div>
+        <div class="luna-setup-grid">
+            <div class="stack">
+                <label class="lbl">@L["Luna.Setup.MonthlyCap"]</label>
+                <input type="number" min="0" step="1000" @bind="_monthlyCap" />
+                <span class="muted tiny">@L["Luna.Setup.MonthlyUsage", _monthUsage.ToString("N0"), _monthCost.ToString("0.00")]</span>
+                <span class="muted tiny">@L["Luna.Setup.CapNote"]</span>
+            </div>
+            <div class="stack">
+                <label class="lbl">@L["Luna.Setup.Helpline"]</label>
+                <textarea class="msg-input" @bind="_helpline"></textarea>
+                <span class="muted tiny">@L["Luna.Setup.HelplineNote"]</span>
+            </div>
+        </div>
+        <div class="button-row" style="justify-content: flex-end">
+            <button type="button" class="btn btn-primary" disabled="@_busy" @onclick="() => SaveAsync(false)">@L["Luna.Setup.Save"]</button>
+        </div>
+    </section>
+}
+
+@code {
+    private static readonly string[] ProvidersB =
+        [LunaChatProviders.OpenAi, LunaChatProviders.Anthropic, LunaChatProviders.Gemini, LunaChatProviders.DeepSeek];
+
+    private Guid _familyId;
+    private Guid _parentId;
+    private bool _loading = true;
+    private bool _busy;
+    private bool _guideOpen = true;
+    private bool _guideLoaded;
+    private string? _error;
+    private string? _notice;
+    private string _setup = "A";
+    private string _provider = LunaChatProviders.OpenAi;
+    private string _modelChoice = LunaModels.All[0].Id;
+    private string _customModel = "";
+    private string _modelB = "";
+    private bool _hasChatKey;
+    private bool _hasModerationKey;
+    private string _chatKeyLast4 = "";
+    private string _moderationKeyLast4 = "";
+    private bool _replaceChatKey;
+    private bool _replaceModerationKey;
+    private string _chatKeyValue = "";
+    private string _moderationKeyValue = "";
+    private int? _monthlyCap;
+    private string _helpline = "";
+    private DateTime? _lastTestUtc;
+    private bool? _lastTestOk;
+    private string? _lastTestError;
+    private LunaTestResult? _testResult;
+    private int _monthUsage;
+    private decimal _monthCost;
+    private bool _ready;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthState.GetAuthenticationStateAsync();
+        Guid.TryParse(auth.User.FindFirst("family_id")?.Value, out _familyId);
+        Guid.TryParse(auth.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out _parentId);
+        await LoadAsync();
+        _loading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _guideLoaded) return;
+        _guideLoaded = true;
+        try
+        {
+            var stored = await JS.InvokeAsync<string?>("localStorage.getItem", "luna-guide-" + _parentId);
+            if (stored == "0")
+            {
+                _guideOpen = false;
+                StateHasChanged();
+            }
+        }
+        catch { }
+    }
+
+    private async Task LoadAsync()
+    {
+        using var scope = Scopes.CreateScope();
+        var settings = scope.ServiceProvider.GetRequiredService<LunaSettingsService>();
+        var usage = scope.ServiceProvider.GetRequiredService<LunaUsageStore>();
+        var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
+        var dto = await settings.GetAsync(_familyId);
+        Apply(dto);
+        _testResult = null;
+        _monthlyCap = dto.MonthlyTokenCap;
+        _helpline = dto.HelplineText;
+        var firstChild = await db.Children.AsNoTracking().Where(c => c.FamilyId == _familyId)
+            .OrderBy(c => c.CreatedUtc).Select(c => new { c.Id }).FirstOrDefaultAsync();
+        if (firstChild is not null)
+        {
+            var tz = LunaUsageStore.ResolveZone(await usage.FamilyTimeZoneIdAsync(_familyId, firstChild.Id));
+            var today = LunaUsageStore.LocalDate(DateTime.UtcNow, tz);
+            var (prompt, completion) = await usage.MonthlyTokensAsync(_familyId, today);
+            _monthUsage = prompt + completion;
+            _monthCost = LunaUsageStore.ApproxCost(prompt, completion);
+        }
+    }
+
+    private void Apply(LunaSettingsDto dto)
+    {
+        _setup = dto.Setup == "B" ? "B" : "A";
+        _provider = dto.ChatProvider is LunaChatProviders.OpenAi or LunaChatProviders.Anthropic
+            or LunaChatProviders.Gemini or LunaChatProviders.DeepSeek
+            ? dto.ChatProvider
+            : LunaChatProviders.OpenAi;
+        _modelB = dto.ChatModel;
+        var known = LunaModels.Find(dto.ChatModel);
+        if (known is not null)
+        {
+            _modelChoice = known.Id;
+            _customModel = "";
+        }
+        else if (string.IsNullOrWhiteSpace(dto.ChatModel))
+        {
+            _modelChoice = LunaModels.All[0].Id;
+            _customModel = "";
+        }
+        else
+        {
+            _modelChoice = LunaModels.Other;
+            _customModel = dto.ChatModel;
+        }
+        _hasChatKey = dto.HasChatKey;
+        _hasModerationKey = dto.HasModerationKey;
+        _chatKeyLast4 = dto.ChatKeyLast4 ?? "";
+        _moderationKeyLast4 = dto.ModerationKeyLast4 ?? "";
+        _lastTestUtc = dto.LastTestUtc;
+        _lastTestOk = dto.LastTestOk;
+        _lastTestError = dto.LastTestError;
+        _ready = dto.LastTestOk == true && dto.HasChatKey
+            && (_setup == "A" || dto.HasModerationKey || _provider == LunaChatProviders.OpenAi);
+    }
+
+    private void SetSetup(string setup) => _setup = setup;
+
+    private void OnModelChoiceChanged(ChangeEventArgs e)
+    {
+        _modelChoice = e.Value?.ToString() ?? LunaModels.All[0].Id;
+    }
+
+    private async Task SaveAsync(bool testAfter)
+    {
+        _busy = true;
+        _error = null;
+        _notice = null;
+        try
+        {
+            using var scope = Scopes.CreateScope();
+            var settings = scope.ServiceProvider.GetRequiredService<LunaSettingsService>();
+            var model = _setup == "A"
+                ? (_modelChoice == LunaModels.Other ? _customModel.Trim() : _modelChoice)
+                : _modelB.Trim();
+            var request = new LunaSettingsRequest(
+                _setup,
+                _setup == "A" ? LunaChatProviders.OpenRouter : _provider,
+                model,
+                string.IsNullOrWhiteSpace(_chatKeyValue) ? null : _chatKeyValue,
+                string.IsNullOrWhiteSpace(_moderationKeyValue) ? null : _moderationKeyValue,
+                _monthlyCap,
+                _helpline);
+            var dto = await settings.SaveAsync(_familyId, request);
+            _chatKeyValue = "";
+            _moderationKeyValue = "";
+            _replaceChatKey = false;
+            _replaceModerationKey = false;
+            Apply(dto);
+            _notice = L["Luna.Setup.Saved"];
+            if (testAfter)
+            {
+                _testResult = await settings.TestAsync(_familyId);
+                _lastTestUtc = DateTime.UtcNow;
+                _lastTestOk = _testResult.Ok;
+                _lastTestError = _testResult.Ok ? null : _testResult.Error;
+                _ready = _testResult.Ok && dto.HasChatKey
+                    && (_setup == "A" || dto.HasModerationKey || _provider == LunaChatProviders.OpenAi);
+                _notice = _testResult.Ok
+                    ? L["Luna.Setup.TestPassed"].Value
+                    : L["Luna.Setup.TestFailed", _testResult.Error ?? ""].Value;
+            }
+            await LoadUsageAsync();
+            Events.PublishLunaChanged();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private Task TestAsync() => SaveAsync(true);
+
+    private async Task LoadUsageAsync()
+    {
+        using var scope = Scopes.CreateScope();
+        var usage = scope.ServiceProvider.GetRequiredService<LunaUsageStore>();
+        var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
+        var firstChild = await db.Children.AsNoTracking().Where(c => c.FamilyId == _familyId)
+            .OrderBy(c => c.CreatedUtc).Select(c => new { c.Id }).FirstOrDefaultAsync();
+        if (firstChild is null) return;
+        var tz = LunaUsageStore.ResolveZone(await usage.FamilyTimeZoneIdAsync(_familyId, firstChild.Id));
+        var today = LunaUsageStore.LocalDate(DateTime.UtcNow, tz);
+        var (prompt, completion) = await usage.MonthlyTokensAsync(_familyId, today);
+        _monthUsage = prompt + completion;
+        _monthCost = LunaUsageStore.ApproxCost(prompt, completion);
+    }
+
+    private async Task ToggleGuideAsync()
+    {
+        _guideOpen = !_guideOpen;
+        try { await JS.InvokeVoidAsync("localStorage.setItem", "luna-guide-" + _parentId, _guideOpen ? "1" : "0"); }
+        catch { }
+    }
+
+    private string FormatDateTime(DateTime utc) =>
+        TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), TimeZoneInfo.Utc)
+            .ToString("d MMM, HH:mm", System.Globalization.CultureInfo.CurrentCulture);
+
+    private string ModelLabel(LunaModelOption model) =>
+        $"{L[model.TierKey]} · {L[model.NameKey]} · {L[model.EstimateKey]}";
+
+    private string ProviderLabel(string provider) => provider switch
+    {
+        LunaChatProviders.OpenAi => "OpenAI",
+        LunaChatProviders.Anthropic => "Anthropic",
+        LunaChatProviders.Gemini => "Google Gemini",
+        LunaChatProviders.DeepSeek => "DeepSeek",
+        _ => provider
+    };
+
+    private string CheckClass(bool ok) => ok ? "ok" : "failed";
+    private string CheckGlyph(bool ok) => ok ? "✓" : "×";
+}

@@ -156,7 +156,7 @@ public sealed class LunaChatService
                 AppText.Get("Luna.Child.MonthlyCap", language), null);
         }
 
-        if (familySettings.LastTestOk != true)
+        if (!_settings.IsReady(familySettings))
         {
             return await RefusalAsync(chat, usage, child, childSettings, language, text,
                 AppText.Get("Luna.Child.Refusal", language), now, ct);
@@ -188,6 +188,7 @@ public sealed class LunaChatService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Luna input moderation failed for child {ChildId}", ctx.ChildId);
+            await MarkSetupBrokenAsync(familySettings.FamilyId, ex, ct);
             return await RefusalAsync(chat, usage, child, childSettings, language, text,
                 AppText.Get("Luna.Child.Refusal", language), now, ct);
         }
@@ -253,8 +254,10 @@ public sealed class LunaChatService
         }
         catch (LunaProviderException ex)
         {
+            await MarkSetupBrokenAsync(familySettings.FamilyId, ex, ct);
+            var notice = IsSetupBreaking(ex) ? "Luna.Child.Refusal" : ex.MessageKey;
             return await RefusalAsync(chat, usage, child, childSettings, language, text,
-                AppText.Get(ex.MessageKey, language), now, ct);
+                AppText.Get(notice, language), now, ct);
         }
 
         var (clean, markerKinds) = LunaSafety.StripConcernMarkers(first.Text);
@@ -271,6 +274,7 @@ public sealed class LunaChatService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Luna output moderation failed for child {ChildId}", ctx.ChildId);
+            await MarkSetupBrokenAsync(familySettings.FamilyId, ex, ct);
             return await RefusalAsync(chat, usage, child, childSettings, language, text,
                 AppText.Get("Luna.Child.Refusal", language), now, ct);
         }
@@ -324,6 +328,7 @@ public sealed class LunaChatService
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Luna reply retry failed for child {ChildId}", ctx.ChildId);
+                await MarkSetupBrokenAsync(chat.FamilyId, ex, ct);
                 retryClean = "";
             }
 
@@ -501,7 +506,7 @@ public sealed class LunaChatService
     }
 
     private static LunaClassification Classify(LunaFamilySettings settings, LunaModerationResult result) =>
-        settings.Setup == LunaSetup.B || settings.ChatProvider == LunaChatProviders.OpenRouter
+        settings.Setup == LunaSetup.A || settings.ChatProvider == LunaChatProviders.OpenRouter
             ? LunaSafety.ClassifyCategories(result.Categories, result.Flagged)
             : LunaSafety.ClassifyOpenAi(result.Scores);
 
@@ -684,6 +689,7 @@ public sealed class LunaChatService
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Luna title moderation failed for chat {ChatId}", chat.Id);
+                await MarkSetupBrokenAsync(chat.FamilyId, ex, ct);
                 await SaveTitleAsync(chat, fallback, ct);
                 return;
             }
@@ -694,6 +700,7 @@ public sealed class LunaChatService
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Luna title generation failed for chat {ChatId}", chat.Id);
+            await MarkSetupBrokenAsync(chat.FamilyId, ex, ct);
             await SaveTitleAsync(chat, fallback, ct);
         }
     }
@@ -759,6 +766,7 @@ public sealed class LunaChatService
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Luna summary generation failed for chat {ChatId}", chat.Id);
+            await MarkSetupBrokenAsync(chat.FamilyId, ex, ct);
         }
     }
 
@@ -783,6 +791,24 @@ public sealed class LunaChatService
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Luna learner profile update failed for child {ChildId}", chat.ChildId);
+            await MarkSetupBrokenAsync(chat.FamilyId, ex, ct);
+        }
+    }
+
+    private static bool IsSetupBreaking(Exception ex) =>
+        ex is LunaProviderException provider
+        && provider.MessageKey is "Luna.Error.BadKey" or "Luna.Error.NoCredit";
+
+    private async Task MarkSetupBrokenAsync(Guid familyId, Exception ex, CancellationToken ct)
+    {
+        if (!IsSetupBreaking(ex)) return;
+        try
+        {
+            await _settings.MarkBrokenAsync(familyId, ((LunaProviderException)ex).MessageKey, ct);
+        }
+        catch (Exception alertEx)
+        {
+            _logger.LogWarning(alertEx, "Could not pause Luna after a provider auth failure for family {FamilyId}", familyId);
         }
     }
 

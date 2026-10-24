@@ -133,7 +133,10 @@ public class LocalizationTests
             "SiteReview.Service.Roblox", "SiteReview.Service.Minecraft", "SiteReview.Service.Netflix",
             "SiteReview.Service.Spotify", "SiteReview.Service.Wikipedia", "SiteReview.Service.Google",
             "SiteReview.Service.KhanAcademy", "SiteReview.Service.Scratch", "SiteReview.Service.Duolingo",
-            "SiteReview.Service.Twitch"
+            "SiteReview.Service.Twitch", "Nav.Luna", "Luna.PageTitle",
+            "Luna.Model.Name.Haiku55", "Luna.Model.Name.Gpt56Luna",
+            "Luna.Model.Name.Gemini35FlashLite", "Luna.Model.Name.Sonnet55",
+            "Luna.Setup.Check.Chat", "Luna.Setup.Check.Ok", "Luna.Alias"
         };
         Assert.All(identical, key => Assert.Contains(key, allowed));
     }

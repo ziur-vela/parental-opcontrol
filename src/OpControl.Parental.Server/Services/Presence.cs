@@ -14,11 +14,13 @@ public sealed class DashboardEventBus
     public event Action<LockStateDto>? LockStateChanged;
     public event Action<Data.Alert>? AlertChanged;
     public event Action<Contracts.ChildMessageDto>? MessageChanged;
+    public event Action? LunaChanged;
 
     public void PublishDeviceStatus(DeviceStatusDto status) => DeviceStatusChanged?.Invoke(status);
     public void PublishLockState(LockStateDto state) => LockStateChanged?.Invoke(state);
     public void PublishAlert(Data.Alert alert) => AlertChanged?.Invoke(alert);
     public void PublishMessage(Contracts.ChildMessageDto message) => MessageChanged?.Invoke(message);
+    public void PublishLunaChanged() => LunaChanged?.Invoke();
 }
 
 public sealed class DevicePresenceService

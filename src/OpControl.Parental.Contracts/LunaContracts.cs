@@ -104,7 +104,7 @@ public sealed record LunaSettingsRequest(
     int? MonthlyTokenCap,
     string? HelplineText);
 
-public sealed record LunaTestResult(bool Ok, string? Error);
+public sealed record LunaTestResult(bool Ok, string? Error, bool ChatOk = false, bool SafetyOk = false, bool ZdrOk = false);
 
 public sealed record ChildLunaDto(
     Guid ChildId,

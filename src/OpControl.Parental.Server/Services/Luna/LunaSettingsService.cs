@@ -67,14 +67,16 @@ public sealed class LunaSettingsService
     private readonly ILunaProviderFactory _providers;
     private readonly ILunaZdrCatalog _zdr;
     private readonly ILogger<LunaSettingsService> _logger;
+    private readonly AlertService? _alerts;
 
     public LunaSettingsService(ParentalDbContext db, ILunaProviderFactory providers, ILunaZdrCatalog zdr,
-        ILogger<LunaSettingsService> logger)
+        ILogger<LunaSettingsService> logger, AlertService? alerts = null)
     {
         _db = db;
         _providers = providers;
         _zdr = zdr;
         _logger = logger;
+        _alerts = alerts;
     }
 
     public async Task<LunaFamilySettings> EnsureAsync(Guid familyId, CancellationToken ct = default)
@@ -85,7 +87,7 @@ public sealed class LunaSettingsService
         settings = new LunaFamilySettings
         {
             FamilyId = familyId,
-            Setup = LunaSetup.B,
+            Setup = LunaSetup.A,
             ChatProvider = LunaChatProviders.OpenRouter,
             ChatModel = "",
             HelplineText = AppText.Get(DefaultHelplineKey, AppCulture.English)
@@ -105,7 +107,7 @@ public sealed class LunaSettingsService
     {
         var chatKey = _providers.ChatKey(settings);
         var moderationKey = _providers.ModerationKey(settings);
-        var moderationUsesChatKey = settings.Setup == LunaSetup.B || settings.ChatProvider == LunaChatProviders.OpenAi;
+        var moderationUsesChatKey = settings.Setup == LunaSetup.A || settings.ChatProvider == LunaChatProviders.OpenAi;
         return new LunaSettingsDto(
             settings.Setup == LunaSetup.A ? "A" : "B",
             settings.ChatProvider,
@@ -182,23 +184,74 @@ public sealed class LunaSettingsService
     {
         if (string.IsNullOrWhiteSpace(model)) return "Luna.Error.ModelMissing";
         if (string.IsNullOrWhiteSpace(chatKey)) return "Luna.Error.ChatKeyMissing";
-        if (setup == LunaSetup.B)
+        if (setup == LunaSetup.A)
         {
-            if (provider != LunaChatProviders.OpenRouter) return "Luna.Error.SetupBProvider";
+            if (provider != LunaChatProviders.OpenRouter) return "Luna.Error.SetupAProvider";
             return null;
         }
 
-        if (provider == LunaChatProviders.OpenRouter) return "Luna.Error.SetupAProvider";
+        if (provider == LunaChatProviders.OpenRouter) return "Luna.Error.SetupBProvider";
         if (!LunaChatProviders.All.Contains(provider)) return "Luna.Error.ProviderDown";
         if (string.IsNullOrWhiteSpace(moderationKey) && provider != LunaChatProviders.OpenAi)
             return "Luna.Error.ModerationKeyMissing";
         return null;
     }
 
-    public async Task<bool> SetupValidAsync(Guid familyId, CancellationToken ct = default)
+    /// <summary>
+    /// The hard rule: every key the chosen setup needs is saved and the last test passed.
+    /// </summary>
+    public bool IsReady(LunaFamilySettings settings)
+    {
+        if (settings.LastTestOk != true) return false;
+        var chatKey = _providers.ChatKey(settings);
+        var moderationKey = _providers.ModerationKey(settings);
+        return Validate(settings, settings.Setup, settings.ChatProvider, settings.ChatModel, chatKey, moderationKey) is null;
+    }
+
+    public async Task<bool> IsReadyAsync(Guid familyId, CancellationToken ct = default)
     {
         var settings = await _db.LunaFamilySettings.AsNoTracking().FirstOrDefaultAsync(s => s.FamilyId == familyId, ct);
-        return settings is { LastTestOk: true };
+        return settings is not null && IsReady(settings);
+    }
+
+    public async Task<bool> SetupValidAsync(Guid familyId, CancellationToken ct = default) =>
+        await IsReadyAsync(familyId, ct);
+
+    /// <summary>
+    /// A key failed at runtime (or a test failed). Pause the family setup and alert parents once.
+    /// A later successful Test connection sets <see cref="LunaFamilySettings.LastTestOk"/> back to true.
+    /// </summary>
+    public async Task MarkBrokenAsync(Guid familyId, string errorKey, CancellationToken ct = default)
+    {
+        var settings = await EnsureAsync(familyId, ct);
+        settings.LastTestUtc = DateTime.UtcNow;
+        settings.LastTestOk = false;
+        var message = AppText.Get(errorKey, AppCulture.English);
+        settings.LastTestError = message.Length > 500 ? message[..500] : message;
+        settings.UpdatedUtc = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        await RaiseSetupBrokenAsync(familyId, ct);
+    }
+
+    private async Task RaiseSetupBrokenAsync(Guid familyId, CancellationToken ct)
+    {
+        if (_alerts is null) return;
+        try
+        {
+            var child = await _db.Children.AsNoTracking()
+                .Where(c => c.FamilyId == familyId)
+                .OrderBy(c => c.CreatedUtc)
+                .Select(c => new { c.Id })
+                .FirstOrDefaultAsync(ct);
+            if (child is null) return;
+            await _alerts.AddAsync(familyId, child.Id, null, "luna-setup-broken",
+                new AlertContent("Alert.Luna.SetupBroken.Title", "Alert.Luna.SetupBroken.Detail"),
+                TimeSpan.FromHours(24), ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not raise the Luna setup-broken alert for family {FamilyId}", familyId);
+        }
     }
 
     public async Task<LunaTestResult> TestAsync(Guid familyId, CancellationToken ct = default)
@@ -210,15 +263,21 @@ public sealed class LunaSettingsService
         if (error is not null)
             return await FailAsync(settings, error, ct);
 
-        if (settings.Setup == LunaSetup.B || settings.ChatProvider == LunaChatProviders.OpenRouter)
+        var zdrOk = true;
+        if (settings.Setup == LunaSetup.A || settings.ChatProvider == LunaChatProviders.OpenRouter)
         {
             var missing = await _zdr.MissingModelAsync(settings.ChatModel, ct);
             if (missing is not null)
+            {
+                zdrOk = false;
                 return missing.StartsWith("ZDR list", StringComparison.Ordinal)
-                    ? await FailAsync(settings, "Luna.Error.ProviderDown", ct)
-                    : await FailAsync(settings, "Luna.Error.ZdrMissing", ct, missing);
+                    ? await FailAsync(settings, "Luna.Error.ProviderDown", ct, zdrOk: false)
+                    : await FailAsync(settings, "Luna.Error.ZdrMissing", ct, missing, zdrOk: false);
+            }
         }
 
+        var chatOk = false;
+        var safetyOk = false;
         try
         {
             var chat = _providers.GetChat(settings.ChatProvider);
@@ -228,9 +287,11 @@ public sealed class LunaSettingsService
                     "You are a setup health check. Reply with the single word OK.",
                     [new LunaChatTurn("user", "Reply with OK.")], 8),
                 ct);
+            chatOk = true;
 
             var moderator = _providers.GetModerator(settings);
             await moderator.ModerateAsync("This is a Luna setup test.", ct);
+            safetyOk = true;
 
             settings.LastTestUtc = DateTime.UtcNow;
             settings.LastTestOk = true;
@@ -238,21 +299,22 @@ public sealed class LunaSettingsService
             settings.UpdatedUtc = DateTime.UtcNow;
             await _db.SaveChangesAsync(ct);
             _logger.LogInformation("Luna setup test passed for family {FamilyId}", familyId);
-            return new LunaTestResult(true, null);
+            return new LunaTestResult(true, null, true, true, zdrOk);
         }
         catch (LunaProviderException ex)
         {
             _logger.LogWarning("Luna setup test failed for family {FamilyId}: {Key}", familyId, ex.MessageKey);
-            return await FailAsync(settings, ex.MessageKey, ct);
+            return await FailAsync(settings, ex.MessageKey, ct, chatOk: chatOk, safetyOk: safetyOk, zdrOk: zdrOk);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Luna setup test failed unexpectedly for family {FamilyId}", familyId);
-            return await FailAsync(settings, "Luna.Error.ProviderDown", ct);
+            return await FailAsync(settings, "Luna.Error.ProviderDown", ct, chatOk: chatOk, safetyOk: safetyOk, zdrOk: zdrOk);
         }
     }
 
-    private async Task<LunaTestResult> FailAsync(LunaFamilySettings settings, string key, CancellationToken ct, string? arg = null)
+    private async Task<LunaTestResult> FailAsync(LunaFamilySettings settings, string key, CancellationToken ct,
+        string? arg = null, bool chatOk = false, bool safetyOk = false, bool zdrOk = false)
     {
         var message = arg is null ? AppText.Get(key, AppCulture.English) : AppText.Get(key, AppCulture.English, arg);
         settings.LastTestUtc = DateTime.UtcNow;
@@ -260,7 +322,8 @@ public sealed class LunaSettingsService
         settings.LastTestError = message.Length > 500 ? message[..500] : message;
         settings.UpdatedUtc = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
-        return new LunaTestResult(false, arg is null ? AppText.Get(key) : AppText.Get(key, arg));
+        await RaiseSetupBrokenAsync(settings.FamilyId, ct);
+        return new LunaTestResult(false, arg is null ? AppText.Get(key) : AppText.Get(key, arg), chatOk, safetyOk, zdrOk);
     }
 
 }

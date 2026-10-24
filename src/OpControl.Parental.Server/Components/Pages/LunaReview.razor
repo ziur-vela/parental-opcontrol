@@ -1,0 +1,402 @@
+@* Copyright (c) 2026 Ziur / OpControl IT Solutions
+   SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 *@
+
+@page "/luna/review"
+@attribute [Authorize(Policy = ParentalPolicies.Luna)]
+@rendermode InteractiveServer
+@using System.Text.Json
+@using Microsoft.EntityFrameworkCore
+@using OpControl.Parental.Contracts
+@using OpControl.Parental.Server.Auth
+@using OpControl.Parental.Server.Data
+@using OpControl.Parental.Server.Services
+@using OpControl.Parental.Server.Services.Luna
+@inject AuthenticationStateProvider AuthState
+@inject IServiceScopeFactory Scopes
+@inject DashboardEventBus Events
+@inject IStringLocalizer<AppStrings> L
+@inject IJSRuntime JS
+@implements IDisposable
+
+<PageTitle>@L["Luna.Review.PageTitle"]</PageTitle>
+
+@if (_loading)
+{
+    <div class="card"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
+}
+else if (_childId == Guid.Empty)
+{
+    <div class="card"><p class="muted">@L["Luna.Review.NoChild"]</p></div>
+}
+else
+{
+    <div class="page-head">
+        <div>
+            <div class="eyebrow"><a href="@("/luna?child=" + _childId)">@L["Luna.Review.Breadcrumb", _childName]</a></div>
+            <h1>@L["Luna.Review.Title", _childName]</h1>
+            <p>@L["Luna.Review.Subtitle", _childName]</p>
+        </div>
+        @if (_chats.Count > 0)
+        {
+            <button type="button" class="btn btn-danger" disabled="@_busy" @onclick="ClearAsync">@L["Luna.Review.DeleteAll"]</button>
+        }
+    </div>
+
+    @if (_error is not null) { <div class="alert danger">@_error</div> }
+    @if (_notice is not null) { <div class="alert ok">@_notice</div> }
+
+    @if (_children.Count > 1)
+    {
+        <nav class="chip-row" aria-label="@L["Luna.Child.Children"]">
+            @foreach (var child in _children)
+            {
+                <button type="button" class="chip @(child.Id == _childId ? "active" : "")"
+                        @onclick="() => SelectChildAsync(child.Id)">@child.Name</button>
+            }
+        </nav>
+    }
+
+    <div class="luna-review-grid">
+        <section class="card">
+            <div class="card-title-row" style="padding-bottom: 10px">
+                <div class="chip-row">
+                    <button type="button" class="chip @(_filter == "all" ? "active" : "")" @onclick='() => SetFilter("all")'>@L["Luna.Review.FilterAll"]</button>
+                    <button type="button" class="chip @(_filter == "needs" ? "active" : "")" @onclick='() => SetFilter("needs")'>@L["Luna.Review.FilterNeeds", _needsReviewChats]</button>
+                    <button type="button" class="chip @(_filter == "hidden" ? "active" : "")" @onclick='() => SetFilter("hidden")'>@L["Luna.Review.FilterHidden"]</button>
+                </div>
+            </div>
+            @if (FilteredChats.Count == 0)
+            {
+                <p class="muted">@L["Luna.Review.Empty"]</p>
+            }
+            else
+            {
+                <div class="luna-chat-list">
+                    @foreach (var row in FilteredChats)
+                    {
+                        var subject = LunaUi.Subject(row.Chat.Subject);
+                        <button type="button" class="luna-chat-row @(row.Chat.Id == _selectedChatId ? "active" : "")"
+                                @onclick="() => SelectChatAsync(row.Chat.Id)">
+                            <span class="luna-dot" style="background:@subject.Color"></span>
+                            <span class="luna-chat-main">
+                                <span class="luna-chat-title">@TitleOf(row.Chat)</span>
+                                <span class="luna-chat-meta">@L[subject.NameKey] · @FormatLocal(row.Chat.LastMessageUtc) · @L["Luna.Review.Messages", row.MessageCount]</span>
+                                <span class="luna-tag-list">
+                                    @foreach (var flag in row.Flags)
+                                    {
+                                        <span class="luna-tag @LunaUi.FlagClass(flag)">@L[LunaUi.FlagLabelKey(flag)]</span>
+                                    }
+                                    @if (row.Chat.HiddenByChild)
+                                    {
+                                        <span class="luna-tag hidden">@L["Luna.Review.HiddenBy", _childName]</span>
+                                    }
+                                    @if (row.HasAnyFlag && !row.HasUnreviewed)
+                                    {
+                                        <span class="luna-tag reviewed">@L["Luna.Review.Reviewed"]</span>
+                                    }
+                                </span>
+                            </span>
+                        </button>
+                    }
+                </div>
+            }
+        </section>
+
+        <section class="card">
+            @if (_selectedChat is null)
+            {
+                <p class="muted">@L["Luna.Review.Empty"]</p>
+            }
+            else
+            {
+                <div class="card-title-row">
+                    <span style="display:flex; align-items:center; gap:8px">
+                        <span class="luna-dot" style="background:@LunaUi.Subject(_selectedChat.Subject).Color"></span>
+                        <h2>@TitleOf(_selectedChat) · @L[LunaUi.Subject(_selectedChat.Subject).NameKey]</h2>
+                    </span>
+                    <button type="button" class="btn btn-danger" disabled="@_busy" @onclick="DeleteChatAsync">@L["Luna.Review.DeleteChat"]</button>
+                </div>
+                <div class="luna-thread">
+                    @foreach (var message in _messages)
+                    {
+                        var isLuna = message.Role == LunaChatRoles.Luna;
+                        var flag = ParseFlag(message.Flag);
+                        var flagged = flag != LunaMessageFlag.None;
+                        <div class="luna-msg @(isLuna ? "from-luna" : "from-child")">
+                            <div class="luna-bubble @BubbleClass(flag) @(flag == LunaMessageFlag.ReplyBlocked ? "answer-blocked" : "")">
+                                <div class="luna-msg-head">
+                                    <span class="luna-who">@(isLuna ? L["Luna.Alias"].Value : _childName)</span>
+                                    <span>@FormatLocal(message.CreatedUtc)</span>
+                                    @if (flagged)
+                                    {
+                                        <span class="luna-tag @LunaUi.FlagClass(flag)">@L[LunaUi.FlagLabelKey(flag)]</span>
+                                    }
+                                </div>
+                                <div class="luna-msg-text">@(isLuna ? message.ShownText : message.Text)</div>
+
+                                @if (flagged)
+                                {
+                                    <div class="luna-flag-meta">
+                                        @if (!string.IsNullOrWhiteSpace(ScoresText(message.FlagScores)))
+                                        {
+                                            <div class="luna-flag-scores">@ScoresText(message.FlagScores)</div>
+                                        }
+                                        @if (flag == LunaMessageFlag.Blocked)
+                                        {
+                                            <div class="luna-flag-note"><b>@L["Luna.Review.WhatSaw", _childName]</b> @L["Luna.Review.BlockedBefore"]</div>
+                                        }
+                                        else if (flag == LunaMessageFlag.Urgent)
+                                        {
+                                            <div class="luna-flag-note"><b>@L["Luna.Review.WhatSaw", _childName]</b> @L["Luna.Review.SafeReply"]</div>
+                                        }
+                                        @if (message.ReviewedUtc is { } reviewed)
+                                        {
+                                            <div class="luna-flag-note">
+                                                @L["Luna.Review.ReviewedOn", FormatLocal(reviewed)]
+                                                @if (message.MarkedFine) { <text> · @L["Luna.Review.MarkedFine"]</text> }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="luna-flag-actions">
+                                                <button type="button" class="btn btn-primary" disabled="@_busy" @onclick="() => ReviewAsync(message.Id, false)">@L["Luna.Review.MarkReviewed"]</button>
+                                                <button type="button" class="btn" disabled="@_busy" @onclick="() => ReviewAsync(message.Id, true)">@L["Luna.Review.ThisWasFine"]</button>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+
+                                @if (isLuna && message.Text != message.ShownText)
+                                {
+                                    <details class="luna-original">
+                                        <summary>@L["Luna.Review.DidNotSee", _childName]</summary>
+                                        <div class="luna-original-text">@message.Text</div>
+                                    </details>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="luna-review-note">
+                    @L["Luna.Review.Note", _childName]
+                </div>
+            }
+        </section>
+    </div>
+}
+
+@code {
+    private sealed record ChildRow(Guid Id, string Name);
+    private sealed record ChatRow(LunaChatDto Chat, int MessageCount, bool HasUnreviewed, bool HasAnyFlag,
+        IReadOnlyList<LunaMessageFlag> Flags);
+
+    [SupplyParameterFromQuery(Name = "child")]
+    public Guid? ChildQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "chat")]
+    public Guid? ChatQuery { get; set; }
+
+    private Guid _familyId;
+    private Guid _parentId;
+    private bool _loading = true;
+    private bool _busy;
+    private string? _error;
+    private string? _notice;
+    private Guid _childId;
+    private string _childName = "";
+    private List<ChildRow> _children = [];
+    private List<ChatRow> _chats = [];
+    private List<LunaParentMessageDto> _messages = [];
+    private LunaChatDto? _selectedChat;
+    private Guid _selectedChatId;
+    private string _filter = "all";
+
+    private List<ChatRow> FilteredChats => _filter switch
+    {
+        "needs" => _chats.Where(c => c.HasUnreviewed).ToList(),
+        "hidden" => _chats.Where(c => c.Chat.HiddenByChild).ToList(),
+        _ => _chats
+    };
+
+    private int _needsReviewChats => _chats.Count(c => c.HasUnreviewed);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthState.GetAuthenticationStateAsync();
+        Guid.TryParse(auth.User.FindFirst("family_id")?.Value, out _familyId);
+        Guid.TryParse(auth.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out _parentId);
+        Events.LunaChanged += OnLunaChanged;
+        await LoadChildrenAsync();
+        if (ChildQuery is { } child && _children.Any(c => c.Id == child))
+            _childId = child;
+        else if (_children.Count > 0)
+            _childId = _children[0].Id;
+        await ReloadAsync(ChatQuery);
+        _loading = false;
+    }
+
+    private async Task LoadChildrenAsync()
+    {
+        using var scope = Scopes.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
+        _children = await db.Children.AsNoTracking().Where(c => c.FamilyId == _familyId)
+            .OrderBy(c => c.CreatedUtc).Select(c => new ChildRow(c.Id, c.Name)).ToListAsync();
+    }
+
+    private async Task SelectChildAsync(Guid childId)
+    {
+        if (_childId == childId) return;
+        _childId = childId;
+        _filter = "all";
+        await ReloadAsync(null);
+    }
+
+    private async Task ReloadAsync(Guid? selectChat)
+    {
+        if (_childId == Guid.Empty) return;
+        _error = null;
+        try
+        {
+            using var scope = Scopes.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
+            var parent = scope.ServiceProvider.GetRequiredService<LunaParentService>();
+            _childName = _children.FirstOrDefault(c => c.Id == _childId)?.Name ?? "";
+            var chats = await parent.ListChatsAsync(_familyId, _childId);
+            var flags = await db.LunaMessages.AsNoTracking()
+                .Where(m => m.FamilyId == _familyId && m.ChildId == _childId)
+                .Select(m => new { m.ChatId, m.Flag, m.ReviewedUtc })
+                .ToListAsync();
+            _chats = chats.Select(chat =>
+            {
+                var rows = flags.Where(f => f.ChatId == chat.Id).ToList();
+                var flagged = rows.Where(f => f.Flag != LunaMessageFlag.None).ToList();
+                return new ChatRow(chat, rows.Count,
+                    flagged.Any(f => f.ReviewedUtc is null),
+                    flagged.Count > 0,
+                    flagged.Select(f => f.Flag).Distinct().ToList());
+            }).ToList();
+
+            if (_chats.Count == 0)
+            {
+                _selectedChat = null;
+                _messages = [];
+                return;
+            }
+
+            var target = selectChat is { } id && _chats.Any(c => c.Chat.Id == id)
+                ? id
+                : (_chats.Any(c => c.Chat.Id == _selectedChatId) ? _selectedChatId : _chats[0].Chat.Id);
+            await SelectChatCoreAsync(target);
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task SelectChatAsync(Guid chatId) => await SelectChatCoreAsync(chatId);
+
+    private async Task SelectChatCoreAsync(Guid chatId)
+    {
+        using var scope = Scopes.CreateScope();
+        var parent = scope.ServiceProvider.GetRequiredService<LunaParentService>();
+        var chat = await parent.GetChatAsync(_familyId, _childId, chatId);
+        _selectedChat = chat.Chat;
+        _selectedChatId = chat.Chat.Id;
+        _messages = chat.Messages.ToList();
+    }
+
+    private void SetFilter(string filter) => _filter = filter;
+
+    private async Task ReviewAsync(Guid messageId, bool markedFine)
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            using var scope = Scopes.CreateScope();
+            var parent = scope.ServiceProvider.GetRequiredService<LunaParentService>();
+            await parent.ReviewAsync(_familyId, _childId, messageId, _parentId, markedFine);
+            Events.PublishLunaChanged();
+            await ReloadAsync(_selectedChatId);
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task DeleteChatAsync()
+    {
+        if (_selectedChat is null) return;
+        var confirmed = await JS.InvokeAsync<bool>("confirm", L["Luna.Review.ConfirmDeleteChat"].Value);
+        if (!confirmed) return;
+        await RunAsync(async parent =>
+        {
+            await parent.DeleteChatAsync(_familyId, _childId, _selectedChat.Id);
+            _notice = L["Luna.Review.DeleteChat"].Value;
+            _selectedChatId = Guid.Empty;
+        });
+    }
+
+    private async Task ClearAsync()
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", L["Luna.Review.ConfirmDeleteAll", _childName].Value);
+        if (!confirmed) return;
+        await RunAsync(async parent =>
+        {
+            await parent.ClearAsync(_familyId, _childId);
+            _notice = L["Luna.Review.DeleteAll"].Value;
+            _selectedChatId = Guid.Empty;
+        });
+    }
+
+    private async Task RunAsync(Func<LunaParentService, Task> action)
+    {
+        _busy = true;
+        _error = null;
+        _notice = null;
+        try
+        {
+            using var scope = Scopes.CreateScope();
+            await action(scope.ServiceProvider.GetRequiredService<LunaParentService>());
+            Events.PublishLunaChanged();
+            await ReloadAsync(null);
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private void OnLunaChanged() =>
+        _ = InvokeAsync(async () => { await ReloadAsync(_selectedChatId); StateHasChanged(); });
+
+    public void Dispose() => Events.LunaChanged -= OnLunaChanged;
+
+    private static LunaMessageFlag ParseFlag(string value) =>
+        Enum.TryParse<LunaMessageFlag>(value, out var flag) ? flag : LunaMessageFlag.None;
+
+    private static string BubbleClass(LunaMessageFlag flag) => flag switch
+    {
+        LunaMessageFlag.Blocked => "flagged",
+        LunaMessageFlag.ReplyBlocked => "answer-blocked",
+        LunaMessageFlag.Urgent => "urgent",
+        _ => ""
+    };
+
+    private static string TitleOf(LunaChatDto chat) =>
+        string.IsNullOrWhiteSpace(chat.Title)
+            ? "Luna AI"
+            : chat.Title;
+
+    private static string ScoresText(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return "";
+        try
+        {
+            var scores = JsonSerializer.Deserialize<Dictionary<string, double>>(json);
+            if (scores is null) return "";
+            return string.Join(" · ", scores.OrderByDescending(s => s.Value)
+                .Select(s => s.Key + " " + s.Value.ToString("0.00")));
+        }
+        catch { return ""; }
+    }
+
+    private static string FormatLocal(DateTime utc) =>
+        TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), TimeZoneInfo.Utc)
+            .ToString("d MMM, HH:mm", System.Globalization.CultureInfo.CurrentCulture);
+}

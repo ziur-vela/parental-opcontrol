@@ -34,7 +34,7 @@ public sealed class LunaProviderFactory : ILunaProviderFactory
 
     public ILunaModerator GetModerator(LunaFamilySettings settings)
     {
-        if (settings.Setup == LunaSetup.B || settings.ChatProvider == LunaChatProviders.OpenRouter)
+        if (settings.Setup == LunaSetup.A || settings.ChatProvider == LunaChatProviders.OpenRouter)
         {
             var key = ChatKey(settings) ?? "";
             return new LlamaGuardModerator(_http, key);
@@ -52,7 +52,7 @@ public sealed class LunaProviderFactory : ILunaProviderFactory
     {
         var explicitKey = Unprotect(settings.ModerationKeyProtected);
         if (!string.IsNullOrWhiteSpace(explicitKey)) return explicitKey;
-        // Setup A with OpenAI as the chat provider may reuse the same key.
+        // Setup B with OpenAI as the chat provider may reuse the same key.
         return settings.ChatProvider == LunaChatProviders.OpenAi ? ChatKey(settings) : null;
     }
 

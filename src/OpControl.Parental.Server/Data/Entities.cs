@@ -601,7 +601,7 @@ public class CameraConsent
 public class LunaFamilySettings
 {
     public Guid FamilyId { get; set; }
-    public LunaSetup Setup { get; set; } = LunaSetup.B;
+    public LunaSetup Setup { get; set; } = LunaSetup.A;
     public string ChatProvider { get; set; } = LunaChatProviders.OpenRouter;
     public string ChatModel { get; set; } = "";
     public string? ChatKeyProtected { get; set; }

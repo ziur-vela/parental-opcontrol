@@ -216,12 +216,12 @@ public sealed class PushService
             var language = AppCulture.Normalize(parent.PreferredLanguage ?? family?.DefaultLanguage);
             var (title, detail) = AlertText.Render(alert, language);
             var url = category == "messages" ? "/messages" : "/alerts";
+            if (alert.Type.StartsWith("luna-", StringComparison.Ordinal)) url = LunaAlertUrl(alert);
             if (alert.Type == "luna-urgent")
             {
                 var childName = await _db.Children.AsNoTracking().Where(c => c.Id == alert.ChildId).Select(c => c.Name).FirstOrDefaultAsync(ct) ?? "";
                 title = AppText.Get("Push.Luna.Urgent.Title", language, childName);
                 detail = AppText.Get("Push.Luna.Urgent.Body", language, childName);
-                url = "/alerts";
             }
             var payload = new PushPayload(Trim(title, 120), Trim(detail, 240), url, category == "messages" ? "msg-" + alert.ChildId : alert.Type + "-" + alert.Id);
             foreach (var sub in subs.Where(s => s.ParentId == parent.Id))
@@ -321,7 +321,7 @@ public sealed class PushService
         "device-offline" => "offline",
         "repeated-blocked-site" => "blocked",
         "new-app" => "newapp",
-        "luna-flagged" or "luna-urgent" or "luna-more-request" => "luna",
+        "luna-flagged" or "luna-urgent" or "luna-more-request" or "luna-setup-broken" => "luna",
         _ => "other"
     };
 
@@ -349,6 +349,20 @@ public sealed class PushService
             _ => ParentPermissions.ViewReports
         };
         return (parent.Permissions & needed) == needed;
+    }
+
+    private static string LunaAlertUrl(OpControl.Parental.Server.Data.Alert alert)
+    {
+        var child = "?child=" + alert.ChildId;
+        var args = AlertText.ParseArgs(alert.ArgsJson);
+        return alert.Type switch
+        {
+            "luna-urgent" or "luna-flagged" =>
+                "/luna/review" + child + (args.Length > 1 ? "&chat=" + Uri.EscapeDataString(args[1]) : ""),
+            "luna-more-request" => "/luna" + child,
+            "luna-setup-broken" => "/luna/setup",
+            _ => "/alerts"
+        };
     }
 
     private static string Trim(string value, int max) => value.Length <= max ? value : value[..(max - 1)] + "…";

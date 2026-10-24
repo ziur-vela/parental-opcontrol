@@ -37,10 +37,10 @@ public sealed class LunaParentService
 
         if (request.Enabled)
         {
-            if (family.LastTestOk != true)
+            if (!_settings.IsReady(family))
                 throw new InvalidOperationException(AppText.Get("Luna.Error.SetupNotTested"));
             var underThirteen = LunaPrompts.IsUnderThirteen(child.DateOfBirth, now);
-            if (family.Setup == LunaSetup.A && underThirteen)
+            if (family.Setup == LunaSetup.B && underThirteen)
             {
                 if (!request.UnderThirteenAcknowledged && settings.UnderThirteenAcknowledgedUtc is null)
                     throw new InvalidOperationException(AppText.Get("Luna.Error.UnderThirteenAck"));
@@ -227,9 +227,9 @@ public sealed class LunaParentService
         LunaUsageDay day, CancellationToken ct)
     {
         var family = await _settings.EnsureAsync(familyId, ct);
-        var setupValid = family.LastTestOk == true;
+        var setupValid = _settings.IsReady(family);
         var underThirteen = LunaPrompts.IsUnderThirteen(child.DateOfBirth, DateTime.UtcNow);
-        var requiresAck = family.Setup == LunaSetup.A && underThirteen && settings.UnderThirteenAcknowledgedUtc is null;
+        var requiresAck = family.Setup == LunaSetup.B && underThirteen && settings.UnderThirteenAcknowledgedUtc is null;
         var tz = LunaUsageStore.ResolveZone(await _usage.FamilyTimeZoneIdAsync(familyId, child.Id, ct));
         var today = LunaUsageStore.LocalDate(DateTime.UtcNow, tz);
         var (prompt, completion) = await _usage.MonthlyTokensAsync(familyId, today, ct);

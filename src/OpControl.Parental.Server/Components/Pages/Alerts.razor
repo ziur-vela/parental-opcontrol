@@ -62,7 +62,14 @@ else
                     <div class="alert-row @(alert.ReadUtc is null ? "unread" : "")">
                         <div class="timeline-icon @Tone(alert.Type)">@Icon(alert.Type)</div>
                         <div class="timeline-main">
-                            <div class="timeline-title">@AlertTitle(alert)</div>
+                            @if (AlertUrl(alert) is { } url)
+                            {
+                                <a class="timeline-title" href="@url">@AlertTitle(alert)</a>
+                            }
+                            else
+                            {
+                                <div class="timeline-title">@AlertTitle(alert)</div>
+                            }
                             <div class="muted tiny">@AlertDetail(alert)</div>
                         </div>
                         <div class="alert-meta">
@@ -166,14 +173,33 @@ else
         "device-offline" => "⇄",
         "tampering" => "!",
         "child-message" => "✉",
+        "luna-flagged" => "◉",
+        "luna-urgent" => "!",
+        "luna-more-request" => "✉",
+        "luna-setup-broken" => "⚙",
         _ => "◉"
     };
 
     private static string Tone(string type) => type switch
     {
         "repeated-blocked-site" or "daily-limit" or "app-limit" => "danger",
-        "device-offline" or "tampering" => "warn",
-        "child-message" => "accent",
+        "device-offline" or "tampering" or "luna-setup-broken" => "warn",
+        "luna-urgent" => "danger",
+        "child-message" or "luna-flagged" or "luna-more-request" => "accent",
         _ => "accent"
     };
+
+    private static string? AlertUrl(Alert alert)
+    {
+        var args = AlertText.ParseArgs(alert.ArgsJson);
+        var child = "?child=" + alert.ChildId;
+        return alert.Type switch
+        {
+            "luna-flagged" or "luna-urgent" =>
+                "/luna/review" + child + (args.Length > 1 ? "&chat=" + Uri.EscapeDataString(args[1]) : ""),
+            "luna-more-request" => "/luna" + child,
+            "luna-setup-broken" => "/luna/setup",
+            _ => null
+        };
+    }
 }

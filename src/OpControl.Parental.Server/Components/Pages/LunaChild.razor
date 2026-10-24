@@ -1,0 +1,549 @@
+@* Copyright (c) 2026 Ziur / OpControl IT Solutions
+   SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 *@
+
+@page "/luna"
+@attribute [Authorize(Policy = ParentalPolicies.Luna)]
+@rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using OpControl.Parental.Contracts
+@using OpControl.Parental.Server.Auth
+@using OpControl.Parental.Server.Data
+@using OpControl.Parental.Server.Services
+@using OpControl.Parental.Server.Services.Luna
+@inject AuthenticationStateProvider AuthState
+@inject IServiceScopeFactory Scopes
+@inject DashboardEventBus Events
+@inject IStringLocalizer<AppStrings> L
+@inject IJSRuntime JS
+@implements IDisposable
+
+<PageTitle>@L["Luna.PageTitle"]</PageTitle>
+
+@if (_loading)
+{
+    <div class="card"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
+}
+else if (_childId == Guid.Empty)
+{
+    <div class="card"><p class="muted">@L["Luna.Child.NoChildren"]</p></div>
+}
+else
+{
+    <div class="page-head">
+        <div>
+            <div class="eyebrow">@L["Luna.Child.Eyebrow"]</div>
+            <h1>@L["Luna.Child.Title", _childName]</h1>
+            <p>@Subtitle</p>
+        </div>
+        <div class="button-row">
+            <a class="btn" href="/luna/setup">@L["Luna.Child.SetupButton"]</a>
+            <a class="btn btn-primary" href="@ReviewUrl()">@L["Luna.Child.ReviewButton"]</a>
+        </div>
+    </div>
+
+    @if (_error is not null) { <div class="alert danger">@_error</div> }
+    @if (_notice is not null) { <div class="alert ok">@_notice</div> }
+
+    @if (_children.Count > 1)
+    {
+        <nav class="chip-row" aria-label="@L["Luna.Child.Children"]">
+            @foreach (var child in _children)
+            {
+                <button type="button" class="chip @(child.Id == _childId ? "active" : "")"
+                        @onclick="() => SelectChildAsync(child.Id)">@child.Name</button>
+            }
+        </nav>
+    }
+
+    @if (_pendingRequest is not null)
+    {
+        <section class="luna-request">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"></path></svg>
+            <div class="luna-request-main">
+                <b>@L["Luna.Request.Title", _childName]</b>
+                <span class="muted small">@L["Luna.Request.Detail", FormatLocal(_pendingRequest.CreatedUtc), _messageLimit]</span>
+            </div>
+            <div class="button-row">
+                <button type="button" class="btn btn-primary" disabled="@_busy" @onclick="() => GrantExtraAsync(10)">+10</button>
+                <button type="button" class="btn btn-primary" disabled="@_busy" @onclick="() => GrantExtraAsync(20)">+20</button>
+                <button type="button" class="btn btn-primary" disabled="@_busy" @onclick="() => GrantExtraAsync(30)">+30</button>
+                <input class="mini-input" style="width: 110px" type="number" min="1" max="500" @bind="_customExtra" placeholder="@L["Luna.Request.Custom"]" />
+                <button type="button" class="btn" disabled="@_busy" @onclick="GrantCustomAsync">@L["Luna.Request.Give"]</button>
+                <button type="button" class="btn btn-ghost" disabled="@_busy" @onclick="DismissRequestAsync">@L["Luna.Request.NotToday"]</button>
+            </div>
+        </section>
+    }
+
+    <div class="stat-grid">
+        <div class="card stat-card luna-tile">
+            <span class="eyebrow">@L["Luna.Child.MessagesToday"]</span>
+            <span class="stat-value">@_messagesUsed <span class="small muted">/ @_messageLimit</span></span>
+            @if (_messagesLeft <= 0)
+            {
+                <span class="danger small">@L["Luna.Child.LimitReached"]</span>
+            }
+            else
+            {
+                <span class="muted tiny">@_messagesLeft</span>
+            }
+        </div>
+        <div class="card stat-card luna-tile">
+            <span class="eyebrow">@L["Luna.Child.ExtraToday"]</span>
+            <span class="stat-value">@_extraAllowed</span>
+            <span class="muted tiny">@L["Luna.Child.ResetsMidnight"]</span>
+        </div>
+        <div class="card stat-card luna-tile">
+            <span class="eyebrow">@L["Luna.Child.NeedsReview"]</span>
+            <span class="stat-value @(_needsReview > 0 ? "danger" : "")">@_needsReview</span>
+            <a class="small" href="@ReviewUrl()">@L["Luna.Child.OpenReview"]</a>
+        </div>
+        <div class="card stat-card luna-tile">
+            <span class="eyebrow">@L["Luna.Child.ChatsWeek"]</span>
+            <span class="stat-value">@_chatsThisWeek</span>
+            <span class="muted tiny">@SubjectCountsText</span>
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <div class="stack">
+            <section class="card">
+                <div class="card-title-row"><h2>@L["Luna.Child.OnDevices", _childName]</h2></div>
+                @{
+                    var lunaOn = _child.Enabled && _child.SetupValid;
+                }
+                <div class="luna-switch-row">
+                    <button type="button" class="toggle @(lunaOn ? "on" : "")"
+                            disabled="@(!_child.SetupValid || _busy)"
+                            aria-pressed="@lunaOn"
+                            title="@(!_child.SetupValid ? L["Luna.Child.SetupRequired"].Value : L["Luna.Child.On"].Value)"
+                            @onclick="ToggleEnabledAsync">
+                        <span></span>
+                    </button>
+                    <div class="luna-switch-main">
+                        <b>@(_child.Enabled && !_child.SetupValid ? L["Luna.Child.Paused"] : lunaOn ? L["Luna.Child.On"] : L["Luna.Child.Off"])</b>
+                        @if (lunaOn)
+                        {
+                            <span class="muted small">@L["Luna.Child.OnDetail", _childName]</span>
+                        }
+                    </div>
+                </div>
+                @if (!_child.SetupValid)
+                {
+                    <div class="luna-reason">@L["Luna.Child.SetupRequired"]</div>
+                }
+                else if (_childAge is { } age)
+                {
+                    <div class="luna-reason">
+                        @if (_setup == "B")
+                        {
+                            @L["Luna.Child.SetupBInfo", _childName, age]
+                        }
+                        else
+                        {
+                            @L["Luna.Child.SetupAInfo", _childName, age]
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="luna-reason">@L["Luna.Child.NoDobInfo"]</div>
+                }
+            </section>
+
+            <section class="card">
+                <div class="card-title-row"><h2>@L["Luna.Child.DailyLimit"]</h2></div>
+                <div class="inline-add">
+                    <label class="field" style="flex: 1 1 150px">
+                        <span>@L["Luna.Child.MessagesPerDay"]</span>
+                        <input type="number" min="1" max="500" @bind="_dailyLimit" />
+                    </label>
+                    <button type="button" class="btn btn-primary" disabled="@_busy" @onclick="SaveDailyLimitAsync">@L["Luna.Common.Save"]</button>
+                </div>
+                <p class="muted small">@L["Luna.Child.LimitNote", _childName]</p>
+            </section>
+
+            <section class="card">
+                <div class="card-title-row">
+                    <h2>@L["Luna.Child.ExtraInstructions"]</h2>
+                    <span class="luna-extra-counter">@_extraInstructions.Length / 1000</span>
+                </div>
+                <textarea class="msg-input" maxlength="1000" @bind="_extraInstructions" @bind:event="oninput"></textarea>
+                <div class="button-row" style="justify-content: space-between; align-items: center">
+                    <span class="muted tiny">@L["Luna.Child.ExtraNote"]</span>
+                    <button type="button" class="btn btn-primary" disabled="@_busy" @onclick="SaveInstructionsAsync">@L["Luna.Common.Save"]</button>
+                </div>
+            </section>
+        </div>
+
+        <div class="stack">
+            <section class="card">
+                <div class="card-title-row">
+                    <h2>@L["Luna.Child.NeedsReview"]</h2>
+                    <a class="small" href="@ReviewUrl()">@L["Luna.Child.SeeAll"]</a>
+                </div>
+                @if (_reviewItems.Count == 0)
+                {
+                    <p class="muted">@L["Luna.Child.NothingToReview"]</p>
+                }
+                else
+                {
+                    <div class="luna-chat-list">
+                        @foreach (var item in _reviewItems)
+                        {
+                            <a class="luna-chat-row" href="@ReviewUrl(item.ChatId)">
+                                <span class="luna-dot" style="background:@LunaUi.Subject(item.Subject).Color"></span>
+                                <span class="luna-chat-main">
+                                    <span class="luna-chat-title">@item.Title · @L[LunaUi.Subject(item.Subject).NameKey]</span>
+                                    <span class="luna-chat-meta">@L[LunaUi.FlagLabelKey(item.Flag)] · @FormatLocal(item.CreatedUtc)</span>
+                                </span>
+                                <span class="luna-tag @LunaUi.FlagClass(item.Flag)">@L[LunaUi.FlagLabelKey(item.Flag)]</span>
+                            </a>
+                        }
+                    </div>
+                }
+            </section>
+
+            <section class="card">
+                <div class="card-title-row">
+                    <h2>@L["Luna.Child.Profile", _childName]</h2>
+                    @if (_profileUpdatedUtc is { } updated)
+                    {
+                        <span class="muted tiny">@ProfileUpdatedText(updated)</span>
+                    }
+                </div>
+                <textarea class="msg-input" style="min-height: 150px" maxlength="4000" @bind="_profileText"></textarea>
+                <span class="muted tiny">@L["Luna.Child.ProfileNote"]</span>
+                @if (string.IsNullOrWhiteSpace(_profileText) && string.IsNullOrWhiteSpace(_profileSavedText))
+                {
+                    <span class="muted small">@L["Luna.Child.ProfileEmpty"]</span>
+                }
+                <div class="button-row" style="justify-content: space-between">
+                    <button type="button" class="btn btn-danger" disabled="@_busy" @onclick="ClearProfileAsync">@L["Luna.Child.Clear"]</button>
+                    <button type="button" class="btn btn-primary" disabled="@_busy" @onclick="SaveProfileAsync">@L["Luna.Common.Save"]</button>
+                </div>
+            </section>
+        </div>
+    </div>
+}
+
+@if (_showAck)
+{
+    <div class="modal-backdrop" @onclick="() => _showAck = false">
+        <div class="modal-card" @onclick:stopPropagation>
+            <h2>@L["Luna.Child.Under13Title"]</h2>
+            <p class="small">@L["Luna.Child.Under13Body", _childName]</p>
+            <label class="luna-modal-check check-row">
+                <input type="checkbox" @bind="_ackChecked" />
+                <span>@L["Luna.Child.Under13Check"]</span>
+            </label>
+            <div class="button-row" style="justify-content: flex-end">
+                <button type="button" class="btn btn-ghost" @onclick="() => _showAck = false">@L["Luna.Common.Cancel"]</button>
+                <button type="button" class="btn btn-primary" disabled="@(!_ackChecked || _busy)" @onclick="ConfirmAckAsync">@L["Luna.Child.Confirm"]</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private sealed record ChildRow(Guid Id, string Name, DateOnly? DateOfBirth);
+    private sealed record ReviewItem(Guid MessageId, Guid ChatId, string Title, string Subject, LunaMessageFlag Flag, DateTime CreatedUtc);
+
+    [SupplyParameterFromQuery(Name = "child")]
+    public Guid? ChildQuery { get; set; }
+
+    private Guid _familyId;
+    private Guid _parentId;
+    private bool _loading = true;
+    private bool _busy;
+    private string? _error;
+    private string? _notice;
+    private Guid _childId;
+    private string _childName = "";
+    private DateOnly? _childDob;
+    private int? _childAge;
+    private string _setup = "A";
+    private LunaSettingsDto? _familySettings;
+    private ChildLunaDto _child = new(Guid.Empty, false, null, null, null, 60, null, "night", false, false, 0, 0, 0, 0, null, 0m);
+    private List<ChildRow> _children = [];
+    private List<LunaMoreRequestDto> _requests = [];
+    private LunaMoreRequestDto? _pendingRequest;
+    private List<ReviewItem> _reviewItems = [];
+    private int _needsReview;
+    private int _chatsThisWeek;
+    private readonly Dictionary<string, int> _subjectCounts = new(StringComparer.Ordinal);
+    private int _messagesUsed;
+    private int _extraAllowed;
+    private int _messageLimit;
+    private int _messagesLeft;
+    private int _dailyLimit = 60;
+    private int? _customExtra;
+    private string _extraInstructions = "";
+    private string _profileText = "";
+    private string _profileSavedText = "";
+    private DateTime? _profileUpdatedUtc;
+    private string? _profileUpdatedBy;
+    private bool _showAck;
+    private bool _ackChecked;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthState.GetAuthenticationStateAsync();
+        Guid.TryParse(auth.User.FindFirst("family_id")?.Value, out _familyId);
+        Guid.TryParse(auth.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out _parentId);
+        Events.LunaChanged += OnLunaChanged;
+        await LoadChildrenAsync();
+        if (ChildQuery is { } requested && _children.Any(c => c.Id == requested))
+            _childId = requested;
+        else if (_children.Count > 0)
+            _childId = _children[0].Id;
+        await ReloadAsync();
+        _loading = false;
+    }
+
+    private async Task LoadChildrenAsync()
+    {
+        using var scope = Scopes.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
+        _children = await db.Children.AsNoTracking().Where(c => c.FamilyId == _familyId)
+            .OrderBy(c => c.CreatedUtc)
+            .Select(c => new ChildRow(c.Id, c.Name, c.DateOfBirth))
+            .ToListAsync();
+    }
+
+    private async Task SelectChildAsync(Guid childId)
+    {
+        if (_childId == childId) return;
+        _childId = childId;
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        if (_childId == Guid.Empty) return;
+        _error = null;
+        try
+        {
+            using var scope = Scopes.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
+            var settingsService = scope.ServiceProvider.GetRequiredService<LunaSettingsService>();
+            var parent = scope.ServiceProvider.GetRequiredService<LunaParentService>();
+            var usage = scope.ServiceProvider.GetRequiredService<LunaUsageStore>();
+
+            var row = _children.FirstOrDefault(c => c.Id == _childId);
+            if (row is null) return;
+            _childName = row.Name;
+            _childDob = row.DateOfBirth;
+            _childAge = LunaPrompts.AgeFrom(row.DateOfBirth, DateTime.UtcNow);
+            _familySettings = await settingsService.GetAsync(_familyId);
+            _setup = _familySettings.Setup;
+            _child = await parent.GetChildAsync(_familyId, _childId);
+            _dailyLimit = _child.DailyMessageLimit;
+            _extraInstructions = _child.ExtraInstructions ?? "";
+            _requests = await parent.ListRequestsAsync(_familyId, _childId);
+            _pendingRequest = _requests.FirstOrDefault(r => r.Status == "Pending");
+            var profile = await parent.GetProfileAsync(_familyId, _childId);
+            _profileText = profile.Text;
+            _profileSavedText = profile.Text;
+            _profileUpdatedUtc = profile.UpdatedUtc;
+            _profileUpdatedBy = profile.UpdatedBy;
+
+            var tz = LunaUsageStore.ResolveZone(await usage.FamilyTimeZoneIdAsync(_familyId, _childId));
+            var today = LunaUsageStore.LocalDate(DateTime.UtcNow, tz);
+            var day = await db.LunaUsageDays.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.ChildId == _childId && u.Date == today);
+            _messagesUsed = day?.Messages ?? 0;
+            _extraAllowed = day?.ExtraAllowed ?? 0;
+            _messageLimit = Math.Max(0, _dailyLimit) + _extraAllowed;
+            _messagesLeft = Math.Max(0, _messageLimit - _messagesUsed);
+
+            _needsReview = await db.LunaMessages.AsNoTracking().CountAsync(m => m.FamilyId == _familyId
+                && m.ChildId == _childId && m.Flag != LunaMessageFlag.None && m.ReviewedUtc == null);
+            _reviewItems = await (from m in db.LunaMessages.AsNoTracking()
+                                  join c in db.LunaChats.AsNoTracking() on m.ChatId equals c.Id
+                                  where m.FamilyId == _familyId && m.ChildId == _childId
+                                        && m.Flag != LunaMessageFlag.None && m.ReviewedUtc == null
+                                  orderby m.CreatedUtc descending
+                                  select new ReviewItem(m.Id, c.Id, c.Title, c.Subject, m.Flag, m.CreatedUtc))
+                .Take(5).ToListAsync();
+
+            var since = DateTime.UtcNow.AddDays(-7);
+            var weekChats = await db.LunaChats.AsNoTracking()
+                .Where(c => c.FamilyId == _familyId && c.ChildId == _childId && c.LastMessageUtc >= since)
+                .GroupBy(c => c.Subject)
+                .Select(g => new { Subject = g.Key, Count = g.Count() })
+                .ToListAsync();
+            _subjectCounts.Clear();
+            foreach (var item in weekChats) _subjectCounts[item.Subject] = item.Count;
+            _chatsThisWeek = weekChats.Sum(x => x.Count);
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task ToggleEnabledAsync()
+    {
+        if (!_child.SetupValid)
+        {
+            _error = L["Luna.Child.SetupRequired"].Value;
+            return;
+        }
+        if (!_child.Enabled && _child.RequiresUnderThirteenAcknowledgement)
+        {
+            _ackChecked = false;
+            _showAck = true;
+            return;
+        }
+        await SaveChildAsync(!_child.Enabled, false, null);
+    }
+
+    private async Task ConfirmAckAsync()
+    {
+        if (!_ackChecked) return;
+        _showAck = false;
+        await SaveChildAsync(true, true, null);
+    }
+
+    private async Task SaveDailyLimitAsync() => await SaveChildAsync(_child.Enabled, false, L["Luna.Child.DailySaved"].Value);
+
+    private async Task SaveInstructionsAsync() => await SaveChildAsync(_child.Enabled, false, L["Luna.Child.ExtraSaved"].Value);
+
+    private async Task SaveChildAsync(bool enabled, bool acknowledged, string? notice)
+    {
+        _busy = true;
+        _error = null;
+        _notice = null;
+        try
+        {
+            using var scope = Scopes.CreateScope();
+            var parent = scope.ServiceProvider.GetRequiredService<LunaParentService>();
+            _child = await parent.SaveChildAsync(_familyId, _parentId, _childId,
+                new ChildLunaRequest(enabled, _dailyLimit, _extraInstructions, acknowledged));
+            _notice = notice;
+            Events.PublishLunaChanged();
+            await ReloadAsync();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task GrantExtraAsync(int amount)
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            using var scope = Scopes.CreateScope();
+            var parent = scope.ServiceProvider.GetRequiredService<LunaParentService>();
+            await parent.GrantExtraAsync(_familyId, _childId, _parentId, amount);
+            _notice = L["Luna.Request.Granted", amount].Value;
+            _customExtra = null;
+            Events.PublishLunaChanged();
+            await ReloadAsync();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task GrantCustomAsync()
+    {
+        if (_customExtra is not { } amount || amount <= 0) return;
+        await GrantExtraAsync(Math.Min(amount, 500));
+    }
+
+    private async Task DismissRequestAsync()
+    {
+        if (_pendingRequest is null) return;
+        _busy = true;
+        _error = null;
+        try
+        {
+            using var scope = Scopes.CreateScope();
+            var parent = scope.ServiceProvider.GetRequiredService<LunaParentService>();
+            await parent.DismissRequestAsync(_familyId, _childId, _pendingRequest.Id, _parentId);
+            _notice = L["Luna.Request.Dismissed"].Value;
+            Events.PublishLunaChanged();
+            await ReloadAsync();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task SaveProfileAsync()
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            using var scope = Scopes.CreateScope();
+            var parent = scope.ServiceProvider.GetRequiredService<LunaParentService>();
+            await parent.SaveProfileAsync(_familyId, _childId, _parentId, _profileText);
+            _notice = L["Luna.Child.ProfileSaved"].Value;
+            await ReloadAsync();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task ClearProfileAsync()
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", L["Luna.Child.ClearConfirm", _childName].Value);
+        if (!confirmed) return;
+        _busy = true;
+        _error = null;
+        try
+        {
+            using var scope = Scopes.CreateScope();
+            var parent = scope.ServiceProvider.GetRequiredService<LunaParentService>();
+            await parent.SaveProfileAsync(_familyId, _childId, _parentId, "");
+            _notice = L["Luna.Child.ProfileCleared"].Value;
+            await ReloadAsync();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private void OnLunaChanged() =>
+        _ = InvokeAsync(async () => { await ReloadAsync(); StateHasChanged(); });
+
+    public void Dispose() => Events.LunaChanged -= OnLunaChanged;
+
+    private string Subtitle
+    {
+        get
+        {
+            if (_familySettings is null) return "";
+            var setup = _familySettings.Setup;
+            var provider = _familySettings.ChatProvider == LunaChatProviders.OpenRouter
+                ? "OpenRouter"
+                : _familySettings.ChatProvider;
+            var tested = _familySettings.LastTestOk == true
+                ? (_familySettings.LastTestUtc is { } at && at.Date == DateTime.UtcNow.Date
+                    ? L["Luna.Child.TestToday"].Value
+                    : L["Luna.Child.TestOn", _familySettings.LastTestUtc is { } d ? FormatLocal(d) : ""].Value)
+                : L["Luna.Child.NotTested"].Value;
+            return L["Luna.Child.Subtitle", setup, provider, _familySettings.ChatModel, tested].Value;
+        }
+    }
+
+    private string SubjectCountsText
+    {
+        get
+        {
+            if (_chatsThisWeek == 0) return L["Luna.Child.NoChatsWeek"].Value;
+            return string.Join(" · ", LunaUi.Subjects
+                .Where(s => _subjectCounts.GetValueOrDefault(s.Id) > 0)
+                .Select(s => $"{L[s.NameKey]} {_subjectCounts[s.Id]}"));
+        }
+    }
+
+    private string ProfileUpdatedText(DateTime updated) =>
+        _profileUpdatedBy == "luna"
+            ? L["Luna.Child.ProfileLuna", FormatLocal(updated)].Value
+            : L["Luna.Child.ProfileParent", FormatLocal(updated)].Value;
+
+    private string ReviewUrl(Guid? chatId = null) =>
+        "/luna/review?child=" + _childId + (chatId is { } id ? "&chat=" + id : "");
+
+    private static string FormatLocal(DateTime utc) =>
+        TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), TimeZoneInfo.Utc)
+            .ToString("d MMM, HH:mm", System.Globalization.CultureInfo.CurrentCulture);
+}

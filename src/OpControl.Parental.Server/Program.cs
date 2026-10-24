@@ -24,6 +24,10 @@ using OpControl.Parental.Server.Services.Luna;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var lunaFakeMode = builder.Configuration.GetValue<bool>(LunaFakeMode.ConfigurationKey);
+var lunaSeedDemo = builder.Configuration.GetValue<bool>(LunaFakeMode.SeedConfigurationKey);
+LunaFakeMode.EnsureSeedAllowed(builder.Environment, lunaFakeMode, lunaSeedDemo);
+
 var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? "Host=localhost;Database=parental;Username=parental;Password=parental";
 
@@ -182,8 +186,16 @@ builder.Services.AddHttpClient("webpush", client => client.Timeout = TimeSpan.Fr
 builder.Services.AddScoped<MessageService>();
 builder.Services.AddScoped<ChildSummaryService>();
 builder.Services.AddScoped<LunaTokenService>();
-builder.Services.AddScoped<ILunaProviderFactory, LunaProviderFactory>();
-builder.Services.AddScoped<ILunaZdrCatalog, OpenRouterZdrCatalog>();
+if (lunaFakeMode)
+{
+    builder.Services.AddSingleton<ILunaProviderFactory, FakeLunaProviderFactory>();
+    builder.Services.AddSingleton<ILunaZdrCatalog, FakeLunaZdrCatalog>();
+}
+else
+{
+    builder.Services.AddScoped<ILunaProviderFactory, LunaProviderFactory>();
+    builder.Services.AddScoped<ILunaZdrCatalog, OpenRouterZdrCatalog>();
+}
 builder.Services.AddScoped<LunaSettingsService>();
 builder.Services.AddScoped<LunaUsageStore>();
 builder.Services.AddScoped<LunaChatService>();
@@ -229,6 +241,11 @@ if (app.Configuration.GetValue("Database:Migrate", true))
 }
 
 app.Services.GetRequiredService<BakedReleaseService>().EnsureCopied();
+
+if (lunaSeedDemo)
+{
+    await LunaDemoSeeder.SeedAsync(app.Services);
+}
 
 {
     using var setupScope = app.Services.CreateScope();

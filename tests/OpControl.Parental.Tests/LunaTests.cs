@@ -2,15 +2,20 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using OpControl.Parental.Contracts;
+using OpControl.Parental.Server.Auth;
 using OpControl.Parental.Server.Data;
 using OpControl.Parental.Server.Hubs;
 using OpControl.Parental.Server.Services;
@@ -134,7 +139,7 @@ public class LunaTests
     }
 
     private static async Task<Harness> NewHarnessAsync(
-        bool enabled = true, bool lastTestOk = true, int dailyLimit = 60, LunaSetup setup = LunaSetup.B,
+        bool enabled = true, bool lastTestOk = true, int dailyLimit = 60, LunaSetup setup = LunaSetup.A,
         DateOnly? dateOfBirth = null, string chatModel = "test/chat-model")
     {
         var db = NewDb();
@@ -160,7 +165,7 @@ public class LunaTests
         {
             FamilyId = family.Id,
             Setup = setup,
-            ChatProvider = setup == LunaSetup.B ? LunaChatProviders.OpenRouter : LunaChatProviders.OpenAi,
+            ChatProvider = setup == LunaSetup.A ? LunaChatProviders.OpenRouter : LunaChatProviders.OpenAi,
             ChatModel = chatModel,
             ChatKeyProtected = providers.Protect("sk-test-chat-1234"),
             ModerationKeyProtected = providers.Protect("sk-test-moderation-5678"),
@@ -179,13 +184,13 @@ public class LunaTests
         await db.SaveChangesAsync();
 
         var alerts = NewAlerts(db, protection);
-        var settings = new LunaSettingsService(db, providers, zdr, NullLogger<LunaSettingsService>.Instance);
+        var settings = new LunaSettingsService(db, providers, zdr, NullLogger<LunaSettingsService>.Instance, alerts);
         var usage = new LunaUsageStore(db);
         var chat = new LunaChatService(db, providers, settings, usage,
             NewLocks(db, alerts), alerts, NullLogger<LunaChatService>.Instance);
         var parentSvc = new LunaParentService(db, settings, usage);
         return new Harness(db, family, child, parent, device, providers, zdr, settings, chat, parentSvc,
-            new LunaTokenService(db));
+            new LunaTokenService(db, settings));
     }
 
     private static LunaTokenContext Context(Harness h) =>
@@ -586,7 +591,7 @@ public class LunaTests
     {
         await using var h = await NewHarnessAsync();
         var dto = await h.Settings.SaveAsync(h.Family.Id, new LunaSettingsRequest(
-            "B", "openrouter", "test/chat-model", "sk-new-secret-1234", "sk-mod-5678", 100000, "Help text"), default);
+            "A", "openrouter", "test/chat-model", "sk-new-secret-1234", "sk-mod-5678", 100000, "Help text"), default);
         Assert.True(dto.HasChatKey);
         Assert.Equal("1234", dto.ChatKeyLast4);
         Assert.Equal("1234", dto.ModerationKeyLast4);
@@ -601,15 +606,28 @@ public class LunaTests
     public async Task Setup_validation_rules()
     {
         await using var h = await NewHarnessAsync();
+
+        // Setup A is OpenRouter only.
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => h.Settings.SaveAsync(h.Family.Id,
+            new LunaSettingsRequest("A", "anthropic", "model", "chat-key", "", null, null), default));
+        var a = await h.Settings.SaveAsync(h.Family.Id,
+            new LunaSettingsRequest("A", "openrouter", "model", "chat-key", "", null, null), default);
+        Assert.Equal("A", a.Setup);
+
+        // Setup B is the other providers and cannot use OpenRouter.
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => h.Settings.SaveAsync(h.Family.Id,
+            new LunaSettingsRequest("B", "openrouter", "model", "chat-key", "", null, null), default));
+
+        // Setup B needs an OpenAI moderation key unless the chat provider is OpenAI.
         var settings = await h.Db.LunaFamilySettings.SingleAsync();
         settings.ModerationKeyProtected = null;
         await h.Db.SaveChangesAsync();
         await Assert.ThrowsAnyAsync<InvalidOperationException>(() => h.Settings.SaveAsync(h.Family.Id,
-            new LunaSettingsRequest("A", "anthropic", "model", "chat-key", "", null, null), default));
-        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => h.Settings.SaveAsync(h.Family.Id,
-            new LunaSettingsRequest("B", "openai", "model", "chat-key", "", null, null), default));
-        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => h.Settings.SaveAsync(h.Family.Id,
-            new LunaSettingsRequest("B", "openrouter", "", "chat-key", "", null, null), default));
+            new LunaSettingsRequest("B", "anthropic", "model", "chat-key", "", null, null), default));
+        var b = await h.Settings.SaveAsync(h.Family.Id,
+            new LunaSettingsRequest("B", "openai", "model", "chat-key", "", null, null), default);
+        Assert.Equal("B", b.Setup);
+        Assert.True(b.HasModerationKey);
     }
 
     [Fact]
@@ -633,7 +651,7 @@ public class LunaTests
     [Fact]
     public async Task Enabling_requires_a_valid_setup_and_the_under_thirteen_acknowledgement()
     {
-        await using var h = await NewHarnessAsync(enabled: false, lastTestOk: false, setup: LunaSetup.A, dateOfBirth: null);
+        await using var h = await NewHarnessAsync(enabled: false, lastTestOk: false, setup: LunaSetup.B, dateOfBirth: null);
         var ex = await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
             h.ParentSvc.SaveChildAsync(h.Family.Id, h.Parent.Id, h.Child.Id,
                 new ChildLunaRequest(true, 60, null, false), default));
@@ -691,6 +709,7 @@ public class LunaTests
         Assert.Equal("luna", PushService.Category("luna-flagged"));
         Assert.Equal("luna", PushService.Category("luna-urgent"));
         Assert.Equal("luna", PushService.Category("luna-more-request"));
+        Assert.Equal("luna", PushService.Category("luna-setup-broken"));
         Assert.True(PushService.Wants(new PushPreference(), "luna"));
         var parent = new ParentUser { RoleInFamily = FamilyRole.Parent, Permissions = ParentPermissions.Luna };
         Assert.True(PushService.Allowed(parent, "luna"));
@@ -749,6 +768,152 @@ public class LunaTests
     }
 
     [Fact]
+    public async Task Setup_a_is_openrouter_and_setup_b_is_the_other_providers()
+    {
+        await using var h = await NewHarnessAsync();
+        var dto = await h.Settings.GetAsync(h.Family.Id);
+        Assert.Equal("A", dto.Setup);
+        Assert.Equal(LunaChatProviders.OpenRouter, dto.ChatProvider);
+        Assert.True(dto.HasChatKey);
+
+        var b = await h.Settings.SaveAsync(h.Family.Id, new LunaSettingsRequest(
+            "B", LunaChatProviders.Anthropic, "claude-test", "chat-key", "openai-moderation-key", null, null));
+        Assert.Equal("B", b.Setup);
+        Assert.True(b.HasModerationKey);
+
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => h.Settings.SaveAsync(h.Family.Id,
+            new LunaSettingsRequest("B", LunaChatProviders.OpenRouter, "model", "chat-key", "mod-key", null, null)));
+    }
+
+    [Fact]
+    public async Task Under_thirteen_acknowledgement_moved_to_setup_b()
+    {
+        await using var a = await NewHarnessAsync(enabled: false, setup: LunaSetup.A, dateOfBirth: null);
+        var enabledA = await a.ParentSvc.SaveChildAsync(a.Family.Id, a.Parent.Id, a.Child.Id,
+            new ChildLunaRequest(true, 60, null, false), default);
+        Assert.True(enabledA.Enabled);
+        Assert.False(enabledA.RequiresUnderThirteenAcknowledgement);
+
+        await using var b = await NewHarnessAsync(enabled: false, setup: LunaSetup.B, dateOfBirth: null);
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => b.ParentSvc.SaveChildAsync(
+            b.Family.Id, b.Parent.Id, b.Child.Id, new ChildLunaRequest(true, 60, null, false), default));
+    }
+
+    [Fact]
+    public async Task Setup_b_with_one_key_cannot_enable_or_issue_a_token()
+    {
+        await using var h = await NewHarnessAsync(enabled: false, setup: LunaSetup.B, dateOfBirth: new DateOnly(2016, 5, 1));
+        var family = await h.Db.LunaFamilySettings.SingleAsync();
+        family.ChatProvider = LunaChatProviders.Anthropic;
+        family.ModerationKeyProtected = null;
+        family.LastTestOk = true;
+        var child = await h.Db.ChildLunaSettings.SingleAsync();
+        child.Enabled = true;
+        await h.Db.SaveChangesAsync();
+
+        Assert.False(await h.Settings.IsReadyAsync(h.Family.Id));
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => h.Tokens.IssueAsync(h.Device, default));
+
+        child.Enabled = false;
+        await h.Db.SaveChangesAsync();
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => h.ParentSvc.SaveChildAsync(
+            h.Family.Id, h.Parent.Id, h.Child.Id, new ChildLunaRequest(true, 60, null, true), default));
+
+        family.ModerationKeyProtected = h.Providers.Protect("sk-openai-moderation");
+        family.LastTestOk = true;
+        await h.Db.SaveChangesAsync();
+        Assert.True(await h.Settings.IsReadyAsync(h.Family.Id));
+        var dto = await h.ParentSvc.SaveChildAsync(h.Family.Id, h.Parent.Id, h.Child.Id,
+            new ChildLunaRequest(true, 60, null, true), default);
+        Assert.True(dto.Enabled);
+    }
+
+    [Fact]
+    public async Task Broken_setup_pauses_alerts_once_and_recovers_after_a_successful_test()
+    {
+        await using var h = await NewHarnessAsync();
+        h.Zdr.Missing = "test/chat-model";
+
+        var failed = await h.Settings.TestAsync(h.Family.Id);
+        Assert.False(failed.Ok);
+        Assert.False(failed.ZdrOk);
+        Assert.False((await h.Db.LunaFamilySettings.SingleAsync()).LastTestOk);
+        Assert.Equal(1, await h.Db.Alerts.CountAsync(a => a.Type == "luna-setup-broken"));
+
+        var failedAgain = await h.Settings.TestAsync(h.Family.Id);
+        Assert.False(failedAgain.Ok);
+        Assert.Equal(1, await h.Db.Alerts.CountAsync(a => a.Type == "luna-setup-broken"));
+
+        h.Zdr.Missing = null;
+        var ok = await h.Settings.TestAsync(h.Family.Id);
+        Assert.True(ok.Ok);
+        Assert.True(ok.ChatOk && ok.SafetyOk && ok.ZdrOk);
+        Assert.True((await h.Db.LunaFamilySettings.SingleAsync()).LastTestOk);
+        Assert.True(await h.Settings.IsReadyAsync(h.Family.Id));
+
+        // A runtime auth failure pauses the family and alerts once, then a successful test recovers it.
+        h.Providers.Chat.Handler = _ => throw new LunaProviderException("Luna.Error.BadKey");
+        var (chat, ctx) = await NewChatAsync(h);
+        var refused = await h.Chat.SendAsync(ctx, chat.Id, "Hello Luna", default);
+        Assert.Contains("can't answer", refused.Notice);
+        Assert.False((await h.Db.LunaFamilySettings.SingleAsync()).LastTestOk);
+        Assert.Equal(1, await h.Db.Alerts.CountAsync(a => a.Type == "luna-setup-broken"));
+
+        h.Providers.Chat.Handler = null;
+        var recovered = await h.Settings.TestAsync(h.Family.Id);
+        Assert.True(recovered.Ok);
+        var reply = await h.Chat.SendAsync(ctx, chat.Id, "Help me with fractions", default);
+        Assert.Equal("None", reply.LunaMessage!.Flag);
+    }
+
+    [Fact]
+    public void Model_catalog_has_the_curated_zdr_list()
+    {
+        Assert.Equal(4, LunaModels.All.Count);
+        Assert.Equal("anthropic/claude-haiku-5.5", LunaModels.All[0].Id);
+        Assert.Contains(LunaModels.All, m => m.TierKey == "Luna.Model.Tier.Recommended");
+        Assert.Contains(LunaModels.All, m => m.Id == "openai/gpt-5.6-luna");
+        Assert.Contains(LunaModels.All, m => m.Id == "google/gemini-3.5-flash-lite");
+        Assert.Contains(LunaModels.All, m => m.Id == "anthropic/claude-sonnet-5.5");
+        Assert.NotNull(LunaModels.Find("anthropic/claude-haiku-5.5"));
+        Assert.Null(LunaModels.Find("not/a-model"));
+    }
+
+    [Fact]
+    public void Luna_pages_and_permission_are_enforced()
+    {
+        var setupPolicy = typeof(OpControl.Parental.Server.Components.Pages.LunaSetup).GetCustomAttribute<AuthorizeAttribute>();
+        Assert.Equal(ParentalPolicies.Owner, setupPolicy?.Policy);
+        var childPolicy = typeof(OpControl.Parental.Server.Components.Pages.LunaChild).GetCustomAttribute<AuthorizeAttribute>();
+        Assert.Equal(ParentalPolicies.Luna, childPolicy?.Policy);
+        var reviewPolicy = typeof(OpControl.Parental.Server.Components.Pages.LunaReview).GetCustomAttribute<AuthorizeAttribute>();
+        Assert.Equal(ParentalPolicies.Luna, reviewPolicy?.Policy);
+
+        var options = new AuthorizationOptions();
+        options.AddParentalPolicies();
+        Assert.NotNull(options.GetPolicy(ParentalPolicies.Luna));
+
+        var access = new FamilyAccess(Guid.NewGuid(), Guid.NewGuid(), "P", FamilyRole.Parent,
+            ParentPermissions.None, false, FamilyStatus.Active);
+        Assert.Throws<PermissionDeniedException>(() => access.Require(ParentPermissions.Luna));
+        (access with { Permissions = ParentPermissions.Luna }).Require(ParentPermissions.Luna);
+        (access with { Role = FamilyRole.Owner }).Require(ParentPermissions.Luna);
+    }
+
+    [Fact]
+    public void Fake_mode_refuses_outside_development()
+    {
+        var dev = new TestHostEnvironment { EnvironmentName = Environments.Development };
+        var prod = new TestHostEnvironment { EnvironmentName = Environments.Production };
+        LunaFakeMode.EnsureAllowed(dev, true);
+        LunaFakeMode.EnsureAllowed(prod, false);
+        var ex = Assert.Throws<InvalidOperationException>(() => LunaFakeMode.EnsureAllowed(prod, true));
+        Assert.Contains("Development", ex.Message);
+        Assert.Throws<InvalidOperationException>(() => LunaFakeMode.EnsureSeedAllowed(prod, true, true));
+        LunaFakeMode.EnsureSeedAllowed(dev, true, true);
+    }
+
+    [Fact]
     public void Localization_has_every_luna_child_and_alert_key_in_both_languages()
     {
         var root = FindRoot();
@@ -784,6 +949,14 @@ public class LunaTests
         var document = System.Xml.Linq.XDocument.Load(path);
         return document.Root!.Elements("data")
             .ToDictionary(e => (string)e.Attribute("name")!, e => e.Element("value")?.Value ?? "");
+    }
+
+    private sealed class TestHostEnvironment : IHostEnvironment
+    {
+        public string EnvironmentName { get; set; } = Environments.Production;
+        public string ApplicationName { get; set; } = "tests";
+        public string ContentRootPath { get; set; } = "";
+        public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
     }
 
     private sealed class StubHttpFactory : IHttpClientFactory

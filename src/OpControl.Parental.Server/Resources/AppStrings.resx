@@ -1154,11 +1154,11 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Luna.Child.Resting" xml:space="preserve"><value>Luna is resting while this device is locked.</value></data>
   <data name="Luna.Child.Refusal" xml:space="preserve"><value>I can't answer that one right now. Please try again later, or ask a grown-up for help.</value></data>
   <data name="Luna.Child.MonthlyCap" xml:space="preserve"><value>Luna has used all her chat time for this month. Please ask a grown-up if you need more.</value></data>
-  <data name="Luna.Error.Disabled" xml:space="preserve"><value>Luna is not enabled for this child.</value></data>
-  <data name="Luna.Error.SetupNotTested" xml:space="preserve"><value>The Luna provider setup has not passed its last test.</value></data>
-  <data name="Luna.Error.SetupIncomplete" xml:space="preserve"><value>The Luna provider setup is incomplete.</value></data>
-  <data name="Luna.Error.SetupAProvider" xml:space="preserve"><value>Setup A uses OpenAI, Anthropic, Google Gemini or DeepSeek for chat. OpenRouter is Setup B.</value></data>
-  <data name="Luna.Error.SetupBProvider" xml:space="preserve"><value>Setup B requires the OpenRouter provider.</value></data>
+  <data name="Luna.Error.Disabled" xml:space="preserve"><value>Luna AI is not enabled for this child.</value></data>
+  <data name="Luna.Error.SetupNotTested" xml:space="preserve"><value>The Luna AI provider setup has not passed its last test.</value></data>
+  <data name="Luna.Error.SetupIncomplete" xml:space="preserve"><value>The Luna AI provider setup is incomplete.</value></data>
+  <data name="Luna.Error.SetupAProvider" xml:space="preserve"><value>Setup A uses OpenRouter for the chat model and the safety filter. Choose OpenAI, Anthropic, Google Gemini or DeepSeek for Setup B.</value></data>
+  <data name="Luna.Error.SetupBProvider" xml:space="preserve"><value>Setup A requires the OpenRouter provider.</value></data>
   <data name="Luna.Error.ChatKeyMissing" xml:space="preserve"><value>Add the chat provider API key first.</value></data>
   <data name="Luna.Error.ModerationKeyMissing" xml:space="preserve"><value>Add an OpenAI moderation key, or use OpenAI for chat so the same key can be used.</value></data>
   <data name="Luna.Error.ModelMissing" xml:space="preserve"><value>Choose a chat model.</value></data>
@@ -1169,7 +1169,7 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Luna.Error.ProviderDown" xml:space="preserve"><value>The provider is not responding. Try again later.</value></data>
   <data name="Luna.Error.ModerationTimeout" xml:space="preserve"><value>The moderation check timed out. Try again later.</value></data>
   <data name="Luna.Error.ZdrMissing" xml:space="preserve"><value>The model {0} does not have a zero-data-retention endpoint on OpenRouter.</value></data>
-  <data name="Luna.Error.UnderThirteenAck" xml:space="preserve"><value>This child is under 13 or has no date of birth. Setup A needs the parent acknowledgement before Luna can be enabled.</value></data>
+  <data name="Luna.Error.UnderThirteenAck" xml:space="preserve"><value>This child is under 13 or has no date of birth. Setup B needs the parent acknowledgement before Luna can be enabled.</value></data>
   <data name="Luna.Error.InvalidSubject" xml:space="preserve"><value>Choose a valid subject.</value></data>
   <data name="Luna.Error.InvalidTheme" xml:space="preserve"><value>Choose a valid theme.</value></data>
   <data name="Luna.Error.ChatNotFound" xml:space="preserve"><value>That chat was not found.</value></data>
@@ -1178,25 +1178,218 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Luna.Error.EmptyMessage" xml:space="preserve"><value>Type a message first.</value></data>
   <data name="Luna.Error.MessageTooLong" xml:space="preserve"><value>Messages can be at most {0} characters.</value></data>
   <data name="Error.OwnerLunaSettings" xml:space="preserve"><value>Only the family owner can change Luna provider settings.</value></data>
-  <data name="Alert.Luna.Flagged.Title" xml:space="preserve"><value>Luna safety alert</value></data>
-  <data name="Alert.Luna.Flagged.Detail" xml:space="preserve"><value>Luna blocked a message from {0} in chat {1}. Open the dashboard to review it.</value></data>
-  <data name="Alert.Luna.ReplyBlocked.Title" xml:space="preserve"><value>Luna safety alert</value></data>
-  <data name="Alert.Luna.ReplyBlocked.Detail" xml:space="preserve"><value>Luna's answer was blocked for {0} in chat {1}. Open the dashboard to review it.</value></data>
-  <data name="Alert.Luna.Urgent.Title" xml:space="preserve"><value>Urgent Luna alert for {0}</value></data>
-  <data name="Alert.Luna.Urgent.Detail" xml:space="preserve"><value>Luna noticed something urgent in a chat with {0}. Open the dashboard now.</value></data>
-  <data name="Alert.Luna.Cooldown.Title" xml:space="preserve"><value>Luna paused for a break</value></data>
-  <data name="Alert.Luna.Cooldown.Detail" xml:space="preserve"><value>{0} sent several messages Luna could not answer. Luna is paused for 15 minutes.</value></data>
-  <data name="Alert.Luna.MoreRequest.Title" xml:space="preserve"><value>Luna messages requested</value></data>
-  <data name="Alert.Luna.MoreRequest.Detail" xml:space="preserve"><value>{0} asked for more Luna messages</value></data>
-  <data name="Alert.Luna.MonthlyCap.Title" xml:space="preserve"><value>Luna monthly limit reached</value></data>
-  <data name="Alert.Luna.MonthlyCap.Detail" xml:space="preserve"><value>The family has reached the Luna monthly token limit. Luna is paused for {0}.</value></data>
-  <data name="Push.Luna.Urgent.Title" xml:space="preserve"><value>Urgent Luna alert for {0}</value></data>
-  <data name="Push.Luna.Urgent.Body" xml:space="preserve"><value>Urgent Luna alert for {0}. Open the dashboard.</value></data>
-  <data name="Push.Pref.Luna" xml:space="preserve"><value>Luna safety alerts and message requests</value></data>
+  <data name="Alert.Luna.Flagged.Title" xml:space="preserve"><value>Luna AI safety alert</value></data>
+  <data name="Alert.Luna.Flagged.Detail" xml:space="preserve"><value>Luna AI blocked a message from {0} in chat {1}. Open the dashboard to review it.</value></data>
+  <data name="Alert.Luna.ReplyBlocked.Title" xml:space="preserve"><value>Luna AI safety alert</value></data>
+  <data name="Alert.Luna.ReplyBlocked.Detail" xml:space="preserve"><value>Luna AI's answer was blocked for {0} in chat {1}. Open the dashboard to review it.</value></data>
+  <data name="Alert.Luna.Urgent.Title" xml:space="preserve"><value>Urgent Luna AI alert for {0}</value></data>
+  <data name="Alert.Luna.Urgent.Detail" xml:space="preserve"><value>Luna AI noticed something urgent in a chat with {0}. Open the dashboard now.</value></data>
+  <data name="Alert.Luna.Cooldown.Title" xml:space="preserve"><value>Luna AI paused for a break</value></data>
+  <data name="Alert.Luna.Cooldown.Detail" xml:space="preserve"><value>{0} sent several messages Luna AI could not answer. Luna AI is paused for 15 minutes.</value></data>
+  <data name="Alert.Luna.MoreRequest.Title" xml:space="preserve"><value>Luna AI messages requested</value></data>
+  <data name="Alert.Luna.MoreRequest.Detail" xml:space="preserve"><value>{0} asked for more Luna AI messages</value></data>
+  <data name="Alert.Luna.MonthlyCap.Title" xml:space="preserve"><value>Luna AI monthly limit reached</value></data>
+  <data name="Alert.Luna.MonthlyCap.Detail" xml:space="preserve"><value>The family has reached the Luna AI monthly token limit. Luna AI is paused for {0}.</value></data>
+  <data name="Push.Luna.Urgent.Title" xml:space="preserve"><value>Urgent Luna AI alert for {0}</value></data>
+  <data name="Push.Luna.Urgent.Body" xml:space="preserve"><value>Urgent Luna AI alert for {0}. Open the dashboard.</value></data>
+  <data name="Push.Pref.Luna" xml:space="preserve"><value>Luna AI safety alerts and message requests</value></data>
   <data name="Luna.SubjectTitle.Math" xml:space="preserve"><value>Math chat</value></data>
   <data name="Luna.SubjectTitle.Science" xml:space="preserve"><value>Science chat</value></data>
   <data name="Luna.SubjectTitle.History" xml:space="preserve"><value>History chat</value></data>
   <data name="Luna.SubjectTitle.Dictionary" xml:space="preserve"><value>Dictionary chat</value></data>
   <data name="Luna.SubjectTitle.Languages" xml:space="preserve"><value>Languages chat</value></data>
   <data name="Luna.SubjectTitle.Curious" xml:space="preserve"><value>Just curious chat</value></data>
+  <data name="Nav.Luna" xml:space="preserve"><value>Luna AI</value></data>
+  <data name="Alert.Luna.SetupBroken.Title" xml:space="preserve"><value>Luna AI setup needs attention</value></data>
+  <data name="Alert.Luna.SetupBroken.Detail" xml:space="preserve"><value>Luna AI is paused because its provider setup failed. Open Luna AI setup and run Test connection.</value></data>
+  <data name="Luna.Subject.Math" xml:space="preserve"><value>Math</value></data>
+  <data name="Luna.Subject.Science" xml:space="preserve"><value>Science</value></data>
+  <data name="Luna.Subject.History" xml:space="preserve"><value>History</value></data>
+  <data name="Luna.Subject.Dictionary" xml:space="preserve"><value>Dictionary</value></data>
+  <data name="Luna.Subject.Languages" xml:space="preserve"><value>Languages</value></data>
+  <data name="Luna.Subject.Curious" xml:space="preserve"><value>Just curious</value></data>
+  <data name="Luna.Flag.Blocked" xml:space="preserve"><value>Blocked</value></data>
+  <data name="Luna.Flag.ReplyBlocked" xml:space="preserve"><value>Answer blocked</value></data>
+  <data name="Luna.Flag.Urgent" xml:space="preserve"><value>Urgent</value></data>
+  <data name="Luna.Flag.Reviewed" xml:space="preserve"><value>Reviewed</value></data>
+  <data name="Luna.Flag.Fine" xml:space="preserve"><value>This was fine</value></data>
+  <data name="Luna.Model.Name.Haiku55" xml:space="preserve"><value>Claude Haiku 5.5</value></data>
+  <data name="Luna.Model.Name.Gpt56Luna" xml:space="preserve"><value>GPT-5.6 Luna</value></data>
+  <data name="Luna.Model.Name.Gemini35FlashLite" xml:space="preserve"><value>Gemini 3.5 Flash Lite</value></data>
+  <data name="Luna.Model.Name.Sonnet55" xml:space="preserve"><value>Claude Sonnet 5.5</value></data>
+  <data name="Luna.Model.Tier.Recommended" xml:space="preserve"><value>Recommended</value></data>
+  <data name="Luna.Model.Tier.Budget" xml:space="preserve"><value>Budget</value></data>
+  <data name="Luna.Model.Tier.Best" xml:space="preserve"><value>Best quality</value></data>
+  <data name="Luna.Model.Estimate.Haiku55" xml:space="preserve"><value>about $0.50/month</value></data>
+  <data name="Luna.Model.Estimate.Gpt56Luna" xml:space="preserve"><value>about $1/month</value></data>
+  <data name="Luna.Model.Estimate.Gemini35FlashLite" xml:space="preserve"><value>about $2/month</value></data>
+  <data name="Luna.Model.Estimate.Sonnet55" xml:space="preserve"><value>about $11/month</value></data>
+  <data name="Luna.Model.Other" xml:space="preserve"><value>Other…</value></data>
+  <data name="Luna.Model.PriceNote" xml:space="preserve"><value>Estimates assume 60 messages a day. Every model in this list has a zero data retention route; the test checks it again.</value></data>
+  <data name="Luna.Setup.PageTitle" xml:space="preserve"><value>Luna AI setup</value></data>
+  <data name="Luna.Setup.Eyebrow" xml:space="preserve"><value>Luna AI · Family setup</value></data>
+  <data name="Luna.Setup.Title" xml:space="preserve"><value>Set up Luna AI</value></data>
+  <data name="Luna.Setup.Subtitle" xml:space="preserve"><value>Luna AI is a study buddy for your kids. Pick how Luna AI connects, add your key, and test it before turning Luna AI on for a child.</value></data>
+  <data name="Luna.Setup.Back" xml:space="preserve"><value>Back to Luna</value></data>
+  <data name="Luna.Setup.StatusTitle" xml:space="preserve"><value>Status</value></data>
+  <data name="Luna.Setup.StatusReady" xml:space="preserve"><value>Ready. Setup {0} tested OK.</value></data>
+  <data name="Luna.Setup.StatusNotReady" xml:space="preserve"><value>Not ready. Complete the keys and run Test connection.</value></data>
+  <data name="Luna.Setup.StatusIncomplete" xml:space="preserve"><value>Setup incomplete.</value></data>
+  <data name="Luna.Setup.LastTest" xml:space="preserve"><value>Last test: {0}</value></data>
+  <data name="Luna.Setup.NeverTested" xml:space="preserve"><value>Not tested yet</value></data>
+  <data name="Luna.Setup.TestedOk" xml:space="preserve"><value>Setup {0} tested OK</value></data>
+  <data name="Luna.Setup.Guide" xml:space="preserve"><value>How Luna stays safe</value></data>
+  <data name="Luna.Setup.Guide.Show" xml:space="preserve"><value>Show</value></data>
+  <data name="Luna.Setup.Guide.Hide" xml:space="preserve"><value>Hide</value></data>
+  <data name="Luna.Guide.Checks.Title" xml:space="preserve"><value>Two checks on every message</value></data>
+  <data name="Luna.Guide.Checks.Text" xml:space="preserve"><value>Every message your child sends, and every answer Luna AI gives, is checked by a separate safety filter before anyone sees it. The chat AI never sees a blocked message. If the safety filter is down, Luna AI does not answer.</value></data>
+  <data name="Luna.Guide.Charge.Title" xml:space="preserve"><value>You stay in charge</value></data>
+  <data name="Luna.Guide.Charge.Text" xml:space="preserve"><value>You can read every chat, including hidden ones. Blocked messages send you an alert; urgent ones reach you right away by push and email, even in quiet hours.</value></data>
+  <data name="Luna.Guide.TwoSetups.Title" xml:space="preserve"><value>Why two setups</value></data>
+  <data name="Luna.Guide.TwoSetups.Text" xml:space="preserve"><value>Luna AI needs a chat AI and a safety filter. Setup A uses one OpenRouter key for both and forces zero data retention, so your child's messages are not stored by the AI companies. Setup B lets you use another provider with OpenAI's safety filter, and needs two keys.</value></data>
+  <data name="Luna.Guide.Under13.Title" xml:space="preserve"><value>Children under 13</value></data>
+  <data name="Luna.Guide.Under13.Text" xml:space="preserve"><value>OpenAI asks apps not to send personal data of children under 13 without zero data retention, which normal keys do not have. Setup A is the recommended choice for younger kids, and asks no extra confirmation.</value></data>
+  <data name="Luna.Guide.Cost.Title" xml:space="preserve"><value>What it costs</value></data>
+  <data name="Luna.Guide.Cost.Text" xml:space="preserve"><value>You pay the AI provider directly with your own key. OpenAI's safety filter is free. Llama Guard 4 on OpenRouter costs cents per month for normal use. You can set a monthly limit below.</value></data>
+  <data name="Luna.Guide.GetKey.Title" xml:space="preserve"><value>Get a key, step by step</value></data>
+  <data name="Luna.Guide.GetKey.Step1" xml:space="preserve"><value>Create an account at openrouter.ai and add a few dollars of credit.</value></data>
+  <data name="Luna.Guide.GetKey.Step2" xml:space="preserve"><value>Open Keys, create a key named "Luna", and copy it.</value></data>
+  <data name="Luna.Guide.GetKey.Step3" xml:space="preserve"><value>Paste it below, then press Test connection.</value></data>
+  <data name="Luna.Guide.GetKey.SetupB" xml:space="preserve"><value>Setup B instructions (OpenAI, Anthropic, Gemini, DeepSeek)</value></data>
+  <data name="Luna.Guide.GetKey.SetupBText" xml:space="preserve"><value>Create a key with your chat provider and an OpenAI key for the safety filter, then choose Setup B below and paste both keys.</value></data>
+  <data name="Luna.Setup.Choose" xml:space="preserve"><value>1. Choose a setup</value></data>
+  <data name="Luna.Setup.SetupAName" xml:space="preserve"><value>Setup A · OpenRouter</value></data>
+  <data name="Luna.Setup.SetupBName" xml:space="preserve"><value>Setup B · Your provider + OpenAI safety filter</value></data>
+  <data name="Luna.Setup.Recommended" xml:space="preserve"><value>Recommended</value></data>
+  <data name="Luna.Setup.SetupADesc" xml:space="preserve"><value>One key for the chat AI and the safety filter (Llama Guard 4). Zero data retention is forced on every request. Best for kids under 13.</value></data>
+  <data name="Luna.Setup.SetupBDesc" xml:space="preserve"><value>Chat with OpenAI, Anthropic, Google Gemini or DeepSeek. Needs two keys: your chat provider's key and an OpenAI key for the free safety filter. Asks for an extra confirmation for kids under 13.</value></data>
+  <data name="Luna.Setup.HardRule" xml:space="preserve"><value>Luna AI stays off until your setup is complete.</value></data>
+  <data name="Luna.Setup.HardRuleText" xml:space="preserve"><value>It can't be turned on for any child until every key your setup needs is saved and passes Test connection. Setup A needs one OpenRouter key. Setup B needs both keys: your chat provider's key and an OpenAI key for the safety filter. If a key stops working later, Luna AI pauses and you get an alert.</value></data>
+  <data name="Luna.Setup.KeysModel" xml:space="preserve"><value>2. Keys and model</value></data>
+  <data name="Luna.Setup.KeysNote" xml:space="preserve"><value>Keys are encrypted and never shown again</value></data>
+  <data name="Luna.Setup.OpenRouterKey" xml:space="preserve"><value>OpenRouter key</value></data>
+  <data name="Luna.Setup.ChatProviderKey" xml:space="preserve"><value>Chat provider key</value></data>
+  <data name="Luna.Setup.ModerationKey" xml:space="preserve"><value>OpenAI key for the safety filter</value></data>
+  <data name="Luna.Setup.KeySaved" xml:space="preserve"><value>Saved · ends in …{0}</value></data>
+  <data name="Luna.Setup.KeyNotSaved" xml:space="preserve"><value>Not saved</value></data>
+  <data name="Luna.Setup.Replace" xml:space="preserve"><value>Replace</value></data>
+  <data name="Luna.Setup.ChatProvider" xml:space="preserve"><value>Chat provider</value></data>
+  <data name="Luna.Setup.ChatModel" xml:space="preserve"><value>Chat model</value></data>
+  <data name="Luna.Setup.ModelId" xml:space="preserve"><value>Model id</value></data>
+  <data name="Luna.Setup.SafetyFilter" xml:space="preserve"><value>Safety filter</value></data>
+  <data name="Luna.Setup.SafetyFilterA" xml:space="preserve"><value>Llama Guard 4 · via the same key</value></data>
+  <data name="Luna.Setup.SafetyFilterB" xml:space="preserve"><value>OpenAI Moderation · needs an OpenAI key</value></data>
+  <data name="Luna.Setup.Test" xml:space="preserve"><value>Test connection</value></data>
+  <data name="Luna.Setup.Testing" xml:space="preserve"><value>Testing…</value></data>
+  <data name="Luna.Setup.Check.Chat" xml:space="preserve"><value>Chat</value></data>
+  <data name="Luna.Setup.Check.Safety" xml:space="preserve"><value>Safety filter</value></data>
+  <data name="Luna.Setup.Check.Zdr" xml:space="preserve"><value>Zero data retention</value></data>
+  <data name="Luna.Setup.Check.Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="Luna.Setup.Check.Failed" xml:space="preserve"><value>Failed</value></data>
+  <data name="Luna.Setup.Check.Skipped" xml:space="preserve"><value>Not checked</value></data>
+  <data name="Luna.Setup.Limits" xml:space="preserve"><value>3. Limits and help</value></data>
+  <data name="Luna.Setup.MonthlyCap" xml:space="preserve"><value>Monthly token limit (optional)</value></data>
+  <data name="Luna.Setup.MonthlyUsage" xml:space="preserve"><value>This month: {0} tokens · about ${1}</value></data>
+  <data name="Luna.Setup.CapNote" xml:space="preserve"><value>Luna AI pauses and alerts you if the limit is reached.</value></data>
+  <data name="Luna.Setup.Helpline" xml:space="preserve"><value>Help line shown in urgent moments</value></data>
+  <data name="Luna.Setup.HelplineNote" xml:space="preserve"><value>Add a verified phone number for your country if you want one shown to your child.</value></data>
+  <data name="Luna.Setup.Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Luna.Setup.Saved" xml:space="preserve"><value>Luna AI setup saved.</value></data>
+  <data name="Luna.Setup.OwnerOnly" xml:space="preserve"><value>Only the family owner can change Luna AI setup.</value></data>
+  <data name="Luna.Setup.TestPassed" xml:space="preserve"><value>Test passed. Luna AI is ready to turn on.</value></data>
+  <data name="Luna.Setup.TestFailed" xml:space="preserve"><value>Test failed: {0}</value></data>
+  <data name="Luna.PageTitle" xml:space="preserve"><value>Luna AI</value></data>
+  <data name="Luna.Common.Loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="Luna.Common.Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Luna.Common.Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Luna.Common.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Luna.Child.Eyebrow" xml:space="preserve"><value>Luna AI · Study buddy</value></data>
+  <data name="Luna.Child.Title" xml:space="preserve"><value>Luna AI for {0}</value></data>
+  <data name="Luna.Child.Subtitle" xml:space="preserve"><value>Setup {0} · {1} · {2} · {3}</value></data>
+  <data name="Luna.Child.TestToday" xml:space="preserve"><value>tested OK today</value></data>
+  <data name="Luna.Child.TestOn" xml:space="preserve"><value>tested {0}</value></data>
+  <data name="Luna.Child.NotTested" xml:space="preserve"><value>not tested yet</value></data>
+  <data name="Luna.Child.SetupButton" xml:space="preserve"><value>Luna AI setup</value></data>
+  <data name="Luna.Child.ReviewButton" xml:space="preserve"><value>Review chats</value></data>
+  <data name="Luna.Child.Children" xml:space="preserve"><value>Children</value></data>
+  <data name="Luna.Child.NoChildren" xml:space="preserve"><value>No children yet.</value></data>
+  <data name="Luna.Request.Title" xml:space="preserve"><value>{0} asked for more Luna AI messages</value></data>
+  <data name="Luna.Request.Detail" xml:space="preserve"><value>{0} · used all {1} messages</value></data>
+  <data name="Luna.Request.Custom" xml:space="preserve"><value>Custom</value></data>
+  <data name="Luna.Request.Give" xml:space="preserve"><value>Give</value></data>
+  <data name="Luna.Request.NotToday" xml:space="preserve"><value>Not today</value></data>
+  <data name="Luna.Request.Granted" xml:space="preserve"><value>{0} extra messages added.</value></data>
+  <data name="Luna.Request.Dismissed" xml:space="preserve"><value>Request dismissed.</value></data>
+  <data name="Luna.Child.MessagesToday" xml:space="preserve"><value>Messages today</value></data>
+  <data name="Luna.Child.LimitReached" xml:space="preserve"><value>Limit reached</value></data>
+  <data name="Luna.Child.ExtraToday" xml:space="preserve"><value>Extra today</value></data>
+  <data name="Luna.Child.ResetsMidnight" xml:space="preserve"><value>Resets at midnight</value></data>
+  <data name="Luna.Child.NeedsReview" xml:space="preserve"><value>Needs review</value></data>
+  <data name="Luna.Child.OpenReview" xml:space="preserve"><value>Open review</value></data>
+  <data name="Luna.Child.ChatsWeek" xml:space="preserve"><value>Chats this week</value></data>
+  <data name="Luna.Child.NoChatsWeek" xml:space="preserve"><value>No chats yet</value></data>
+  <data name="Luna.Child.OnDevices" xml:space="preserve"><value>Luna AI on {0}'s devices</value></data>
+  <data name="Luna.Child.On" xml:space="preserve"><value>Luna AI is on</value></data>
+  <data name="Luna.Child.Off" xml:space="preserve"><value>Luna AI is off</value></data>
+  <data name="Luna.Child.OnDetail" xml:space="preserve"><value>The moon appears in the corner of {0}'s screen on their laptops.</value></data>
+  <data name="Luna.Child.SetupRequired" xml:space="preserve"><value>Luna AI stays off until every key for your setup is saved and Test connection passes.</value></data>
+  <data name="Luna.Child.SetupAInfo" xml:space="preserve"><value>{0} is {1}. You're using Setup A (zero data retention), so no extra confirmation is needed.</value></data>
+  <data name="Luna.Child.SetupBInfo" xml:space="preserve"><value>{0} is {1}. Setup B asks you to confirm before turning Luna AI on for a child under 13.</value></data>
+  <data name="Luna.Child.NoDobInfo" xml:space="preserve"><value>This child has no date of birth.</value></data>
+  <data name="Luna.Child.Under13Title" xml:space="preserve"><value>Confirm before turning on Luna AI</value></data>
+  <data name="Luna.Child.Under13Body" xml:space="preserve"><value>Setup B sends this child's messages to your chat provider and OpenAI's safety filter. {0} is under 13 or has no date of birth. Confirm that you are the parent or guardian and want to continue.</value></data>
+  <data name="Luna.Child.Under13Check" xml:space="preserve"><value>I'm the parent or guardian and I want to turn on Luna AI for this child.</value></data>
+  <data name="Luna.Child.Confirm" xml:space="preserve"><value>Turn on Luna AI</value></data>
+  <data name="Luna.Child.DailyLimit" xml:space="preserve"><value>Daily limit</value></data>
+  <data name="Luna.Child.MessagesPerDay" xml:space="preserve"><value>Messages per day</value></data>
+  <data name="Luna.Child.LimitNote" xml:space="preserve"><value>{0} sees "5 messages left today" near the end, and can tap "Ask my parents" when they run out. Luna AI also follows locks and schedules.</value></data>
+  <data name="Luna.Child.DailySaved" xml:space="preserve"><value>Daily limit saved.</value></data>
+  <data name="Luna.Child.ExtraInstructions" xml:space="preserve"><value>Extra instructions for Luna AI</value></data>
+  <data name="Luna.Child.ExtraNote" xml:space="preserve"><value>Added after Luna AI's built-in safety rules. They can't turn the safety rules off.</value></data>
+  <data name="Luna.Child.ExtraSaved" xml:space="preserve"><value>Extra instructions saved.</value></data>
+  <data name="Luna.Child.SeeAll" xml:space="preserve"><value>See all</value></data>
+  <data name="Luna.Child.NothingToReview" xml:space="preserve"><value>Nothing needs review.</value></data>
+  <data name="Luna.Child.Profile" xml:space="preserve"><value>What Luna AI knows about {0}</value></data>
+  <data name="Luna.Child.ProfileLuna" xml:space="preserve"><value>Updated by Luna AI · {0}</value></data>
+  <data name="Luna.Child.ProfileParent" xml:space="preserve"><value>Updated by a parent · {0}</value></data>
+  <data name="Luna.Child.ProfileEmpty" xml:space="preserve"><value>Not set yet.</value></data>
+  <data name="Luna.Child.ProfileNote" xml:space="preserve"><value>Luna AI uses this to pick the right level. You can edit or clear it anytime.</value></data>
+  <data name="Luna.Child.ProfileSaved" xml:space="preserve"><value>Learner profile saved.</value></data>
+  <data name="Luna.Child.ProfileCleared" xml:space="preserve"><value>Learner profile cleared.</value></data>
+  <data name="Luna.Child.Clear" xml:space="preserve"><value>Clear</value></data>
+  <data name="Luna.Child.ClearConfirm" xml:space="preserve"><value>Clear what Luna AI knows about {0}?</value></data>
+  <data name="Luna.Review.PageTitle" xml:space="preserve"><value>Luna AI · Review</value></data>
+  <data name="Luna.Review.Breadcrumb" xml:space="preserve"><value>Luna AI for {0} · Chats</value></data>
+  <data name="Luna.Review.Title" xml:space="preserve"><value>{0}'s chats with Luna AI</value></data>
+  <data name="Luna.Review.Subtitle" xml:space="preserve"><value>You see every chat, including ones {0} hid.</value></data>
+  <data name="Luna.Review.DeleteAll" xml:space="preserve"><value>Delete all chats</value></data>
+  <data name="Luna.Review.FilterAll" xml:space="preserve"><value>All</value></data>
+  <data name="Luna.Review.FilterNeeds" xml:space="preserve"><value>Needs review ({0})</value></data>
+  <data name="Luna.Review.FilterHidden" xml:space="preserve"><value>Hidden</value></data>
+  <data name="Luna.Review.Empty" xml:space="preserve"><value>No chats here.</value></data>
+  <data name="Luna.Review.DeleteChat" xml:space="preserve"><value>Delete chat</value></data>
+  <data name="Luna.Review.ConfirmDeleteChat" xml:space="preserve"><value>Delete this chat and all its messages?</value></data>
+  <data name="Luna.Review.ConfirmDeleteAll" xml:space="preserve"><value>Delete every Luna AI chat for {0}? This cannot be undone.</value></data>
+  <data name="Luna.Review.Blocked" xml:space="preserve"><value>Blocked</value></data>
+  <data name="Luna.Review.AnswerBlocked" xml:space="preserve"><value>Answer blocked</value></data>
+  <data name="Luna.Review.Urgent" xml:space="preserve"><value>Urgent</value></data>
+  <data name="Luna.Review.HiddenBy" xml:space="preserve"><value>Hidden by {0}</value></data>
+  <data name="Luna.Review.Reviewed" xml:space="preserve"><value>Reviewed</value></data>
+  <data name="Luna.Review.MarkedFine" xml:space="preserve"><value>This was fine</value></data>
+  <data name="Luna.Review.BlockedBefore" xml:space="preserve"><value>Blocked before Luna AI saw it</value></data>
+  <data name="Luna.Review.WhatSaw" xml:space="preserve"><value>What {0} saw:</value></data>
+  <data name="Luna.Review.MarkReviewed" xml:space="preserve"><value>Mark reviewed</value></data>
+  <data name="Luna.Review.ThisWasFine" xml:space="preserve"><value>This was fine</value></data>
+  <data name="Luna.Review.DidNotSee" xml:space="preserve"><value>{0} did not see this</value></data>
+  <data name="Luna.Review.OriginalAnswer" xml:space="preserve"><value>Luna AI's original answer</value></data>
+  <data name="Luna.Review.SafeReply" xml:space="preserve"><value>Safe reply</value></data>
+  <data name="Luna.Review.Note" xml:space="preserve"><value>When Luna AI's own answer is blocked, you'll see the original answer here in a collapsed box marked "{0} did not see this", next to the safe reply the child got.</value></data>
+  <data name="Luna.Review.Messages" xml:space="preserve"><value>{0} messages</value></data>
+  <data name="Luna.Review.NoChild" xml:space="preserve"><value>No child yet.</value></data>
+  <data name="Luna.Review.ShowOriginal" xml:space="preserve"><value>Show original</value></data>
+  <data name="Luna.Review.HideOriginal" xml:space="preserve"><value>Hide original</value></data>
+  <data name="Luna.Review.ReviewedOn" xml:space="preserve"><value>Reviewed {0}</value></data>
+  <data name="Luna.Error.DemoSeedFailed" xml:space="preserve"><value>Could not create the demo account: {0}</value></data>
+  <data name="Luna.Alias" xml:space="preserve"><value>Luna AI</value></data>
+  <data name="Luna.Child.Paused" xml:space="preserve"><value>Luna AI is paused until the setup passes Test connection.</value></data>
 </root>
