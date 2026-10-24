@@ -73,6 +73,20 @@ public static class LunaPrompts
     public static string SubjectMode(string subject) =>
         Subjects.TryGetValue(subject, out var mode) ? mode : Subjects[Contracts.LunaSubjects.Curious];
 
+    /// <summary>
+    /// Localized, safe chat title for the subject. Used when a title cannot be generated
+    /// or a flagged turn must not be sent to the model.
+    /// </summary>
+    public static string SubjectTitleKey(string subject) => subject switch
+    {
+        Contracts.LunaSubjects.Math => "Luna.SubjectTitle.Math",
+        Contracts.LunaSubjects.Science => "Luna.SubjectTitle.Science",
+        Contracts.LunaSubjects.History => "Luna.SubjectTitle.History",
+        Contracts.LunaSubjects.Dictionary => "Luna.SubjectTitle.Dictionary",
+        Contracts.LunaSubjects.Languages => "Luna.SubjectTitle.Languages",
+        _ => "Luna.SubjectTitle.Curious"
+    };
+
     public static string Build(string subject, int? age, string? extraInstructions, string? learnerProfile, string? summary)
     {
         var parts = new List<string> { $"Core rules version: {Version}", Core.Trim(), SubjectMode(subject) };

@@ -1193,4 +1193,10 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Push.Luna.Urgent.Title" xml:space="preserve"><value>Alerta urgente de Luna para {0}</value></data>
   <data name="Push.Luna.Urgent.Body" xml:space="preserve"><value>Alerta urgente de Luna para {0}. Abre el panel.</value></data>
   <data name="Push.Pref.Luna" xml:space="preserve"><value>Alertas de seguridad de Luna y solicitudes de mensajes</value></data>
+  <data name="Luna.SubjectTitle.Math" xml:space="preserve"><value>Chat de Matemáticas</value></data>
+  <data name="Luna.SubjectTitle.Science" xml:space="preserve"><value>Chat de Ciencia</value></data>
+  <data name="Luna.SubjectTitle.History" xml:space="preserve"><value>Chat de Historia</value></data>
+  <data name="Luna.SubjectTitle.Dictionary" xml:space="preserve"><value>Chat de Diccionario</value></data>
+  <data name="Luna.SubjectTitle.Languages" xml:space="preserve"><value>Chat de Idiomas</value></data>
+  <data name="Luna.SubjectTitle.Curious" xml:space="preserve"><value>Chat de Curiosidades</value></data>
 </root>

@@ -360,6 +360,141 @@ public class LunaTests
         Assert.Contains("marker:grooming", stored.FlagCategories);
     }
 
+    private const string BlockedChildText = "UNSAFE_CHILD_SECRET";
+    private const string BlockedReplyText = "UNSAFE_LUNA_REPLY_SECRET";
+    private const string BlockedRetryText = "UNSAFE_LUNA_RETRY_SECRET";
+    private const string ReplyFallbackStart = "Let me think about that differently";
+
+    private static async Task SeedBlockedAndReplyBlockedAsync(Harness h, LunaTokenContext ctx, Guid chatId)
+    {
+        h.Providers.Moderator.Script.Enqueue(_ => FakeModerator.Categories("S12"));
+        await h.Chat.SendAsync(ctx, chatId, BlockedChildText, default);
+
+        h.Providers.Chat.Replies.Enqueue(new LunaChatResult(BlockedReplyText, 10, 5));
+        h.Providers.Chat.Replies.Enqueue(new LunaChatResult(BlockedRetryText, 10, 5));
+        h.Providers.Moderator.Script.Enqueue(_ => FakeModerator.Safe());               // input
+        h.Providers.Moderator.Script.Enqueue(_ => FakeModerator.Categories("S12"));    // first output
+        h.Providers.Moderator.Script.Enqueue(_ => FakeModerator.Categories("S12"));    // retry output
+        await h.Chat.SendAsync(ctx, chatId, "Tell me a story", default);
+    }
+
+    private static async Task SendCleanAsync(Harness h, LunaTokenContext ctx, Guid chatId, string text)
+    {
+        h.Providers.Moderator.Script.Enqueue(_ => FakeModerator.Safe());
+        await h.Chat.SendAsync(ctx, chatId, text, default);
+    }
+
+    [Fact]
+    public async Task Summary_transcript_uses_the_placeholder_and_shown_text_not_flagged_originals()
+    {
+        await using var h = await NewHarnessAsync();
+        var (chat, ctx) = await NewChatAsync(h);
+        await SeedBlockedAndReplyBlockedAsync(h, ctx, chat.Id);
+
+        for (var i = 0; i < 10; i++)
+            await SendCleanAsync(h, ctx, chat.Id, "Clean question " + i);
+
+        var summary = Assert.Single(h.Providers.Chat.Requests,
+            r => r.SystemPrompt.StartsWith(LunaPrompts.SummaryPrompt, StringComparison.Ordinal));
+        var transcript = Assert.Single(summary.Messages).Content;
+        Assert.Contains(LunaRemovePlaceholder.Text, transcript);
+        Assert.Contains(ReplyFallbackStart, transcript);
+        Assert.DoesNotContain(BlockedChildText, transcript);
+        Assert.DoesNotContain(BlockedReplyText, transcript);
+        Assert.DoesNotContain(BlockedRetryText, transcript);
+    }
+
+    [Fact]
+    public async Task Learner_profile_update_never_receives_flagged_originals()
+    {
+        await using var h = await NewHarnessAsync();
+        var (chat, ctx) = await NewChatAsync(h);
+        h.Db.LunaChats.AddRange(
+            new LunaChat
+            {
+                FamilyId = h.Family.Id, ChildId = h.Child.Id, DeviceId = h.Device.Id,
+                Subject = LunaSubjects.Science, Summary = "Earlier summary one"
+            },
+            new LunaChat
+            {
+                FamilyId = h.Family.Id, ChildId = h.Child.Id, DeviceId = h.Device.Id,
+                Subject = LunaSubjects.History, Summary = "Earlier summary two"
+            });
+        await h.Db.SaveChangesAsync();
+
+        await SeedBlockedAndReplyBlockedAsync(h, ctx, chat.Id);
+        for (var i = 0; i < 10; i++)
+            await SendCleanAsync(h, ctx, chat.Id, "Clean question " + i);
+
+        var profile = Assert.Single(h.Providers.Chat.Requests,
+            r => r.SystemPrompt.StartsWith(LunaPrompts.ProfilePrompt, StringComparison.Ordinal));
+        var content = Assert.Single(profile.Messages).Content;
+        Assert.DoesNotContain(BlockedChildText, content);
+        Assert.DoesNotContain(BlockedReplyText, content);
+        Assert.DoesNotContain(BlockedRetryText, content);
+
+        var summary = Assert.Single(h.Providers.Chat.Requests,
+            r => r.SystemPrompt.StartsWith(LunaPrompts.SummaryPrompt, StringComparison.Ordinal));
+        var transcript = Assert.Single(summary.Messages).Content;
+        Assert.Contains(LunaRemovePlaceholder.Text, transcript);
+        Assert.Contains(ReplyFallbackStart, transcript);
+        Assert.DoesNotContain(BlockedChildText, transcript);
+        Assert.DoesNotContain(BlockedReplyText, transcript);
+
+        var stored = await h.Db.LunaLearnerProfiles.SingleAsync();
+        Assert.Equal("Learner profile", stored.Text);
+        Assert.Equal("luna", stored.UpdatedBy);
+    }
+
+    [Fact]
+    public async Task Urgent_first_message_skips_the_title_call_and_uses_the_subject_default()
+    {
+        await using var h = await NewHarnessAsync();
+        h.Providers.Moderator.Script.Enqueue(_ => FakeModerator.Categories("S11"));
+        var (chat, ctx) = await NewChatAsync(h);
+
+        await h.Chat.SendAsync(ctx, chat.Id, "I want to hurt myself", default);
+
+        Assert.Equal(0, h.Providers.Chat.Calls);
+        Assert.DoesNotContain(h.Providers.Chat.Requests, r => r.SystemPrompt == LunaPrompts.TitlePrompt);
+        var stored = await h.Db.LunaChats.SingleAsync(c => c.Id == chat.Id);
+        Assert.Equal(AppText.Get("Luna.SubjectTitle.Math", "en"), stored.Title);
+
+        await SendCleanAsync(h, ctx, chat.Id, "Help me with fractions");
+        Assert.Equal("Test chat title", stored.Title);
+    }
+
+    [Fact]
+    public async Task Title_flagged_by_moderation_uses_the_subject_default()
+    {
+        await using var h = await NewHarnessAsync();
+        h.Providers.Moderator.Script.Enqueue(_ => FakeModerator.Safe());               // input
+        h.Providers.Moderator.Script.Enqueue(_ => FakeModerator.Safe());               // output
+        h.Providers.Moderator.Script.Enqueue(_ => FakeModerator.Categories("S12"));    // title
+        var (chat, ctx) = await NewChatAsync(h);
+
+        await h.Chat.SendAsync(ctx, chat.Id, "Help me with fractions", default);
+
+        var stored = await h.Db.LunaChats.SingleAsync(c => c.Id == chat.Id);
+        Assert.Equal(AppText.Get("Luna.SubjectTitle.Math", "en"), stored.Title);
+    }
+
+    [Fact]
+    public async Task Clean_first_message_still_generates_a_title()
+    {
+        await using var h = await NewHarnessAsync();
+        h.Providers.Moderator.Script.Enqueue(_ => FakeModerator.Safe());               // input
+        h.Providers.Moderator.Script.Enqueue(_ => FakeModerator.Safe());               // output
+        h.Providers.Moderator.Script.Enqueue(_ => FakeModerator.Safe());               // title
+        var (chat, ctx) = await NewChatAsync(h);
+
+        await h.Chat.SendAsync(ctx, chat.Id, "Help me with fractions", default);
+
+        var stored = await h.Db.LunaChats.SingleAsync(c => c.Id == chat.Id);
+        Assert.Equal("Test chat title", stored.Title);
+        Assert.Contains(h.Providers.Chat.Requests, r => r.SystemPrompt == LunaPrompts.TitlePrompt);
+    }
+
     [Fact]
     public async Task Three_blocks_start_a_fifteen_minute_cooldown_with_one_alert()
     {

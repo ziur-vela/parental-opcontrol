@@ -204,6 +204,8 @@ public sealed class LunaChatService
             usage.UpdatedUtc = now;
             await _db.SaveChangesAsync(ct);
             await UrgentAlertAsync(ctx.FamilyId, ctx.ChildId, child.Name, chat.Id, ct);
+            await MaybeTitleAsync(chat, child, text, urgentText, familySettings, moderator, chatProvider, config,
+                language, true, ct);
             return new LunaMessageResponse(chatId, ToChild(childMessage), ToChild(lunaMessage),
                 LunaUsageStore.MessagesLeft(childSettings, usage), false, false, true, null, WarningText(childSettings, usage, language));
         }
@@ -229,6 +231,8 @@ public sealed class LunaChatService
             }
             await _db.SaveChangesAsync(ct);
             await FlaggedAlertAsync(ctx.FamilyId, ctx.ChildId, ctx.DeviceId, child.Name, chatId, false, ct);
+            await MaybeTitleAsync(chat, child, text, blockedText, familySettings, moderator, chatProvider, config,
+                language, true, ct);
             return new LunaMessageResponse(chatId, ToChild(childMessage), ToChild(lunaMessage),
                 LunaUsageStore.MessagesLeft(childSettings, usage), false,
                 usage.CooldownUntilUtc > now, false, blockedText, WarningText(childSettings, usage, language));
@@ -285,7 +289,8 @@ public sealed class LunaChatService
             usage.UpdatedUtc = now;
             await _db.SaveChangesAsync(ct);
             await UrgentAlertAsync(ctx.FamilyId, ctx.ChildId, child.Name, chat.Id, ct);
-            await MaybeTitleAsync(chat, child, text, clean, chatProvider, config, ct);
+            await MaybeTitleAsync(chat, child, text, clean, familySettings, moderator, chatProvider, config,
+                language, true, ct);
             await MaybeSummarizeAsync(chat, child, chatProvider, config, ct);
             return new LunaMessageResponse(chatId, ToChild(childMessage), ToChild(lunaMessage),
                 LunaUsageStore.MessagesLeft(childSettings, usage), false, false, true, null,
@@ -353,7 +358,9 @@ public sealed class LunaChatService
                 await FlaggedAlertAsync(ctx.FamilyId, ctx.ChildId, ctx.DeviceId, child.Name, chat.Id, true, ct);
             }
 
-            await MaybeTitleAsync(chat, child, text, retryClean.Length > 0 ? retryClean : lunaMessage.ShownText, chatProvider, config, ct);
+            var turnFlagged = urgent || lunaMessage.Flag == LunaMessageFlag.ReplyBlocked;
+            await MaybeTitleAsync(chat, child, text, retryClean.Length > 0 ? retryClean : lunaMessage.ShownText,
+                familySettings, moderator, chatProvider, config, language, turnFlagged, ct);
             await MaybeSummarizeAsync(chat, child, chatProvider, config, ct);
             return new LunaMessageResponse(chatId, ToChild(childMessage), ToChild(lunaMessage),
                 LunaUsageStore.MessagesLeft(childSettings, usage), false,
@@ -368,7 +375,8 @@ public sealed class LunaChatService
         usage.Messages++;
         usage.UpdatedUtc = now;
         await _db.SaveChangesAsync(ct);
-        await MaybeTitleAsync(chat, child, text, clean, chatProvider, config, ct);
+        await MaybeTitleAsync(chat, child, text, clean, familySettings, moderator, chatProvider, config,
+            language, false, ct);
         await MaybeSummarizeAsync(chat, child, chatProvider, config, ct);
         return new LunaMessageResponse(chatId, ToChild(safeChild), ToChild(safeLuna),
             LunaUsageStore.MessagesLeft(childSettings, usage), false,
@@ -624,9 +632,7 @@ public sealed class LunaChatService
         for (var i = rows.Count - 1; i >= 0; i--)
         {
             var row = rows[i];
-            var content = row.Role == LunaChatRoles.Child
-                ? (row.Flag is LunaMessageFlag.Blocked or LunaMessageFlag.Urgent ? LunaRemovePlaceholder.Text : row.Text)
-                : row.ShownText;
+            var content = LunaTranscript.ProviderText(row);
             var cost = Estimate(content);
             if (used + cost > budget && turns.Count > 1) break;
             used += cost;
@@ -638,28 +644,73 @@ public sealed class LunaChatService
     private static int Estimate(string text) => Math.Max(1, (text.Length + 3) / 4);
 
     private async Task MaybeTitleAsync(LunaChat chat, Child child, string childText, string reply,
-        ILunaChatProvider provider, LunaProviderConfig config, CancellationToken ct)
+        LunaFamilySettings familySettings, ILunaModerator moderator, ILunaChatProvider provider,
+        LunaProviderConfig config, string language, bool turnFlagged, CancellationToken ct)
     {
-        if (chat.TitleSetByChild || !string.IsNullOrWhiteSpace(chat.Title)) return;
+        var fallback = DefaultTitle(chat.Subject, language);
+
+        if (chat.TitleSetByChild) return;
+
+        // A flagged turn never reaches the model. The subject's localized default name is
+        // used instead, and a later clean turn may still replace it if the child has not renamed it.
+        if (turnFlagged)
+        {
+            if (string.IsNullOrWhiteSpace(chat.Title) || IsDefaultTitle(chat))
+                await SaveTitleAsync(chat, fallback, ct);
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(chat.Title) && !IsDefaultTitle(chat)) return;
+
         try
         {
             var snippet = $"Child: {Truncate(childText, 400)}\nLuna: {Truncate(reply, 600)}";
             var result = await provider.CompleteAsync(config,
                 new LunaChatRequest(LunaPrompts.TitlePrompt, [new LunaChatTurn("user", snippet)], 40), ct);
-            var title = CleanTitle(result.Text);
-            if (title.Length == 0) title = Truncate(childText, LunaPrompts.MaxTitleLength);
-            chat.Title = title;
-            chat.UpdatedUtc = DateTime.UtcNow;
-            await _db.SaveChangesAsync(ct);
+            var (clean, kinds) = LunaSafety.StripConcernMarkers(result.Text);
+            var title = CleanTitle(clean);
+            if (kinds.Count > 0 || title.Length == 0)
+            {
+                await SaveTitleAsync(chat, fallback, ct);
+                return;
+            }
+
+            // The title is shown to the child in the chat list, so it is moderated like a reply.
+            LunaModerationResult moderation;
+            try
+            {
+                moderation = await moderator.ModerateAsync(title, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Luna title moderation failed for chat {ChatId}", chat.Id);
+                await SaveTitleAsync(chat, fallback, ct);
+                return;
+            }
+
+            var classification = Classify(familySettings, moderation);
+            await SaveTitleAsync(chat, classification.Blocked || classification.Urgent ? fallback : title, ct);
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Luna title generation failed for chat {ChatId}", chat.Id);
-            chat.Title = Truncate(childText, LunaPrompts.MaxTitleLength);
-            chat.UpdatedUtc = DateTime.UtcNow;
-            await _db.SaveChangesAsync(ct);
+            await SaveTitleAsync(chat, fallback, ct);
         }
     }
+
+    private async Task SaveTitleAsync(LunaChat chat, string title, CancellationToken ct)
+    {
+        chat.Title = title;
+        chat.UpdatedUtc = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+    }
+
+    private static string DefaultTitle(string subject, string language) =>
+        AppText.Get(LunaPrompts.SubjectTitleKey(subject), language);
+
+    private static bool IsDefaultTitle(LunaChat chat) =>
+        AppCulture.Supported.Any(l => string.Equals(chat.Title, DefaultTitle(chat.Subject, l.Code),
+            StringComparison.Ordinal));
 
     private static string CleanTitle(string text)
     {
@@ -691,7 +742,7 @@ public sealed class LunaChatService
             if (older.Count == 0) return;
 
             var transcript = string.Join("\n", older.Select(m =>
-                (m.Role == LunaChatRoles.Child ? "Child: " : "Luna: ") + Truncate(m.Text, 400)));
+                (m.Role == LunaChatRoles.Child ? "Child: " : "Luna: ") + Truncate(LunaTranscript.ProviderText(m), 400)));
             var result = await provider.CompleteAsync(config,
                 new LunaChatRequest(LunaPrompts.SummaryPrompt,
                     [new LunaChatTurn("user", Truncate(transcript, 12000))], 300), ct);
