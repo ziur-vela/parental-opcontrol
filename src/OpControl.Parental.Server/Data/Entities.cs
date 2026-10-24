@@ -510,6 +510,7 @@ public class PushPreference
     public bool Offline { get; set; } = true;
     public bool RepeatedBlock { get; set; } = true;
     public bool NewApp { get; set; }
+    public bool Luna { get; set; } = true;
     public bool Other { get; set; } = true;
     public bool RespectQuietHours { get; set; } = true;
     public DateTime UpdatedUtc { get; set; } = DateTime.UtcNow;
@@ -595,4 +596,117 @@ public class CameraConsent
     public DateTime AcceptedUtc { get; set; } = DateTime.UtcNow;
     public string? IpAddress { get; set; }
     public string? UserAgent { get; set; }
+}
+
+public class LunaFamilySettings
+{
+    public Guid FamilyId { get; set; }
+    public LunaSetup Setup { get; set; } = LunaSetup.B;
+    public string ChatProvider { get; set; } = LunaChatProviders.OpenRouter;
+    public string ChatModel { get; set; } = "";
+    public string? ChatKeyProtected { get; set; }
+    public string? ModerationKeyProtected { get; set; }
+    public DateTime? LastTestUtc { get; set; }
+    public bool? LastTestOk { get; set; }
+    public string? LastTestError { get; set; }
+    public int? MonthlyTokenCap { get; set; }
+    public string HelplineText { get; set; } = "";
+    public DateTime UpdatedUtc { get; set; } = DateTime.UtcNow;
+}
+
+public class ChildLunaSettings
+{
+    public Guid ChildId { get; set; }
+    public Guid FamilyId { get; set; }
+    public bool Enabled { get; set; }
+    public Guid? EnabledByParentId { get; set; }
+    public DateTime? EnabledUtc { get; set; }
+    public DateTime? UnderThirteenAcknowledgedUtc { get; set; }
+    public int DailyMessageLimit { get; set; } = 60;
+    public string? ExtraInstructions { get; set; }
+    public string Theme { get; set; } = LunaThemes.Night;
+    public DateTime UpdatedUtc { get; set; } = DateTime.UtcNow;
+}
+
+public class LunaToken
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid FamilyId { get; set; }
+    public Guid DeviceId { get; set; }
+    public Guid ChildId { get; set; }
+    public string TokenHash { get; set; } = "";
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+    public DateTime ExpiresUtc { get; set; }
+}
+
+public class LunaChat
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid FamilyId { get; set; }
+    public Guid ChildId { get; set; }
+    public Guid DeviceId { get; set; }
+    public string Subject { get; set; } = LunaSubjects.Curious;
+    public string Title { get; set; } = "";
+    public bool TitleSetByChild { get; set; }
+    public bool HiddenByChild { get; set; }
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+    public DateTime LastMessageUtc { get; set; } = DateTime.UtcNow;
+    public string? Summary { get; set; }
+    public Guid? SummaryUpToMessageId { get; set; }
+    public DateTime UpdatedUtc { get; set; } = DateTime.UtcNow;
+}
+
+public class LunaMessage
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid FamilyId { get; set; }
+    public Guid ChildId { get; set; }
+    public Guid ChatId { get; set; }
+    public string Role { get; set; } = LunaChatRoles.Child;
+    public string Text { get; set; } = "";
+    public string ShownText { get; set; } = "";
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+    public LunaMessageFlag Flag { get; set; } = LunaMessageFlag.None;
+    public string? FlagCategories { get; set; }
+    public string? FlagScores { get; set; }
+    public DateTime? ReviewedUtc { get; set; }
+    public Guid? ReviewedByParentId { get; set; }
+    public bool MarkedFine { get; set; }
+    public int PromptTokens { get; set; }
+    public int CompletionTokens { get; set; }
+}
+
+public class LunaLearnerProfile
+{
+    public Guid ChildId { get; set; }
+    public Guid FamilyId { get; set; }
+    public string Text { get; set; } = "";
+    public DateTime UpdatedUtc { get; set; } = DateTime.UtcNow;
+    public string? UpdatedBy { get; set; }
+}
+
+public class LunaUsageDay
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid FamilyId { get; set; }
+    public Guid ChildId { get; set; }
+    public DateOnly Date { get; set; }
+    public int Messages { get; set; }
+    public int ExtraAllowed { get; set; }
+    public int PromptTokens { get; set; }
+    public int CompletionTokens { get; set; }
+    public DateTime? CooldownUntilUtc { get; set; }
+    public DateTime UpdatedUtc { get; set; } = DateTime.UtcNow;
+}
+
+public class LunaMoreRequest
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid FamilyId { get; set; }
+    public Guid ChildId { get; set; }
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+    public LunaMoreRequestStatus Status { get; set; } = LunaMoreRequestStatus.Pending;
+    public int? GrantedAmount { get; set; }
+    public Guid? HandledBy { get; set; }
+    public DateTime? HandledUtc { get; set; }
 }

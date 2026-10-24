@@ -1143,4 +1143,54 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Push.Error.NotSubscribed" xml:space="preserve"><value>Notifications are not on for this device.</value></data>
   <data name="Push.Error.Expired" xml:space="preserve"><value>This device's notification subscription expired. Turn notifications on again.</value></data>
   <data name="Push.Test.Body" xml:space="preserve"><value>Notifications are working on this device.</value></data>
+  <data name="Team.Perm.Luna" xml:space="preserve"><value>Luna chat</value></data>
+  <data name="Luna.Helpline.Default" xml:space="preserve"><value>Please talk to a grown-up you trust about this. You are not alone.</value></data>
+  <data name="Luna.Child.Blocked" xml:space="preserve"><value>That's not something I can help with. Want to get back to learning? Ask me about anything for school!</value></data>
+  <data name="Luna.Child.ReplyFallback" xml:space="preserve"><value>Let me think about that differently. Can you ask me another way?</value></data>
+  <data name="Luna.Child.Urgent" xml:space="preserve"><value>Thank you for telling me. This is important. Please talk to a grown-up you trust right now, like your mom, your dad or your teacher.</value></data>
+  <data name="Luna.Child.Limit" xml:space="preserve"><value>{0}, we've reached our chat limit for today. I'm going to rest now. If you need more help, you can ask your parents for more messages.</value></data>
+  <data name="Luna.Child.FiveLeft" xml:space="preserve"><value>{0} messages left today</value></data>
+  <data name="Luna.Child.Cooldown" xml:space="preserve"><value>Let's take a little break and come back later. I can talk again after {0}.</value></data>
+  <data name="Luna.Child.Resting" xml:space="preserve"><value>Luna is resting while this device is locked.</value></data>
+  <data name="Luna.Child.Refusal" xml:space="preserve"><value>I can't answer that one right now. Please try again later, or ask a grown-up for help.</value></data>
+  <data name="Luna.Child.MonthlyCap" xml:space="preserve"><value>Luna has used all her chat time for this month. Please ask a grown-up if you need more.</value></data>
+  <data name="Luna.Error.Disabled" xml:space="preserve"><value>Luna is not enabled for this child.</value></data>
+  <data name="Luna.Error.SetupNotTested" xml:space="preserve"><value>The Luna provider setup has not passed its last test.</value></data>
+  <data name="Luna.Error.SetupIncomplete" xml:space="preserve"><value>The Luna provider setup is incomplete.</value></data>
+  <data name="Luna.Error.SetupAProvider" xml:space="preserve"><value>Setup A uses OpenAI, Anthropic, Google Gemini or DeepSeek for chat. OpenRouter is Setup B.</value></data>
+  <data name="Luna.Error.SetupBProvider" xml:space="preserve"><value>Setup B requires the OpenRouter provider.</value></data>
+  <data name="Luna.Error.ChatKeyMissing" xml:space="preserve"><value>Add the chat provider API key first.</value></data>
+  <data name="Luna.Error.ModerationKeyMissing" xml:space="preserve"><value>Add an OpenAI moderation key, or use OpenAI for chat so the same key can be used.</value></data>
+  <data name="Luna.Error.ModelMissing" xml:space="preserve"><value>Choose a chat model.</value></data>
+  <data name="Luna.Error.BadKey" xml:space="preserve"><value>The provider rejected the key. Check the key and try again.</value></data>
+  <data name="Luna.Error.NoCredit" xml:space="preserve"><value>The provider account has no credit or has reached its quota.</value></data>
+  <data name="Luna.Error.ModelNotFound" xml:space="preserve"><value>The provider does not offer that model.</value></data>
+  <data name="Luna.Error.RateLimited" xml:space="preserve"><value>The provider is rate limiting requests. Try again in a minute.</value></data>
+  <data name="Luna.Error.ProviderDown" xml:space="preserve"><value>The provider is not responding. Try again later.</value></data>
+  <data name="Luna.Error.ModerationTimeout" xml:space="preserve"><value>The moderation check timed out. Try again later.</value></data>
+  <data name="Luna.Error.ZdrMissing" xml:space="preserve"><value>The model {0} does not have a zero-data-retention endpoint on OpenRouter.</value></data>
+  <data name="Luna.Error.UnderThirteenAck" xml:space="preserve"><value>This child is under 13 or has no date of birth. Setup A needs the parent acknowledgement before Luna can be enabled.</value></data>
+  <data name="Luna.Error.InvalidSubject" xml:space="preserve"><value>Choose a valid subject.</value></data>
+  <data name="Luna.Error.InvalidTheme" xml:space="preserve"><value>Choose a valid theme.</value></data>
+  <data name="Luna.Error.ChatNotFound" xml:space="preserve"><value>That chat was not found.</value></data>
+  <data name="Luna.Error.MessageNotFound" xml:space="preserve"><value>That message was not found.</value></data>
+  <data name="Luna.Error.RequestNotFound" xml:space="preserve"><value>That request was not found.</value></data>
+  <data name="Luna.Error.EmptyMessage" xml:space="preserve"><value>Type a message first.</value></data>
+  <data name="Luna.Error.MessageTooLong" xml:space="preserve"><value>Messages can be at most {0} characters.</value></data>
+  <data name="Error.OwnerLunaSettings" xml:space="preserve"><value>Only the family owner can change Luna provider settings.</value></data>
+  <data name="Alert.Luna.Flagged.Title" xml:space="preserve"><value>Luna safety alert</value></data>
+  <data name="Alert.Luna.Flagged.Detail" xml:space="preserve"><value>Luna blocked a message from {0} in chat {1}. Open the dashboard to review it.</value></data>
+  <data name="Alert.Luna.ReplyBlocked.Title" xml:space="preserve"><value>Luna safety alert</value></data>
+  <data name="Alert.Luna.ReplyBlocked.Detail" xml:space="preserve"><value>Luna's answer was blocked for {0} in chat {1}. Open the dashboard to review it.</value></data>
+  <data name="Alert.Luna.Urgent.Title" xml:space="preserve"><value>Urgent Luna alert for {0}</value></data>
+  <data name="Alert.Luna.Urgent.Detail" xml:space="preserve"><value>Luna noticed something urgent in a chat with {0}. Open the dashboard now.</value></data>
+  <data name="Alert.Luna.Cooldown.Title" xml:space="preserve"><value>Luna paused for a break</value></data>
+  <data name="Alert.Luna.Cooldown.Detail" xml:space="preserve"><value>{0} sent several messages Luna could not answer. Luna is paused for 15 minutes.</value></data>
+  <data name="Alert.Luna.MoreRequest.Title" xml:space="preserve"><value>Luna messages requested</value></data>
+  <data name="Alert.Luna.MoreRequest.Detail" xml:space="preserve"><value>{0} asked for more Luna messages</value></data>
+  <data name="Alert.Luna.MonthlyCap.Title" xml:space="preserve"><value>Luna monthly limit reached</value></data>
+  <data name="Alert.Luna.MonthlyCap.Detail" xml:space="preserve"><value>The family has reached the Luna monthly token limit. Luna is paused for {0}.</value></data>
+  <data name="Push.Luna.Urgent.Title" xml:space="preserve"><value>Urgent Luna alert for {0}</value></data>
+  <data name="Push.Luna.Urgent.Body" xml:space="preserve"><value>Urgent Luna alert for {0}. Open the dashboard.</value></data>
+  <data name="Push.Pref.Luna" xml:space="preserve"><value>Luna safety alerts and message requests</value></data>
 </root>

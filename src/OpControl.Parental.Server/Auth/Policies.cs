@@ -19,6 +19,7 @@ public static class ParentalPolicies
     public const string ManagePin = "Permission.ManagePin";
     public const string RemoteView = "Permission.RemoteView";
     public const string Messaging = "Permission.Messaging";
+    public const string Luna = "Permission.Luna";
 
     public static void AddParentalPolicies(this AuthorizationOptions options)
     {
@@ -36,6 +37,7 @@ public static class ParentalPolicies
         AddPermission(options, ManagePin, ParentPermissions.ManagePin);
         AddPermission(options, RemoteView, ParentPermissions.RemoteView);
         AddPermission(options, Messaging, ParentPermissions.Messaging);
+        AddPermission(options, Luna, ParentPermissions.Luna);
     }
 
     private static void AddPermission(AuthorizationOptions options, string name, ParentPermissions permission)

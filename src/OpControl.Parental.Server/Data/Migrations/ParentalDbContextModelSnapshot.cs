@@ -566,6 +566,51 @@ namespace OpControl.Parental.Server.Data.Migrations
                     b.ToTable("ChildCategories");
                 });
 
+            modelBuilder.Entity("OpControl.Parental.Server.Data.ChildLunaSettings", b =>
+                {
+                    b.Property<Guid>("ChildId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DailyMessageLimit")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("EnabledByParentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("EnabledUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ExtraInstructions")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Theme")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<DateTime?>("UnderThirteenAcknowledgedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("ChildId");
+
+                    b.HasIndex("Enabled");
+
+                    b.HasIndex("FamilyId");
+
+                    b.ToTable("ChildLunaSettings");
+                });
+
             modelBuilder.Entity("OpControl.Parental.Server.Data.ChildMessage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1277,6 +1322,340 @@ namespace OpControl.Parental.Server.Data.Migrations
                     b.ToTable("LockStates");
                 });
 
+            modelBuilder.Entity("OpControl.Parental.Server.Data.LunaChat", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ChildId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeviceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("HiddenByChild")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("LastMessageUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<Guid?>("SummaryUpToMessageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<bool>("TitleSetByChild")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceId", "CreatedUtc");
+
+                    b.HasIndex("ChildId", "HiddenByChild", "LastMessageUtc");
+
+                    b.HasIndex("FamilyId", "ChildId", "LastMessageUtc");
+
+                    b.ToTable("LunaChats");
+                });
+
+            modelBuilder.Entity("OpControl.Parental.Server.Data.LunaFamilySettings", b =>
+                {
+                    b.Property<Guid>("FamilyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ChatKeyProtected")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<string>("ChatModel")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("ChatProvider")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<string>("HelplineText")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("LastTestError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool?>("LastTestOk")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastTestUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModerationKeyProtected")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<int?>("MonthlyTokenCap")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Setup")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("FamilyId");
+
+                    b.HasIndex("LastTestOk");
+
+                    b.ToTable("LunaFamilySettings");
+                });
+
+            modelBuilder.Entity("OpControl.Parental.Server.Data.LunaLearnerProfile", b =>
+                {
+                    b.Property<Guid>("ChildId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("ChildId");
+
+                    b.HasIndex("FamilyId");
+
+                    b.ToTable("LunaLearnerProfiles");
+                });
+
+            modelBuilder.Entity("OpControl.Parental.Server.Data.LunaMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ChatId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ChildId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("CompletionTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Flag")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("FlagCategories")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("FlagScores")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("MarkedFine")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("PromptTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ReviewedByParentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ReviewedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<string>("ShownText")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChatId", "CreatedUtc");
+
+                    b.HasIndex("ChildId", "Flag", "CreatedUtc");
+
+                    b.HasIndex("FamilyId", "ChildId", "CreatedUtc");
+
+                    b.ToTable("LunaMessages");
+                });
+
+            modelBuilder.Entity("OpControl.Parental.Server.Data.LunaMoreRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ChildId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("GrantedAmount")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("HandledBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("HandledUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FamilyId", "CreatedUtc");
+
+                    b.HasIndex("ChildId", "Status", "CreatedUtc");
+
+                    b.ToTable("LunaMoreRequests");
+                });
+
+            modelBuilder.Entity("OpControl.Parental.Server.Data.LunaToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ChildId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeviceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ExpiresUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresUtc");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("DeviceId", "ChildId");
+
+                    b.ToTable("LunaTokens");
+                });
+
+            modelBuilder.Entity("OpControl.Parental.Server.Data.LunaUsageDay", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ChildId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("CompletionTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("CooldownUntilUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<int>("ExtraAllowed")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Messages")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PromptTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChildId", "Date")
+                        .IsUnique();
+
+                    b.HasIndex("FamilyId", "Date");
+
+                    b.ToTable("LunaUsageDays");
+                });
+
             modelBuilder.Entity("OpControl.Parental.Server.Data.OverrideEvent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1426,6 +1805,9 @@ namespace OpControl.Parental.Server.Data.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<bool>("Limits")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Luna")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("Messages")

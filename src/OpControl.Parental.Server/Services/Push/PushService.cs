@@ -169,6 +169,7 @@ public sealed class PushService
         pref.Offline = values.Offline;
         pref.RepeatedBlock = values.RepeatedBlock;
         pref.NewApp = values.NewApp;
+        pref.Luna = values.Luna;
         pref.Other = values.Other;
         pref.RespectQuietHours = values.RespectQuietHours;
         pref.UpdatedUtc = DateTime.UtcNow;
@@ -203,7 +204,7 @@ public sealed class PushService
         var prefs = await _db.PushPreferences.AsNoTracking().Where(p => parentIds.Contains(p.ParentId)).ToDictionaryAsync(p => p.ParentId, ct);
         var family = await _db.Families.AsNoTracking().FirstOrDefaultAsync(f => f.Id == alert.FamilyId, ct);
         var quiet = await InQuietHoursAsync(alert.FamilyId, ct);
-        var urgent = category is "messages" or "tampering";
+        var urgent = alert.Type == "luna-urgent" || category is "messages" or "tampering";
 
         foreach (var parent in parents)
         {
@@ -215,6 +216,13 @@ public sealed class PushService
             var language = AppCulture.Normalize(parent.PreferredLanguage ?? family?.DefaultLanguage);
             var (title, detail) = AlertText.Render(alert, language);
             var url = category == "messages" ? "/messages" : "/alerts";
+            if (alert.Type == "luna-urgent")
+            {
+                var childName = await _db.Children.AsNoTracking().Where(c => c.Id == alert.ChildId).Select(c => c.Name).FirstOrDefaultAsync(ct) ?? "";
+                title = AppText.Get("Push.Luna.Urgent.Title", language, childName);
+                detail = AppText.Get("Push.Luna.Urgent.Body", language, childName);
+                url = "/alerts";
+            }
             var payload = new PushPayload(Trim(title, 120), Trim(detail, 240), url, category == "messages" ? "msg-" + alert.ChildId : alert.Type + "-" + alert.Id);
             foreach (var sub in subs.Where(s => s.ParentId == parent.Id))
                 await SendAsync(sub, payload, urgent, ct);
@@ -313,6 +321,7 @@ public sealed class PushService
         "device-offline" => "offline",
         "repeated-blocked-site" => "blocked",
         "new-app" => "newapp",
+        "luna-flagged" or "luna-urgent" or "luna-more-request" => "luna",
         _ => "other"
     };
 
@@ -325,6 +334,7 @@ public sealed class PushService
         "offline" => p.Offline,
         "blocked" => p.RepeatedBlock,
         "newapp" => p.NewApp,
+        "luna" => p.Luna,
         _ => p.Other
     };
 
@@ -332,7 +342,12 @@ public sealed class PushService
     public static bool Allowed(ParentUser parent, string category)
     {
         if (parent.RoleInFamily == FamilyRole.Owner) return true;
-        var needed = category == "messages" ? ParentPermissions.Messaging : ParentPermissions.ViewReports;
+        var needed = category switch
+        {
+            "messages" => ParentPermissions.Messaging,
+            "luna" => ParentPermissions.Luna,
+            _ => ParentPermissions.ViewReports
+        };
         return (parent.Permissions & needed) == needed;
     }
 

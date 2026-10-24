@@ -43,6 +43,7 @@ public sealed record FamilyAccess(
         ParentPermissions.ManagePin => "Team.Perm.Pin",
         ParentPermissions.RemoteView => "Team.Perm.Remote",
         ParentPermissions.Messaging => "Team.Perm.Messages",
+        ParentPermissions.Luna => "Team.Perm.Luna",
         _ => "Team.AllPermissions"
     });
 

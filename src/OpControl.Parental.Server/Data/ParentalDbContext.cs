@@ -50,6 +50,14 @@ public class ParentalDbContext : IdentityDbContext<ParentUser, IdentityRole<Guid
     public DbSet<ChildMessage> ChildMessages => Set<ChildMessage>();
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
     public DbSet<PushPreference> PushPreferences => Set<PushPreference>();
+    public DbSet<LunaFamilySettings> LunaFamilySettings => Set<LunaFamilySettings>();
+    public DbSet<ChildLunaSettings> ChildLunaSettings => Set<ChildLunaSettings>();
+    public DbSet<LunaToken> LunaTokens => Set<LunaToken>();
+    public DbSet<LunaChat> LunaChats => Set<LunaChat>();
+    public DbSet<LunaMessage> LunaMessages => Set<LunaMessage>();
+    public DbSet<LunaLearnerProfile> LunaLearnerProfiles => Set<LunaLearnerProfile>();
+    public DbSet<LunaUsageDay> LunaUsageDays => Set<LunaUsageDay>();
+    public DbSet<LunaMoreRequest> LunaMoreRequests => Set<LunaMoreRequest>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -446,6 +454,85 @@ public class ParentalDbContext : IdentityDbContext<ParentUser, IdentityRole<Guid
             e.HasIndex(x => new { x.ChildId, x.Direction, x.CreatedUtc });
             e.HasIndex(x => new { x.ChildId, x.ParentReadUtc });
             e.HasIndex(x => new { x.DeviceId, x.Direction, x.DeliveredUtc });
+        });
+
+        builder.Entity<LunaFamilySettings>(e =>
+        {
+            e.HasKey(x => x.FamilyId);
+            e.Property(x => x.Setup).HasConversion<string>().HasMaxLength(8);
+            e.Property(x => x.ChatProvider).HasMaxLength(24).IsRequired();
+            e.Property(x => x.ChatModel).HasMaxLength(160).IsRequired();
+            e.Property(x => x.ChatKeyProtected).HasMaxLength(2048);
+            e.Property(x => x.ModerationKeyProtected).HasMaxLength(2048);
+            e.Property(x => x.LastTestError).HasMaxLength(500);
+            e.Property(x => x.HelplineText).HasMaxLength(500).IsRequired();
+            e.HasIndex(x => x.LastTestOk);
+        });
+
+        builder.Entity<ChildLunaSettings>(e =>
+        {
+            e.HasKey(x => x.ChildId);
+            e.Property(x => x.ExtraInstructions).HasMaxLength(1000);
+            e.Property(x => x.Theme).HasMaxLength(8).IsRequired();
+            e.HasIndex(x => x.FamilyId);
+            e.HasIndex(x => x.Enabled);
+        });
+
+        builder.Entity<LunaToken>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();
+            e.HasIndex(x => x.TokenHash).IsUnique();
+            e.HasIndex(x => x.ExpiresUtc);
+            e.HasIndex(x => new { x.DeviceId, x.ChildId });
+        });
+
+        builder.Entity<LunaChat>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Subject).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Title).HasMaxLength(80).IsRequired();
+            e.Property(x => x.Summary).HasMaxLength(4000);
+            e.HasIndex(x => new { x.FamilyId, x.ChildId, x.LastMessageUtc });
+            e.HasIndex(x => new { x.ChildId, x.HiddenByChild, x.LastMessageUtc });
+            e.HasIndex(x => new { x.DeviceId, x.CreatedUtc });
+        });
+
+        builder.Entity<LunaMessage>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Role).HasMaxLength(8).IsRequired();
+            e.Property(x => x.Text).HasMaxLength(8000).IsRequired();
+            e.Property(x => x.ShownText).HasMaxLength(8000).IsRequired();
+            e.Property(x => x.Flag).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.FlagCategories).HasMaxLength(500);
+            e.Property(x => x.FlagScores).HasMaxLength(1000);
+            e.HasIndex(x => new { x.ChatId, x.CreatedUtc });
+            e.HasIndex(x => new { x.ChildId, x.Flag, x.CreatedUtc });
+            e.HasIndex(x => new { x.FamilyId, x.ChildId, x.CreatedUtc });
+        });
+
+        builder.Entity<LunaLearnerProfile>(e =>
+        {
+            e.HasKey(x => x.ChildId);
+            e.Property(x => x.Text).HasMaxLength(4000).IsRequired();
+            e.Property(x => x.UpdatedBy).HasMaxLength(80);
+            e.HasIndex(x => x.FamilyId);
+        });
+
+        builder.Entity<LunaUsageDay>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.ChildId, x.Date }).IsUnique();
+            e.HasIndex(x => new { x.FamilyId, x.Date });
+        });
+
+        builder.Entity<LunaMoreRequest>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
+            e.HasIndex(x => new { x.ChildId, x.Status, x.CreatedUtc });
+            e.HasIndex(x => new { x.FamilyId, x.CreatedUtc });
         });
     }
 }

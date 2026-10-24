@@ -35,7 +35,8 @@ public enum ParentPermissions
     ManagePin = 64,
     RemoteView = 128,
     Messaging = 256,
-    All = LockUnlockBonus | WebsiteRules | AppRules | SchedulesLimits | ViewReports | ManageDevices | ManagePin | RemoteView | Messaging
+    Luna = 512,
+    All = LockUnlockBonus | WebsiteRules | AppRules | SchedulesLimits | ViewReports | ManageDevices | ManagePin | RemoteView | Messaging | Luna
 }
 
 public enum MessageDirection
