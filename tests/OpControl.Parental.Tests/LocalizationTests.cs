@@ -212,7 +212,8 @@ public class LocalizationTests
                     if (value == "muted") continue;
                     if (value.StartsWith("Error.") || value.StartsWith("Team.") || value.StartsWith("Home.")
                         || value.StartsWith("Pin.") || value.StartsWith("ServerAdmin.") || value.StartsWith("TwoFactor.")
-                        || value.StartsWith("Login.") || value.StartsWith("Update.") || value.StartsWith("Alert.")) continue;
+                        || value.StartsWith("Login.") || value.StartsWith("Update.") || value.StartsWith("Alert.")
+                        || value.StartsWith("Luna.")) continue;
                     failures.Add($"{relative}:{i + 1}: \"{value}\"");
                 }
             }

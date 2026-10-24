@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using OpControl.Parental.Contracts;
 using OpControl.Parental.Server.Data;
 using OpControl.Parental.Server.Services;
+using OpControl.Parental.Server.Services.Luna;
 using System.Text.Encodings.Web;
 
 namespace OpControl.Parental.Server.Auth;
@@ -21,6 +22,7 @@ public static class ParentalClaims
     public const string Permissions = "permissions";
     public const string ServerAdmin = "server_admin";
     public const string PreferredLanguage = "preferred_language";
+    public const string LunaToken = "luna_token";
 }
 
 public sealed class ParentUserClaimsPrincipalFactory : Microsoft.AspNetCore.Identity.UserClaimsPrincipalFactory<ParentUser, Microsoft.AspNetCore.Identity.IdentityRole<Guid>>
@@ -62,6 +64,10 @@ public sealed class DeviceTokenAuthenticationHandler : AuthenticationHandler<Aut
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
+        // Device credentials are never valid on the child Luna API.
+        if (Context.Request.Path.StartsWithSegments("/api/luna"))
+            return AuthenticateResult.Fail("Device credentials are not valid for Luna");
+
         var token = ReadToken();
         if (string.IsNullOrWhiteSpace(token))
             return AuthenticateResult.NoResult();
@@ -94,6 +100,56 @@ public sealed class DeviceTokenAuthenticationHandler : AuthenticationHandler<Aut
         if (Request.Query.TryGetValue("access_token", out var query) && query.Count > 0)
             return query[0];
 
+        return null;
+    }
+}
+
+public sealed class LunaTokenAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+{
+    public const string SchemeName = "LunaToken";
+
+    public LunaTokenAuthenticationHandler(
+        IOptionsMonitor<AuthenticationSchemeOptions> options,
+        ILoggerFactory logger,
+        UrlEncoder encoder)
+        : base(options, logger, encoder)
+    {
+    }
+
+    protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
+    {
+        // A Luna token is scoped to the child Luna API and nowhere else.
+        if (!Context.Request.Path.StartsWithSegments("/api/luna"))
+            return AuthenticateResult.Fail("Luna tokens are only valid on /api/luna");
+
+        var token = ReadToken();
+        if (string.IsNullOrWhiteSpace(token))
+            return AuthenticateResult.NoResult();
+
+        var service = Context.RequestServices.GetRequiredService<LunaTokenService>();
+        var context = await service.ValidateAsync(token, Context.RequestAborted);
+        if (context is null)
+            return AuthenticateResult.Fail("Invalid Luna token");
+
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, context.ChildId.ToString()),
+            new(ClaimTypes.Name, "Luna"),
+            new(ParentalClaims.ChildId, context.ChildId.ToString()),
+            new(ParentalClaims.FamilyId, context.FamilyId.ToString()),
+            new(ParentalClaims.DeviceId, context.DeviceId.ToString()),
+            new(ParentalClaims.LunaToken, context.TokenId.ToString())
+        };
+        var identity = new ClaimsIdentity(claims, SchemeName);
+        var ticket = new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName);
+        return AuthenticateResult.Success(ticket);
+    }
+
+    private string? ReadToken()
+    {
+        var header = Request.Headers.Authorization.ToString();
+        if (header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            return header["Bearer ".Length..].Trim();
         return null;
     }
 }
