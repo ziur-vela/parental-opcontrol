@@ -35,10 +35,17 @@ public sealed class OpenAiCompatibleChatProvider : ILunaChatProvider
         var body = new Dictionary<string, object>
         {
             ["model"] = config.Model,
-            ["messages"] = messages,
-            ["max_tokens"] = Math.Clamp(request.MaxTokens, 8, 2000),
-            ["temperature"] = 0.4
+            ["messages"] = messages
         };
+        // Newer OpenAI reasoning models require max_completion_tokens and the default temperature.
+        var reasoningModel = config.Provider == Contracts.LunaChatProviders.OpenAi
+            && (config.Model.StartsWith("o1", StringComparison.OrdinalIgnoreCase)
+                || config.Model.StartsWith("o3", StringComparison.OrdinalIgnoreCase)
+                || config.Model.StartsWith("gpt-5", StringComparison.OrdinalIgnoreCase));
+        body[config.Provider == Contracts.LunaChatProviders.OpenAi && reasoningModel
+            ? "max_completion_tokens"
+            : "max_tokens"] = Math.Clamp(request.MaxTokens, 8, 2000);
+        if (!reasoningModel) body["temperature"] = 0.4;
         if (config.Provider == Contracts.LunaChatProviders.OpenRouter)
             body["provider"] = new { zdr = true };
 

@@ -19,13 +19,28 @@ public sealed class AnthropicChatProvider : ILunaChatProvider
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(TimeSpan.FromSeconds(60));
 
+        // Anthropic requires the conversation to start with a user turn and to alternate.
+        // Consecutive same-role turns are merged.
+        var turns = new List<(string Role, System.Text.StringBuilder Content)>();
+        foreach (var turnMessage in request.Messages)
+        {
+            var role = turnMessage.Role == "assistant" ? "assistant" : "user";
+            if (turns.Count == 0 && role == "assistant") continue;
+            if (turns.Count > 0 && turns[^1].Role == role)
+                turns[^1].Content.Append("\n\n").Append(turnMessage.Content);
+            else
+                turns.Add((role, new System.Text.StringBuilder(turnMessage.Content)));
+        }
+        if (turns.Count == 0 || turns[0].Role != "user")
+            throw new LunaProviderException("Luna.Error.ProviderDown");
+
         var body = new
         {
             model = config.Model,
             max_tokens = Math.Clamp(request.MaxTokens, 8, 2000),
             temperature = 0.4,
             system = request.SystemPrompt,
-            messages = request.Messages.Select(m => new { role = m.Role == "assistant" ? "assistant" : "user", content = m.Content }).ToList()
+            messages = turns.Select(t => new { role = t.Role, content = t.Content.ToString() }).ToList()
         };
 
         using var http = _http.CreateClient("luna");
