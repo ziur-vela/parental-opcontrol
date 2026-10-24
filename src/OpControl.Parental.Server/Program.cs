@@ -20,6 +20,7 @@ using OpControl.Parental.Server.Components;
 using OpControl.Parental.Server.Data;
 using OpControl.Parental.Server.Hubs;
 using OpControl.Parental.Server.Services;
+using OpControl.Parental.Server.Services.Luna;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,7 +47,8 @@ builder.Services
 
 builder.Services.AddScoped<IUserClaimsPrincipalFactory<ParentUser>, ParentUserClaimsPrincipalFactory>();
 builder.Services.AddAuthentication()
-    .AddScheme<AuthenticationSchemeOptions, DeviceTokenAuthenticationHandler>(DeviceTokenAuthenticationHandler.SchemeName, null);
+    .AddScheme<AuthenticationSchemeOptions, DeviceTokenAuthenticationHandler>(DeviceTokenAuthenticationHandler.SchemeName, null)
+    .AddScheme<AuthenticationSchemeOptions, LunaTokenAuthenticationHandler>(LunaTokenAuthenticationHandler.SchemeName, null);
 builder.Services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.Zero);
 
 builder.Services.ConfigureApplicationCookie(options =>
@@ -110,6 +112,17 @@ builder.Services.AddRateLimiter(options =>
         limiter.Window = TimeSpan.FromMinutes(1);
         limiter.QueueLimit = 0;
     });
+    options.AddPolicy("luna", context =>
+    {
+        var child = context.User.FindFirstValue(ParentalClaims.ChildId)
+            ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
+        return RateLimitPartition.GetFixedWindowLimiter(child, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        });
+    });
 });
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
@@ -168,6 +181,15 @@ builder.Services.AddHostedService<OpControl.Parental.Server.Services.Push.PushDi
 builder.Services.AddHttpClient("webpush", client => client.Timeout = TimeSpan.FromSeconds(15));
 builder.Services.AddScoped<MessageService>();
 builder.Services.AddScoped<ChildSummaryService>();
+builder.Services.AddScoped<LunaTokenService>();
+builder.Services.AddScoped<ILunaProviderFactory, LunaProviderFactory>();
+builder.Services.AddScoped<ILunaZdrCatalog, OpenRouterZdrCatalog>();
+builder.Services.AddScoped<LunaSettingsService>();
+builder.Services.AddScoped<LunaUsageStore>();
+builder.Services.AddScoped<LunaChatService>();
+builder.Services.AddScoped<LunaParentService>();
+builder.Services.AddHostedService<LunaTokenSweeper>();
+builder.Services.AddHttpClient("luna", client => client.Timeout = TimeSpan.FromSeconds(75));
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<DashboardEventBus>();
 builder.Services.AddSingleton<ReleaseCatalog>();
@@ -1030,6 +1052,184 @@ app.MapPost("/api/device/messages/{messageId:guid}/ack", async (Guid messageId, 
     return Results.Ok(await messages.MarkAcknowledgedAsync(device, messageId, ct));
 }).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = DeviceTokenAuthenticationHandler.SchemeName });
 
+// Luna Chat (child API: Luna token only; parent API: cookie + Luna permission).
+app.MapPost("/api/device/luna/token", async (ClaimsPrincipal user, ParentalDbContext db, LunaTokenService tokens, CancellationToken ct) =>
+{
+    var device = await DeviceFromClaimsAsync(user, db, ct);
+    if (device is null) return Results.Unauthorized();
+    try
+    {
+        var (token, expires) = await tokens.IssueAsync(device, ct);
+        return Results.Ok(new { token, expiresUtc = expires });
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.Json(new { error = ex.Message }, statusCode: StatusCodes.Status403Forbidden);
+    }
+}).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = DeviceTokenAuthenticationHandler.SchemeName });
+
+app.MapGet("/api/luna/status", async (ClaimsPrincipal user, LunaChatService chat, CancellationToken ct) =>
+{
+    var context = LunaFromClaims(user);
+    return context is null ? Results.Unauthorized() : Results.Ok(await chat.GetStatusAsync(context, ct));
+}).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = LunaTokenAuthenticationHandler.SchemeName });
+
+app.MapGet("/api/luna/chats", async (ClaimsPrincipal user, LunaChatService chat, CancellationToken ct) =>
+{
+    var context = LunaFromClaims(user);
+    return context is null ? Results.Unauthorized() : Results.Ok(await chat.ListChatsAsync(context, ct));
+}).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = LunaTokenAuthenticationHandler.SchemeName });
+
+app.MapPost("/api/luna/chats", async (LunaCreateChatRequest request, ClaimsPrincipal user, LunaChatService chat, CancellationToken ct) =>
+{
+    var context = LunaFromClaims(user);
+    return context is null ? Results.Unauthorized() : Results.Ok(await chat.CreateChatAsync(context, request.Subject, ct));
+}).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = LunaTokenAuthenticationHandler.SchemeName });
+
+app.MapPatch("/api/luna/chats/{chatId:guid}", async (Guid chatId, LunaUpdateChatRequest request, ClaimsPrincipal user, LunaChatService chat, CancellationToken ct) =>
+{
+    var context = LunaFromClaims(user);
+    return context is null ? Results.Unauthorized() : Results.Ok(await chat.UpdateChatAsync(context, chatId, request, ct));
+}).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = LunaTokenAuthenticationHandler.SchemeName });
+
+app.MapGet("/api/luna/chats/{chatId:guid}/messages", async (Guid chatId, ClaimsPrincipal user, LunaChatService chat, CancellationToken ct) =>
+{
+    var context = LunaFromClaims(user);
+    return context is null ? Results.Unauthorized() : Results.Ok(await chat.GetMessagesAsync(context, chatId, ct));
+}).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = LunaTokenAuthenticationHandler.SchemeName });
+
+app.MapPost("/api/luna/chats/{chatId:guid}/messages", async (Guid chatId, LunaMessageRequest request, ClaimsPrincipal user, LunaChatService chat, CancellationToken ct) =>
+{
+    var context = LunaFromClaims(user);
+    return context is null ? Results.Unauthorized() : Results.Ok(await chat.SendAsync(context, chatId, request.Text, ct));
+}).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = LunaTokenAuthenticationHandler.SchemeName }).RequireRateLimiting("luna");
+
+app.MapPost("/api/luna/more-requests", async (ClaimsPrincipal user, LunaChatService chat, CancellationToken ct) =>
+{
+    var context = LunaFromClaims(user);
+    return context is null ? Results.Unauthorized() : Results.Ok(await chat.CreateMoreRequestAsync(context, ct));
+}).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = LunaTokenAuthenticationHandler.SchemeName });
+
+app.MapPost("/api/luna/theme", async (LunaThemeRequest request, ClaimsPrincipal user, LunaChatService chat, CancellationToken ct) =>
+{
+    var context = LunaFromClaims(user);
+    if (context is null) return Results.Unauthorized();
+    await chat.SetThemeAsync(context, request.Theme, ct);
+    return Results.Ok(new { ok = true });
+}).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = LunaTokenAuthenticationHandler.SchemeName });
+
+app.MapGet("/api/luna/settings", async (FamilyScope family, LunaSettingsService luna, CancellationToken ct) =>
+{
+    var access = await family.AccessAsync(ct);
+    if (!access.IsOwner) throw new PermissionDeniedException(AppText.Get("Error.OwnerLunaSettings"));
+    return Results.Ok(await luna.GetAsync(family.FamilyId, ct));
+}).RequireAuthorization();
+
+app.MapPost("/api/luna/settings", async (LunaSettingsRequest request, HttpContext context, IAntiforgery antiforgery, FamilyScope family, LunaSettingsService luna, CancellationToken ct) =>
+{
+    await antiforgery.ValidateRequestAsync(context);
+    var access = await family.AccessAsync(ct);
+    if (!access.IsOwner) throw new PermissionDeniedException(AppText.Get("Error.OwnerLunaSettings"));
+    return Results.Ok(await luna.SaveAsync(family.FamilyId, request, ct));
+}).RequireAuthorization();
+
+app.MapPost("/api/luna/settings/test", async (HttpContext context, IAntiforgery antiforgery, FamilyScope family, LunaSettingsService luna, CancellationToken ct) =>
+{
+    await antiforgery.ValidateRequestAsync(context);
+    var access = await family.AccessAsync(ct);
+    if (!access.IsOwner) throw new PermissionDeniedException(AppText.Get("Error.OwnerLunaSettings"));
+    return Results.Ok(await luna.TestAsync(family.FamilyId, ct));
+}).RequireAuthorization();
+
+app.MapGet("/api/children/{childId:guid}/luna", async (Guid childId, FamilyScope family, LunaParentService luna, CancellationToken ct) =>
+{
+    await family.RequireAsync(ParentPermissions.Luna, ct);
+    return Results.Ok(await luna.GetChildAsync(family.FamilyId, childId, ct));
+}).RequireAuthorization();
+
+app.MapPost("/api/children/{childId:guid}/luna", async (Guid childId, ChildLunaRequest request, HttpContext context, IAntiforgery antiforgery, FamilyScope family, LunaParentService luna, CancellationToken ct) =>
+{
+    await antiforgery.ValidateRequestAsync(context);
+    await family.RequireAsync(ParentPermissions.Luna, ct);
+    return Results.Ok(await luna.SaveChildAsync(family.FamilyId, family.ParentId, childId, request, ct));
+}).RequireAuthorization();
+
+app.MapGet("/api/children/{childId:guid}/luna/chats", async (Guid childId, FamilyScope family, LunaParentService luna, CancellationToken ct) =>
+{
+    await family.RequireAsync(ParentPermissions.Luna, ct);
+    return Results.Ok(await luna.ListChatsAsync(family.FamilyId, childId, ct));
+}).RequireAuthorization();
+
+app.MapGet("/api/children/{childId:guid}/luna/chats/{chatId:guid}", async (Guid childId, Guid chatId, FamilyScope family, LunaParentService luna, CancellationToken ct) =>
+{
+    await family.RequireAsync(ParentPermissions.Luna, ct);
+    return Results.Ok(await luna.GetChatAsync(family.FamilyId, childId, chatId, ct));
+}).RequireAuthorization();
+
+app.MapPost("/api/children/{childId:guid}/luna/chats/{chatId:guid}/delete", async (Guid childId, Guid chatId, HttpContext context, IAntiforgery antiforgery, FamilyScope family, LunaParentService luna, CancellationToken ct) =>
+{
+    await antiforgery.ValidateRequestAsync(context);
+    await family.RequireAsync(ParentPermissions.Luna, ct);
+    await luna.DeleteChatAsync(family.FamilyId, childId, chatId, ct);
+    return Results.Ok(new { ok = true });
+}).RequireAuthorization();
+
+app.MapPost("/api/children/{childId:guid}/luna/clear", async (Guid childId, HttpContext context, IAntiforgery antiforgery, FamilyScope family, LunaParentService luna, CancellationToken ct) =>
+{
+    await antiforgery.ValidateRequestAsync(context);
+    await family.RequireAsync(ParentPermissions.Luna, ct);
+    await luna.ClearAsync(family.FamilyId, childId, ct);
+    return Results.Ok(new { ok = true });
+}).RequireAuthorization();
+
+app.MapPost("/api/children/{childId:guid}/luna/messages/{messageId:guid}/review", async (Guid childId, Guid messageId, LunaReviewRequest request, HttpContext context, IAntiforgery antiforgery, FamilyScope family, LunaParentService luna, CancellationToken ct) =>
+{
+    await antiforgery.ValidateRequestAsync(context);
+    await family.RequireAsync(ParentPermissions.Luna, ct);
+    return Results.Ok(await luna.ReviewAsync(family.FamilyId, childId, messageId, family.ParentId, request.MarkedFine, ct));
+}).RequireAuthorization();
+
+app.MapPost("/api/children/{childId:guid}/luna/extra", async (Guid childId, LunaGrantExtraRequest request, HttpContext context, IAntiforgery antiforgery, FamilyScope family, LunaParentService luna, CancellationToken ct) =>
+{
+    await antiforgery.ValidateRequestAsync(context);
+    await family.RequireAsync(ParentPermissions.Luna, ct);
+    var left = await luna.GrantExtraAsync(family.FamilyId, childId, family.ParentId, request.Amount, ct);
+    return Results.Ok(new { ok = true, messagesLeftToday = left });
+}).RequireAuthorization();
+
+app.MapGet("/api/children/{childId:guid}/luna/requests", async (Guid childId, FamilyScope family, LunaParentService luna, CancellationToken ct) =>
+{
+    await family.RequireAsync(ParentPermissions.Luna, ct);
+    return Results.Ok(await luna.ListRequestsAsync(family.FamilyId, childId, ct));
+}).RequireAuthorization();
+
+app.MapPost("/api/children/{childId:guid}/luna/more-requests/{requestId:guid}/dismiss", async (Guid childId, Guid requestId, HttpContext context, IAntiforgery antiforgery, FamilyScope family, LunaParentService luna, CancellationToken ct) =>
+{
+    await antiforgery.ValidateRequestAsync(context);
+    await family.RequireAsync(ParentPermissions.Luna, ct);
+    await luna.DismissRequestAsync(family.FamilyId, childId, requestId, family.ParentId, ct);
+    return Results.Ok(new { ok = true });
+}).RequireAuthorization();
+
+app.MapGet("/api/children/{childId:guid}/luna/profile", async (Guid childId, FamilyScope family, LunaParentService luna, CancellationToken ct) =>
+{
+    await family.RequireAsync(ParentPermissions.Luna, ct);
+    return Results.Ok(await luna.GetProfileAsync(family.FamilyId, childId, ct));
+}).RequireAuthorization();
+
+app.MapPost("/api/children/{childId:guid}/luna/profile", async (Guid childId, LunaProfileRequest request, HttpContext context, IAntiforgery antiforgery, FamilyScope family, LunaParentService luna, CancellationToken ct) =>
+{
+    await antiforgery.ValidateRequestAsync(context);
+    await family.RequireAsync(ParentPermissions.Luna, ct);
+    return Results.Ok(await luna.SaveProfileAsync(family.FamilyId, childId, family.ParentId, request.Text, ct));
+}).RequireAuthorization();
+
+app.MapGet("/api/children/{childId:guid}/luna/usage", async (Guid childId, FamilyScope family, LunaParentService luna, CancellationToken ct) =>
+{
+    await family.RequireAsync(ParentPermissions.Luna, ct);
+    return Results.Ok(await luna.GetUsageAsync(family.FamilyId, childId, ct));
+}).RequireAuthorization();
+
 app.MapGet("/api/alert-preferences", async (FamilyScope family, AlertService alerts, CancellationToken ct) =>
 {
     var access = await family.AccessAsync(ct);
@@ -1356,6 +1556,16 @@ static async Task<Device?> DeviceFromClaimsAsync(ClaimsPrincipal user, ParentalD
     var value = user.FindFirstValue(ParentalClaims.DeviceId);
     if (!Guid.TryParse(value, out var deviceId)) return null;
     return await db.Devices.FirstOrDefaultAsync(d => d.Id == deviceId && !d.IsRevoked, ct);
+}
+
+static LunaTokenContext? LunaFromClaims(ClaimsPrincipal user)
+{
+    if (!Guid.TryParse(user.FindFirstValue(ParentalClaims.FamilyId), out var familyId)
+        || !Guid.TryParse(user.FindFirstValue(ParentalClaims.ChildId), out var childId)
+        || !Guid.TryParse(user.FindFirstValue(ParentalClaims.DeviceId), out var deviceId)
+        || !Guid.TryParse(user.FindFirstValue(ParentalClaims.LunaToken), out var tokenId))
+        return null;
+    return new LunaTokenContext(tokenId, familyId, childId, deviceId, DateTime.MaxValue);
 }
 
 public sealed record BonusRequest(int Minutes);

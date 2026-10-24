@@ -233,15 +233,34 @@ public sealed class AlertService
             recipientRows.FirstOrDefault(r => string.Equals(r.Email, email, StringComparison.OrdinalIgnoreCase))?.PreferredLanguage
             ?? familyLanguage);
 
-        if (preferences.DailyDigest)
+        var urgent = due.Where(a => a.Type == "luna-urgent").ToList();
+        var rest = due.Where(a => a.Type != "luna-urgent").ToList();
+        var sent = 0;
+
+        // Luna urgent alerts go out one by one, immediately, regardless of the digest or quiet hours.
+        foreach (var alert in urgent)
         {
-            var sentDigest = await SendDigestAsync(familyId, settings, due, recipients, languageFor, ct);
-            await _db.SaveChangesAsync(ct);
-            return sentDigest;
+            var (ok, error) = await SendOneAsync(settings, alert, recipients, languageFor, ct);
+            if (ok)
+            {
+                alert.EmailedUtc = DateTime.UtcNow;
+                alert.EmailLastError = null;
+                sent++;
+            }
+            else
+            {
+                ScheduleRetry(alert, error);
+            }
         }
 
-        var sent = 0;
-        foreach (var alert in due)
+        if (preferences.DailyDigest && rest.Count > 0)
+        {
+            sent += await SendDigestAsync(familyId, settings, rest, recipients, languageFor, ct);
+            await _db.SaveChangesAsync(ct);
+            return sent;
+        }
+
+        foreach (var alert in rest)
         {
             var (ok, error) = await SendOneAsync(settings, alert, recipients, languageFor, ct);
             if (ok)
