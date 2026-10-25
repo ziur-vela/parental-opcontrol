@@ -843,8 +843,9 @@ body:has(.legal-text) .auth-card { width: min(880px, 100%); }
 .luna-setupb-reminder { margin: 0; border-top: 1px solid var(--line); padding-top: 10px; }
 @media (max-width: 760px) {
     .luna-welcome-backdrop { padding: 0; align-items: stretch; }
-    .luna-welcome { width: 100%; height: 100%; max-height: none; border: 0; padding: 20px; flex-direction: column; }
-    .luna-welcome-demo { width: 100%; flex-basis: auto; }
+    .luna-welcome { width: 100%; height: 100%; max-height: none; border: 0; padding: 20px; flex-direction: column; flex-wrap: nowrap; }
+    .luna-welcome-demo { width: 100%; flex: 0 0 auto; }
+    .luna-welcome-copy { flex: 0 0 auto; }
     .luna-demo-scale { height: 225px; align-items: flex-start; overflow: hidden; }
     .luna-demo-frame { transform: scale(.75); transform-origin: top center; }
     .luna-demo-captions { width: 345px; }

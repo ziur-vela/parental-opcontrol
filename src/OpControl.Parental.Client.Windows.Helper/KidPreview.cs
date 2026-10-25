@@ -165,6 +165,58 @@ internal static class KidPreview
         return new KidPreviewData(summary, state, true, messages);
     }
 
+    public static void RunTray(string[] args)
+    {
+        var language = Arg(args, "--language");
+        if (!string.IsNullOrWhiteSpace(language)) Loc.SetLanguage(language);
+        var theme = string.Equals(Arg(args, "--theme"), "gray", StringComparison.OrdinalIgnoreCase) ? "gray" : "night";
+        var luna = !args.Any(a => string.Equals(a, "--luna-off", StringComparison.OrdinalIgnoreCase));
+        KidTheme.Apply(theme);
+        ApplicationConfiguration.Initialize();
+        using var backdrop = new Form
+        {
+            StartPosition = FormStartPosition.Manual,
+            Location = new Point(80, 80),
+            Size = new Size(420, 620),
+            BackColor = Color.FromArgb(32, 36, 44),
+            ShowInTaskbar = false,
+            FormBorderStyle = FormBorderStyle.None
+        };
+        backdrop.Show();
+        var header = new KidTrayHeader();
+        header.Caption.Text = Loc.T("Client.Kid.TimeLeft");
+        header.Time.Text = "4h 39m";
+        header.ApplyTheme(KidTheme.IsGray);
+        var menu = new ContextMenuStrip
+        {
+            ShowImageMargin = false,
+            ShowCheckMargin = false,
+            BackColor = KidTheme.Card,
+            ForeColor = KidTheme.Text,
+            Padding = new Padding(6),
+            Renderer = new KidMenuRenderer()
+        };
+        menu.Items.Add(new ToolStripControlHost(header) { AutoSize = false, Size = new Size(332, 66), Margin = new Padding(2, 2, 2, 4) });
+        menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add(new ToolStripMenuItem(Loc.T("Client.Kid.Open")) { Padding = new Padding(6, 6, 6, 6) });
+        menu.Items.Add(new ToolStripMenuItem(Loc.T("Client.Kid.TrayMessagesUnread", 1)) { Padding = new Padding(6, 6, 6, 6) });
+        if (luna)
+            menu.Items.Add(new ToolStripMenuItem(Loc.T("Client.Kid.LunaOpen")) { Padding = new Padding(6, 6, 6, 6) });
+        menu.Show(new Point(150, 180));
+        Application.DoEvents();
+        Thread.Sleep(350);
+        var capture = Arg(args, "--capture");
+        if (!string.IsNullOrWhiteSpace(capture))
+        {
+            var size = menu.Size;
+            using var bitmap = new Bitmap(Math.Max(1, size.Width), Math.Max(1, size.Height));
+            menu.DrawToBitmap(bitmap, new Rectangle(0, 0, bitmap.Width, bitmap.Height));
+            bitmap.Save(capture, ImageFormat.Png);
+        }
+        menu.Close();
+        backdrop.Close();
+    }
+
     private static string? Arg(string[] args, string name)
     {
         for (var i = 0; i < args.Length - 1; i++)
