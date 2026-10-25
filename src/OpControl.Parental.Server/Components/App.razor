@@ -28,21 +28,7 @@
     <script src="/js/remote.js?v=@BuildInfo.ShortCommit"></script>
     <script src="/js/push.js?v=@BuildInfo.ShortCommit"></script>
     <script>
-        window.ocpStrings = @(new Microsoft.AspNetCore.Html.HtmlString(System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, string>
-        {
-            ["requesting"] = L["Js.Requesting"],
-            ["updateRequested"] = L["Js.UpdateRequested"],
-            ["updateFailed"] = L["Js.UpdateFailed"],
-            ["connectionError"] = L["Js.ConnectionError"],
-            ["connecting"] = L["Js.Connecting"],
-            ["live"] = L["Js.Live"],
-            ["sessionCreating"] = L["Js.SessionCreating"],
-            ["sessionStartFailed"] = L["Js.SessionStartFailed"],
-            ["sessionWaiting"] = L["Js.SessionWaiting"],
-            ["cameraLive"] = L["Js.CameraLive"],
-            ["screenLive"] = L["Js.ScreenLive"],
-            ["sessionEnded"] = L["Js.SessionEnded"]
-        })));
+        window.ocpStrings = @((Microsoft.AspNetCore.Components.MarkupString)OpControl.Parental.Server.Services.AppText.JsStringsJson());
     </script>
 </body>
 </html>

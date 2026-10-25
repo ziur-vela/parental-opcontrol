@@ -83,6 +83,7 @@
     --bubble-other-border: #b9d2ee;
 }
 * { box-sizing: border-box; }
+input, select, textarea { box-sizing: border-box; max-width: 100%; }
 html, body { margin: 0; padding: 0; }
 
 /* Scroll bars: thin and in the theme colours instead of the browser default.
@@ -170,6 +171,7 @@ code { font-family: var(--mono); background: var(--panel-2); padding: 2px 5px; f
 .card > :last-child { margin-bottom: 14px; }
 .card-title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .card > p, .card > .muted { color: var(--muted); }
+.code-block { max-width: 100%; overflow-x: auto; }
 .grid-2 { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .websites-grid { align-items: stretch; }
 .visits-card { min-height: 420px; }
@@ -455,6 +457,8 @@ code { font-family: var(--mono); background: var(--panel-2); padding: 2px 5px; f
     font-family: var(--sans); font-size: 14px; line-height: 1.45; border-radius: 0;
 }
 .msg-input:focus { outline: 2px solid var(--value); outline-offset: 0; }
+/* Direct card children already get side margins; stretch instead of adding width:100% on top. */
+.card > input:not([type="checkbox"]):not([type="radio"]), .card > select, .card > textarea { width: auto; align-self: stretch; }
 .msg-composer-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .check-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .msg-composer.compact .msg-input { min-height: 58px; }

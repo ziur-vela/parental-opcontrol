@@ -26,6 +26,23 @@ public static class AppText
 
     public static string GetArgs(string key, string? language, IReadOnlyList<string> args) =>
         Get(key, language, args.Cast<object>().ToArray());
+
+    /// <summary>Localized strings used by the small client scripts, as valid inline JavaScript JSON.</summary>
+    public static string JsStringsJson() => ScriptJson.Serialize(new Dictionary<string, string>
+    {
+        ["requesting"] = Get("Js.Requesting"),
+        ["updateRequested"] = Get("Js.UpdateRequested"),
+        ["updateFailed"] = Get("Js.UpdateFailed"),
+        ["connectionError"] = Get("Js.ConnectionError"),
+        ["connecting"] = Get("Js.Connecting"),
+        ["live"] = Get("Js.Live"),
+        ["sessionCreating"] = Get("Js.SessionCreating"),
+        ["sessionStartFailed"] = Get("Js.SessionStartFailed"),
+        ["sessionWaiting"] = Get("Js.SessionWaiting"),
+        ["cameraLive"] = Get("Js.CameraLive"),
+        ["screenLive"] = Get("Js.ScreenLive"),
+        ["sessionEnded"] = Get("Js.SessionEnded")
+    });
 }
 
 public sealed record AlertContent(string TitleKey, string DetailKey, params string[] Args)
