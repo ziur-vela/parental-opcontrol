@@ -26,6 +26,7 @@ public sealed class LunaPalette
     public required Color ChildBubbleBorder { get; init; }
     public required Color Danger { get; init; }
     public required Color Sunken { get; init; }
+    public required Color Success { get; init; }
     public IReadOnlyDictionary<string, LunaSubjectStyle> Subjects { get; init; } = new Dictionary<string, LunaSubjectStyle>();
 
     public LunaSubjectStyle Subject(string id) =>
@@ -45,7 +46,7 @@ public static class LunaThemes
         Surface = C("#2a2160"), Surface2 = C("#4a3d94"), InputBg = C("#2a2160"),
         LunaBubble = C("#3a2f7a"), LunaBubbleBorder = C("#4a3d94"),
         ChildBubble = C("#4a3d94"), ChildBubbleBorder = C("#6b5fc4"),
-        Danger = C("#ffb547"), Sunken = C("#1f1846"),
+        Danger = C("#ffb547"), Sunken = C("#1f1846"), Success = C("#3ddc97"),
         Subjects = new Dictionary<string, LunaSubjectStyle>
         {
             ["math"] = new("math", C("#5b8cff"), C("#15103a"), C("#3a63c9"), C("#5b8cff")),
@@ -65,7 +66,7 @@ public static class LunaThemes
         Surface = C("#f7f8fa"), Surface2 = C("#e2e5eb"), InputBg = C("#ffffff"),
         LunaBubble = C("#ffffff"), LunaBubbleBorder = C("#d7dbe3"),
         ChildBubble = C("#e3d6ff"), ChildBubbleBorder = C("#b9a3ef"),
-        Danger = C("#b5650a"), Sunken = C("#e2e5eb"),
+        Danger = C("#b5650a"), Sunken = C("#e2e5eb"), Success = C("#14845a"),
         Subjects = new Dictionary<string, LunaSubjectStyle>
         {
             ["math"] = new("math", C("#cfe0ff"), C("#23273a"), C("#9db8f0"), C("#2f5bd3")),

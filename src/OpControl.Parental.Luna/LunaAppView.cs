@@ -58,6 +58,7 @@ public sealed class LunaAppView : UserControl
         _api = api;
         _palette = LunaThemes.From(theme);
         ApplyThemeVariant(_palette);
+        ApplyMarkdownResources(_palette);
         _root = new Border
         {
             CornerRadius = new CornerRadius(22),
@@ -99,6 +100,7 @@ public sealed class LunaAppView : UserControl
             _palette = LunaThemes.From(_status.Theme);
             KidThemeStore.WriteLocal(_palette.Key);
             ApplyThemeVariant(_palette);
+            ApplyMarkdownResources(_palette);
             _root.Background = LunaBrushes.B(_palette.Bg);
             _root.BorderBrush = LunaBrushes.B(_palette.Border);
             _themeWatch = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -732,30 +734,24 @@ public sealed class LunaAppView : UserControl
         face.VerticalAlignment = VerticalAlignment.Top;
         face.Margin = new Thickness(0, 2, 8, 0);
         grid.Children.Add(face);
-        var renderer = MarkdownRendererFor(text);
-        var bubble = new Border
-        {
-            Child = renderer,
-            Background = LunaBrushes.B(_palette.LunaBubble),
-            BorderBrush = LunaBrushes.B(_palette.LunaBubbleBorder),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(14),
-            Padding = new Thickness(12, 9, 12, 9),
-            MaxWidth = 380,
-            HorizontalAlignment = HorizontalAlignment.Left
-        };
+        var content = new LunaRichContent(text, _palette, _chat?.Subject ?? "curious");
+        var bubble = BubbleFrame(content);
         Grid.SetColumn(bubble, 1);
         grid.Children.Add(bubble);
         return grid;
     }
 
-    private static Control MarkdownRendererFor(string text)
+    private Border BubbleFrame(Control content) => new()
     {
-        var builder = new ObservableStringBuilder();
-        builder.Append(text);
-        var renderer = new MarkdownRenderer { MarkdownBuilder = builder };
-        return renderer;
-    }
+        Child = content,
+        Background = LunaBrushes.B(_palette.LunaBubble),
+        BorderBrush = LunaBrushes.B(_palette.LunaBubbleBorder),
+        BorderThickness = new Thickness(1),
+        CornerRadius = new CornerRadius(14),
+        Padding = new Thickness(12, 9, 12, 9),
+        MaxWidth = 380,
+        HorizontalAlignment = HorizontalAlignment.Left
+    };
 
     private Control ChildBubble(string text, bool flagged)
     {
@@ -922,30 +918,32 @@ public sealed class LunaAppView : UserControl
     private void AddStreamingReply(string markdown)
     {
         if (_messagesPanel is null) return;
-        var builder = new ObservableStringBuilder();
-        var renderer = new MarkdownRenderer { MarkdownBuilder = builder };
-        var bubble = new Border
-        {
-            Child = renderer,
-            Background = LunaBrushes.B(_palette.LunaBubble),
-            BorderBrush = LunaBrushes.B(_palette.LunaBubbleBorder),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(14),
-            Padding = new Thickness(12, 9, 12, 9),
-            MaxWidth = 380,
-            HorizontalAlignment = HorizontalAlignment.Left
-        };
+
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
         var face = CreateMoonFace(28, sleepy: false);
         face.VerticalAlignment = VerticalAlignment.Top;
         face.Margin = new Thickness(0, 2, 8, 0);
         row.Children.Add(face);
+
+        if (LunaRichContent.HasPictures(markdown))
+        {
+            var rich = BubbleFrame(new LunaRichContent(markdown, _palette, _chat?.Subject ?? "curious"));
+            Grid.SetColumn(rich, 1);
+            row.Children.Add(rich);
+            _messagesPanel.Children.Add(row);
+            ScrollToEnd();
+            return;
+        }
+
+        var builder = new ObservableStringBuilder();
+        var renderer = new MarkdownRenderer { MarkdownBuilder = builder };
+        var bubble = BubbleFrame(renderer);
         Grid.SetColumn(bubble, 1);
         row.Children.Add(bubble);
         _messagesPanel.Children.Add(row);
         ScrollToEnd();
 
-        var tokens = Tokenize(markdown);
+        var tokens = Tokenize(LunaMarkdown.Prepare(markdown));
         var perTick = Math.Max(1, (int)Math.Ceiling(tokens.Count / 50.0));
         var index = 0;
         var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(28) };
@@ -1061,6 +1059,7 @@ public sealed class LunaAppView : UserControl
         _palette = next;
         KidThemeStore.WriteLocal(next.Key);
         ApplyThemeVariant(_palette);
+        ApplyMarkdownResources(_palette);
         if (_status is not null) _status = _status with { Theme = next.Key };
         try { await _api.SetThemeAsync(next.Key); }
         catch (Exception ex) { LunaLog.Exception("theme", ex); }
@@ -1073,6 +1072,23 @@ public sealed class LunaAppView : UserControl
     {
         if (Application.Current is { } app)
             app.RequestedThemeVariant = palette.Key == "gray" ? ThemeVariant.Light : ThemeVariant.Dark;
+    }
+
+    private static void ApplyMarkdownResources(LunaPalette palette)
+    {
+        if (Application.Current is not { } app) return;
+        var resources = app.Resources;
+        resources["ForegroundColor"] = palette.Text;
+        resources["BorderColor"] = palette.Surface2;
+        resources["CardBackgroundColor"] = palette.Surface;
+        resources["SecondaryCardBackgroundColor"] = palette.Surface2;
+        resources["CodeInlineColor"] = palette.Text;
+        resources["QuoteBorderColor"] = palette.Accent;
+        resources["FontSizeM"] = 14.5;
+        resources["FontSizeL"] = 16.0;
+        resources["FontSizeXl"] = 18.0;
+        resources["FontSize2Xl"] = 20.0;
+        resources["FontSize3Xl"] = 22.0;
     }
 
     private void RenderCurrent()
