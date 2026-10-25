@@ -44,6 +44,7 @@ public sealed class LunaAppView : UserControl
     private bool _showHidden;
     private string _filter = "all";
     private bool _initialized;
+    private string? _pausedDetail;
     private readonly List<DispatcherTimer> _timers = [];
     private Grid? _modalLayer;
     private Control? _emptyLabel;
@@ -146,7 +147,7 @@ public sealed class LunaAppView : UserControl
         var grid = StateScreen(
             CreateMoonFace(92, sleepy: true),
             Loc.T("Luna.Chat.Paused"),
-            Loc.T("Luna.Chat.PausedDetail"),
+            _pausedDetail ?? Loc.T("Luna.Chat.PausedDetail"),
             showRetry: false);
         _host.Children.Clear();
         _host.Children.Add(grid);
@@ -851,6 +852,15 @@ public sealed class LunaAppView : UserControl
             _limitReached = response.LimitReached;
             _cooldown = response.Cooldown;
             _notice = response.Notice;
+            if (response.LunaMessage is null && !response.LimitReached && !response.Cooldown
+                && !string.IsNullOrWhiteSpace(response.Notice))
+            {
+                _pausedDetail = response.Notice;
+                thinking.Stop();
+                _messagesPanel?.Children.Remove(thinking);
+                ShowPaused();
+                return;
+            }
             if (_status is not null)
                 _status = _status with
                 {
