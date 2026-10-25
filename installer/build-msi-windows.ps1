@@ -25,6 +25,7 @@ if (-not (Test-Path $WixTool)) {
     -d "ProductVersion=$Version" `
     -d "ClientDir=$PublishRoot\client" `
     -d "HelperDir=$PublishRoot\helper" `
+    -d "LunaDir=$PublishRoot\luna" `
     -d "BrandIcon=$(Join-Path (Split-Path $InstallerDir -Parent) 'src\OpControl.Parental.Client.Windows.Helper\brand\icon-color-128.png')" `
     -d "ProductIcon=$(Join-Path (Split-Path $InstallerDir -Parent) 'src\OpControl.Parental.Server\wwwroot\brand\favicon.ico')" `
     -d "InstallerDir=$InstallerDir" `

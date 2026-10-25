@@ -1445,4 +1445,9 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Luna.SetupB.Moderation.Step2" xml:space="preserve"><value>Open API keys at platform.openai.com/settings/organization/api-keys, create a key named "Luna moderation", and copy it.</value></data>
   <data name="Luna.SetupB.Moderation.Step3" xml:space="preserve"><value>Paste it in the OpenAI key for the safety filter field above.</value></data>
   <data name="Luna.SetupB.Reminder" xml:space="preserve"><value>Luna AI stays off until both keys are saved and Test connection passes.</value></data>
+  <data name="Downloads.Luna.Title" xml:space="preserve"><value>Luna AI on the child's PC</value></data>
+  <data name="Downloads.Luna.Body" xml:space="preserve"><value>When a parent turns Luna AI on for this child, the moon appears in the top-left corner of the screen. Click the moon to open Luna.</value></data>
+  <data name="Downloads.Luna.Open" xml:space="preserve"><value>You can also open it from the OpControl tray menu: Open Luna Chat.</value></data>
+  <data name="Downloads.Luna.Theme" xml:space="preserve"><value>Use the moon or sun button in Luna to switch between Night sky and Moon gray. The child's choice is saved.</value></data>
+  <data name="Downloads.Luna.Hotkeys" xml:space="preserve"><value>Sleep-size hotkeys: Ctrl+Alt+Shift+Page Up (bigger), Ctrl+Alt+Shift+Page Down (smaller), Ctrl+Alt+Shift+Home (reset). The size is saved on this device.</value></data>
 </root>

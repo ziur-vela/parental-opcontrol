@@ -28,15 +28,19 @@ $artifacts = Join-Path $RepoRoot "artifacts"
 $publish = Join-Path $artifacts "publish-$Version"
 $client = Join-Path $publish "client"
 $helper = Join-Path $publish "helper"
+$luna = Join-Path $publish "luna"
 $msi = Join-Path $artifacts "OpControlParental-$Version.msi"
 $setupDir = Join-Path $artifacts "setup-$Version"
-New-Item -ItemType Directory -Force $artifacts, $client, $helper, $setupDir | Out-Null
+New-Item -ItemType Directory -Force $artifacts, $client, $helper, $luna, $setupDir | Out-Null
 
 Write-Host "Publishing client $Version..."
 & $dotnet publish (Join-Path $RepoRoot "src\OpControl.Parental.Client.Windows") -c Release -r win-x64 -o $client -p:Version=$Version
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 Write-Host "Publishing helper $Version..."
 & $dotnet publish (Join-Path $RepoRoot "src\OpControl.Parental.Client.Windows.Helper") -c Release -r win-x64 -o $helper -p:Version=$Version
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+Write-Host "Publishing Luna $Version..."
+& $dotnet publish (Join-Path $RepoRoot "src\OpControl.Parental.Luna") -c Release -r win-x64 -o $luna -p:Version=$Version -p:PublishSingleFile=true -p:SelfContained=true -p:IncludeNativeLibrariesForSelfExtract=true
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "Building MSI..."

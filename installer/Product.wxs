@@ -28,12 +28,14 @@
       <Directory Id="INSTALLROOT" Name="OpControlParental">
         <Directory Id="CLIENTDIR" Name="Client" />
         <Directory Id="HELPERDIR" Name="Helper" />
+        <Directory Id="LUNADIR" Name="Luna" />
       </Directory>
     </StandardDirectory>
 
     <Feature Id="Main" Title="!(loc.FeatureTitle)" Level="1" AllowAbsent="no">
       <ComponentGroupRef Id="ClientComponents" />
       <ComponentGroupRef Id="HelperComponents" />
+      <ComponentGroupRef Id="LunaComponents" />
       <ComponentGroupRef Id="BrandComponents" />
     </Feature>
 
@@ -76,6 +78,12 @@
     <ComponentGroup Id="HelperComponents">
       <Component Id="HelperExe" Guid="*" Directory="HELPERDIR">
         <File Id="HelperExeFile" Source="$(var.HelperDir)/OpControl.Parental.Helper.exe" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <ComponentGroup Id="LunaComponents">
+      <Component Id="LunaExe" Guid="*" Directory="LUNADIR">
+        <File Id="LunaExeFile" Source="$(var.LunaDir)/OpControl.Parental.Luna.exe" KeyPath="yes" />
       </Component>
     </ComponentGroup>
 

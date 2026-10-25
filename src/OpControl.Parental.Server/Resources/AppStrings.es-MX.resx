@@ -1445,4 +1445,9 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Luna.SetupB.Moderation.Step2" xml:space="preserve"><value>Abre Claves de API en platform.openai.com/settings/organization/api-keys, crea una clave llamada "Luna moderation" y cópiala.</value></data>
   <data name="Luna.SetupB.Moderation.Step3" xml:space="preserve"><value>Pégala en el campo Clave de OpenAI para el filtro de seguridad de arriba.</value></data>
   <data name="Luna.SetupB.Reminder" xml:space="preserve"><value>Luna IA permanece apagada hasta que ambas claves estén guardadas y se supere Probar conexión.</value></data>
+  <data name="Downloads.Luna.Title" xml:space="preserve"><value>Luna IA en la PC del hijo</value></data>
+  <data name="Downloads.Luna.Body" xml:space="preserve"><value>Cuando un padre o madre activa Luna IA para este hijo, la luna aparece en la esquina superior izquierda de la pantalla. Haz clic en la luna para abrir Luna.</value></data>
+  <data name="Downloads.Luna.Open" xml:space="preserve"><value>También puedes abrirla desde el menú de OpControl en la bandeja: Abrir Luna IA.</value></data>
+  <data name="Downloads.Luna.Theme" xml:space="preserve"><value>Usa el botón de luna o sol en Luna para cambiar entre Cielo nocturno y Luna gris. La elección del hijo se guarda.</value></data>
+  <data name="Downloads.Luna.Hotkeys" xml:space="preserve"><value>Atajos para el tamaño dormido: Ctrl+Alt+Shift+Av Pág (más grande), Ctrl+Alt+Shift+Re Pág (más pequeño), Ctrl+Alt+Shift+Inicio (restablecer). El tamaño se guarda en este dispositivo.</value></data>
 </root>
