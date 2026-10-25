@@ -1393,16 +1393,23 @@ public partial class LunaWindow : Window
         }
     }
 
-    private static string SleepScalePath => System.IO.Path.Combine(AppContext.BaseDirectory, "sleep-scale.txt");
+    // Installed under Program Files the exe folder is read-only, so the tuner lives in
+    // the child's local app data. A legacy file next to the exe (the spike/dev package)
+    // is still read once so the approved 1.6/1.9 sizes carry over.
+    private static string LegacySleepScalePath => System.IO.Path.Combine(AppContext.BaseDirectory, "sleep-scale.txt");
+    private static string SleepScalePath => System.IO.Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "OpControlParental", "luna-sleep-scale.txt");
 
     private double LoadSleepScale()
     {
         var value = DefaultSleepScale;
         try
         {
-            if (System.IO.File.Exists(SleepScalePath))
+            var path = System.IO.File.Exists(LegacySleepScalePath) ? LegacySleepScalePath : SleepScalePath;
+            if (System.IO.File.Exists(path))
             {
-                var text = System.IO.File.ReadAllText(SleepScalePath).Trim();
+                var text = System.IO.File.ReadAllText(path).Trim();
                 if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed))
                 {
                     value = Math.Clamp(Math.Round(parsed, 1), MinSleepScale, MaxSleepScale);
@@ -1427,6 +1434,7 @@ public partial class LunaWindow : Window
     {
         try
         {
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(SleepScalePath)!);
             System.IO.File.WriteAllText(SleepScalePath, _sleepScale.ToString("0.0", CultureInfo.InvariantCulture));
             LunaLog.Write($"sleep_scale_saved path={SleepScalePath}");
         }
