@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <AssemblyName>OpControl.Parental.Luna</AssemblyName>
+    <RootNamespace>OpControl.Parental.Luna</RootNamespace>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <DefineConstants Condition="'$(Configuration)' == 'Debug'">$(DefineConstants);LUNA_DEV</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+    <PackageReference Include="LiveMarkdown.Avalonia" Version="2.5.1" />
+    <PackageReference Include="LiveMarkdown.Avalonia.Math" Version="2.5.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OpControl.Parental.Contracts\OpControl.Parental.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\Fonts\*.ttf" />
+    <Compile Include="..\OpControl.Parental.Localization\Loc.cs" Link="Localization\Loc.cs" />
+    <EmbeddedResource Include="..\OpControl.Parental.Localization\en.json" LogicalName="OpControl.Parental.Loc.en.json" />
+    <EmbeddedResource Include="..\OpControl.Parental.Localization\es-MX.json" LogicalName="OpControl.Parental.Loc.es-MX.json" />
+  </ItemGroup>
+</Project>

@@ -3,6 +3,7 @@
     <Project Path="src/OpControl.Parental.Client.Windows.Helper/OpControl.Parental.Client.Windows.Helper.csproj" />
     <Project Path="src/OpControl.Parental.Client.Windows/OpControl.Parental.Client.Windows.csproj" />
     <Project Path="src/OpControl.Parental.Contracts/OpControl.Parental.Contracts.csproj" />
+    <Project Path="src/OpControl.Parental.Luna/OpControl.Parental.Luna.csproj" />
     <Project Path="src/OpControl.Parental.Server/OpControl.Parental.Server.csproj" />
     <Project Path="src/OpControl.Parental.Updater/OpControl.Parental.Updater.csproj" />
   </Folder>

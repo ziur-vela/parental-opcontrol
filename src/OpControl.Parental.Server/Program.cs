@@ -1085,16 +1085,42 @@ app.MapPost("/api/device/luna/token", async (ClaimsPrincipal user, ParentalDbCon
     }
 }).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = DeviceTokenAuthenticationHandler.SchemeName });
 
+app.MapPost("/api/dev/luna-token", async (IHostEnvironment environment, IConfiguration configuration,
+    ParentalDbContext db, LunaTokenService tokens, CancellationToken ct) =>
+{
+    if (!LunaDevMode.AllowsTokenEndpoint(environment.IsDevelopment(),
+            configuration.GetValue<bool>(LunaFakeMode.ConfigurationKey)))
+        return Results.NotFound();
+
+    var device = await db.Devices.Include(d => d.Child).AsNoTracking()
+        .Where(d => d.Child != null && d.Child.Name == "Ana")
+        .OrderBy(d => d.EnrolledUtc)
+        .FirstOrDefaultAsync(ct)
+        ?? await db.Devices.AsNoTracking().OrderBy(d => d.EnrolledUtc).FirstOrDefaultAsync(ct);
+    if (device is null) return Results.NotFound();
+    try
+    {
+        var (token, expires) = await tokens.IssueAsync(device, ct);
+        return Results.Ok(new { token, expiresUtc = expires, child = device.ChildId });
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.Json(new { error = ex.Message }, statusCode: StatusCodes.Status403Forbidden);
+    }
+});
+
 app.MapGet("/api/luna/status", async (ClaimsPrincipal user, LunaChatService chat, CancellationToken ct) =>
 {
     var context = LunaFromClaims(user);
     return context is null ? Results.Unauthorized() : Results.Ok(await chat.GetStatusAsync(context, ct));
 }).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = LunaTokenAuthenticationHandler.SchemeName });
 
-app.MapGet("/api/luna/chats", async (ClaimsPrincipal user, LunaChatService chat, CancellationToken ct) =>
+app.MapGet("/api/luna/chats", async (bool? includeHidden, ClaimsPrincipal user, LunaChatService chat, CancellationToken ct) =>
 {
     var context = LunaFromClaims(user);
-    return context is null ? Results.Unauthorized() : Results.Ok(await chat.ListChatsAsync(context, ct));
+    return context is null
+        ? Results.Unauthorized()
+        : Results.Ok(await chat.ListChatsAsync(context, includeHidden == true, ct));
 }).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = LunaTokenAuthenticationHandler.SchemeName });
 
 app.MapPost("/api/luna/chats", async (LunaCreateChatRequest request, ClaimsPrincipal user, LunaChatService chat, CancellationToken ct) =>

@@ -33,6 +33,13 @@ Response `200`:
 
 Errors: `403` with `{"error":"…"}` when Luna is disabled for the child or the setup is not tested.
 
+### Development-only token (not for production)
+
+`POST /api/dev/luna-token` exists only when `ASPNETCORE_ENVIRONMENT=Development` **and**
+`Luna:FakeMode=true`. It returns a Luna token for the seeded demo child and refuses with
+`404` in every other environment. Release builds of the Windows client do not contain the
+matching client path.
+
 ## Child side (Luna token)
 
 All responses are JSON and localized to the child's language. Fixed child-facing texts are returned as `notice` / `warning` fields; the app may display them as-is.
@@ -58,7 +65,9 @@ All responses are JSON and localized to the child's language. Fixed child-facing
 
 ### `GET /api/luna/chats`
 
-Returns the child's **non-hidden** chats, newest first (up to 100).
+Returns the child's **non-hidden** chats, newest first (up to 100). Add
+`?includeHidden=true` to get hidden chats too (the My chats screen uses this for the
+"Hidden chats" list; hidden chats are still visible to parents).
 
 ```json
 [

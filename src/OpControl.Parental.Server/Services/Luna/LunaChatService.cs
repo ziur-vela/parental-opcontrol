@@ -46,11 +46,16 @@ public sealed class LunaChatService
             usage.CooldownUntilUtc, left <= 0, language, HelplineFor(familySettings, language), notice, warning);
     }
 
-    public async Task<List<LunaChatDto>> ListChatsAsync(LunaTokenContext ctx, CancellationToken ct = default)
+    public Task<List<LunaChatDto>> ListChatsAsync(LunaTokenContext ctx, CancellationToken ct = default) =>
+        ListChatsAsync(ctx, includeHidden: false, ct);
+
+    public async Task<List<LunaChatDto>> ListChatsAsync(LunaTokenContext ctx, bool includeHidden, CancellationToken ct = default)
     {
         await LoadAsync(ctx, ct);
-        var chats = await _db.LunaChats.AsNoTracking()
-            .Where(c => c.FamilyId == ctx.FamilyId && c.ChildId == ctx.ChildId && !c.HiddenByChild)
+        var query = _db.LunaChats.AsNoTracking()
+            .Where(c => c.FamilyId == ctx.FamilyId && c.ChildId == ctx.ChildId);
+        if (!includeHidden) query = query.Where(c => !c.HiddenByChild);
+        var chats = await query
             .OrderByDescending(c => c.LastMessageUtc)
             .Take(100)
             .ToListAsync(ct);

@@ -52,10 +52,14 @@ public sealed class FakeLunaChatProvider : ILunaChatProvider
         if (request.SystemPrompt.Contains("setup health check", StringComparison.Ordinal))
             await Task.Delay(1_200, ct);
 
+        // Slow enough for the preview to show the thinking animation by hand.
+        await Task.Delay(1_200, ct);
         var last = request.Messages.LastOrDefault()?.Content ?? "";
-        var reply = last.Contains("7", StringComparison.Ordinal)
-            ? "Let's work it out together. What is 7 × 8? Try counting in sevens: 7, 14, 21…"
-            : "That's a good question. What do you already know about it? We can work out the next step together.";
+        var reply = last.Contains("fraction", StringComparison.OrdinalIgnoreCase)
+            ? "Great question! To add fractions, the bottom numbers have to match first.\n\n$$\\frac{3}{4} = \\frac{6}{8}$$\n\nWhat do you multiply 4 by to get 8?"
+            : last.Contains("7", StringComparison.Ordinal)
+                ? "Let's work it out together. What is 7 × 8? Try counting in sevens: 7, 14, 21…"
+                : "That's a good question. What do you already know about it? We can work out the next step together.";
         return new LunaChatResult(reply, 12, 8);
     }
 }

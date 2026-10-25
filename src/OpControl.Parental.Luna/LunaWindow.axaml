@@ -1,0 +1,163 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:OpControl.Parental.Luna"
+        x:Class="OpControl.Parental.Luna.LunaWindow"
+        Title="Luna"
+        Width="520" Height="600"
+        WindowDecorations="None"
+        TransparencyLevelHint="Transparent"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        CanResize="False"
+        WindowStartupLocation="Manual"
+        Focusable="True">
+  <Window.ContextMenu>
+    <ContextMenu>
+      <MenuItem Header="Open Luna chat" Click="MenuOpen_Click" />
+      <Separator />
+      <MenuItem Header="Exit spike" Click="MenuExit_Click" />
+    </ContextMenu>
+  </Window.ContextMenu>
+
+  <Grid>
+    <Canvas x:Name="Scene" Width="520" Height="600" HorizontalAlignment="Left" VerticalAlignment="Top">
+
+      <Border x:Name="Blob"
+              Canvas.Left="12" Canvas.Top="12"
+              Width="96" Height="96"
+              CornerRadius="48"
+              Background="#0e1d19"
+              BorderBrush="#2a4a42"
+              BorderThickness="1"
+              ClipToBounds="True"
+              IsVisible="False">
+        <Grid>
+          <Border x:Name="BlobYellow" Opacity="1">
+            <Border.Background>
+              <RadialGradientBrush Center="38%,34%" GradientOrigin="38%,34%" RadiusX="0.75" RadiusY="0.75">
+                <GradientStop Color="#fff6c8" Offset="0" />
+                <GradientStop Color="#f6dc7e" Offset="0.7" />
+                <GradientStop Color="#e2bd52" Offset="1" />
+              </RadialGradientBrush>
+            </Border.Background>
+          </Border>
+
+          <Grid x:Name="ChatRoot" Opacity="0" IsVisible="False" />
+        </Grid>
+      </Border>
+
+      <Canvas x:Name="SleepLayer" Width="520" Height="600" Canvas.Left="0" Canvas.Top="0">
+      <Canvas x:Name="MoonSlide" Width="96" Height="96" Canvas.Left="-68" Canvas.Top="-68">
+        <Canvas x:Name="MoonBob" Width="96" Height="96" RenderTransformOrigin="0.5,0.5">
+          <Canvas x:Name="MoonSpin" Width="96" Height="96" RenderTransformOrigin="0.5,0.5">
+            <Canvas x:Name="MoonPop" Width="96" Height="96" RenderTransformOrigin="0.5,0.5">
+              <Viewbox Width="96" Height="96">
+                <Viewbox.Effect>
+                  <DropShadowEffect Color="#F6D66E" BlurRadius="14" OffsetX="0" OffsetY="0" Opacity="0.45" />
+                </Viewbox.Effect>
+                <Canvas Width="172" Height="172">
+                  <Ellipse Canvas.Left="2" Canvas.Top="2" Width="168" Height="168">
+                    <Ellipse.Fill>
+                      <RadialGradientBrush Center="38%,34%" GradientOrigin="38%,34%" RadiusX="0.7" RadiusY="0.7">
+                        <GradientStop Color="#fff6c8" Offset="0" />
+                        <GradientStop Color="#f6dc7e" Offset="0.7" />
+                        <GradientStop Color="#e2bd52" Offset="1" />
+                      </RadialGradientBrush>
+                    </Ellipse.Fill>
+                  </Ellipse>
+
+                  <Ellipse Canvas.Left="41" Canvas.Top="37" Width="22" Height="22" Fill="#ecc964" />
+                  <Ellipse Canvas.Left="121" Canvas.Top="51" Width="14" Height="14" Fill="#ecc964" />
+                  <Ellipse Canvas.Left="109" Canvas.Top="115" Width="26" Height="26" Fill="#e8c35c" />
+                  <Ellipse Canvas.Left="34" Canvas.Top="112" Width="12" Height="12" Fill="#ecc964" />
+                  <Ellipse Canvas.Left="92" Canvas.Top="26" Width="8" Height="8" Fill="#ecc964" />
+
+                  <Canvas x:Name="SleepyFace" Width="172" Height="172" Opacity="1">
+                    <Path Data="M126 134 q7 6 14 0" Stroke="#5b5a52" StrokeThickness="4" StrokeLineCap="Round" />
+                    <Path Data="M146 124 q7 6 14 0" Stroke="#5b5a52" StrokeThickness="4" StrokeLineCap="Round" />
+                  </Canvas>
+
+                  <Canvas x:Name="HappyFace" Width="172" Height="172" Opacity="0">
+                    <Canvas x:Name="HappyEyes" Width="172" Height="172">
+                      <Ellipse x:Name="HappyEyeLeft" Canvas.Left="57" Canvas.Top="68" Width="14" Height="20"
+                               Fill="#2b2f3a" RenderTransformOrigin="0.5,0.5" />
+                      <Ellipse x:Name="HappyEyeRight" Canvas.Left="101" Canvas.Top="68" Width="14" Height="20"
+                               Fill="#2b2f3a" RenderTransformOrigin="0.5,0.5" />
+                      <Ellipse Canvas.Left="63.5" Canvas.Top="71.5" Width="5" Height="5" Fill="#ffffff" />
+                      <Ellipse Canvas.Left="107.5" Canvas.Top="71.5" Width="5" Height="5" Fill="#ffffff" />
+                    </Canvas>
+                    <Ellipse Canvas.Left="38" Canvas.Top="94" Width="20" Height="12" Fill="#f0a9a0" Opacity="0.7" />
+                    <Ellipse Canvas.Left="114" Canvas.Top="94" Width="20" Height="12" Fill="#f0a9a0" Opacity="0.7" />
+                    <Path Data="M60 104 Q86 132 112 104" Stroke="#2b2f3a" StrokeThickness="5"
+                          StrokeLineCap="Round" />
+                  </Canvas>
+
+                  <Canvas x:Name="YawnFace" Width="172" Height="172" Opacity="0">
+                    <Path Data="M54 80 q10 -8 20 0" Stroke="#2b2f3a" StrokeThickness="5" StrokeLineCap="Round" />
+                    <Path Data="M98 80 q10 -8 20 0" Stroke="#2b2f3a" StrokeThickness="5" StrokeLineCap="Round" />
+                    <Ellipse Canvas.Left="36" Canvas.Top="92" Width="20" Height="12" Fill="#f0a9a0" Opacity="0.7" />
+                    <Ellipse Canvas.Left="116" Canvas.Top="92" Width="20" Height="12" Fill="#f0a9a0" Opacity="0.7" />
+                    <Canvas x:Name="YawnMouth" Canvas.Left="73" Canvas.Top="97" Width="26" Height="34" RenderTransformOrigin="0.5,0">
+                      <Ellipse Canvas.Left="0" Canvas.Top="0" Width="26" Height="34" Fill="#3a2a2a" />
+                      <Ellipse Canvas.Left="5" Canvas.Top="22" Width="16" Height="10" Fill="#e98a8a" />
+                    </Canvas>
+                  </Canvas>
+
+                  <Canvas x:Name="SurpriseFace" Width="172" Height="172" Opacity="0">
+                    <Path Data="M52 56 q11 -8 22 0" Stroke="#2b2f3a" StrokeThickness="4" StrokeLineCap="Round" />
+                    <Path Data="M98 56 q11 -8 22 0" Stroke="#2b2f3a" StrokeThickness="4" StrokeLineCap="Round" />
+                    <Ellipse Canvas.Left="53" Canvas.Top="67" Width="22" Height="22" Fill="#ffffff"
+                             Stroke="#2b2f3a" StrokeThickness="3" />
+                    <Ellipse Canvas.Left="97" Canvas.Top="67" Width="22" Height="22" Fill="#ffffff"
+                             Stroke="#2b2f3a" StrokeThickness="3" />
+                    <Ellipse Canvas.Left="59" Canvas.Top="74" Width="10" Height="10" Fill="#2b2f3a" />
+                    <Ellipse Canvas.Left="103" Canvas.Top="74" Width="10" Height="10" Fill="#2b2f3a" />
+                    <Ellipse Canvas.Left="79" Canvas.Top="103" Width="14" Height="18" Fill="#2b2f3a" />
+                  </Canvas>
+                </Canvas>
+              </Viewbox>
+            </Canvas>
+          </Canvas>
+        </Canvas>
+      </Canvas>
+
+      <Canvas x:Name="ZLayer" Width="60" Height="60" Canvas.Left="4" Canvas.Top="4" Opacity="1">
+        <TextBlock x:Name="Z0" Text="z" FontFamily="Consolas" FontWeight="SemiBold" FontSize="9" Foreground="#1a1a1a">
+          <TextBlock.Effect>
+            <DropShadowEffect Color="#FFD84D" BlurRadius="7" OffsetX="0" OffsetY="0" Opacity="0.9" />
+          </TextBlock.Effect>
+        </TextBlock>
+        <TextBlock x:Name="Z1" Text="z" FontFamily="Consolas" FontWeight="SemiBold" FontSize="11" Foreground="#1a1a1a">
+          <TextBlock.Effect>
+            <DropShadowEffect Color="#FFD84D" BlurRadius="7" OffsetX="0" OffsetY="0" Opacity="0.9" />
+          </TextBlock.Effect>
+        </TextBlock>
+        <TextBlock x:Name="Z2" Text="Z" FontFamily="Consolas" FontWeight="SemiBold" FontSize="13" Foreground="#1a1a1a">
+          <TextBlock.Effect>
+            <DropShadowEffect Color="#FFD84D" BlurRadius="7" OffsetX="0" OffsetY="0" Opacity="0.9" />
+          </TextBlock.Effect>
+        </TextBlock>
+      </Canvas>
+      </Canvas>
+
+      <Border x:Name="GreetingBubble"
+              Canvas.Left="134" Canvas.Top="58"
+              Width="190"
+              Background="#0e1d19"
+              BorderBrush="#2a4a42"
+              BorderThickness="1"
+              Padding="10,8"
+              Opacity="0"
+              IsHitTestVisible="False">
+        <StackPanel Spacing="2">
+          <TextBlock Text="LUNA" FontFamily="Consolas" FontSize="10" Foreground="#e2856b" />
+          <TextBlock Text="Hi there!" FontSize="14" FontWeight="Bold" Foreground="#e3ece8" />
+          <TextBlock Text="Need help with homework? Click me." FontSize="12" Foreground="#7f9a92"
+                     TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+
+    </Canvas>
+  </Grid>
+</Window>

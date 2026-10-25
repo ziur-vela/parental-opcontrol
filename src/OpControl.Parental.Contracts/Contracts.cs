@@ -156,7 +156,8 @@ public sealed record DeviceStateDto(
     IReadOnlyList<AppDailyUsageDto>? AppUsage = null,
     DailyLimitDto? DailyLimit = null,
     bool SpokenWarnings = false,
-    string? Language = null);
+    string? Language = null,
+    bool LunaEnabled = false);
 
 public sealed record DailyLimitDto(
     bool Enabled,
@@ -288,7 +289,8 @@ public sealed record RuntimeLockStateDto(
     bool SpokenWarnings = false,
     int? IdleThresholdSeconds = null,
     string? Language = null,
-    string? UnlockScheduleName = null);
+    string? UnlockScheduleName = null,
+    bool LunaEnabled = false);
 
 public sealed record UsageIntervalDto(
     Guid Id,
@@ -561,7 +563,10 @@ public sealed record PinPipeResponse(
     IReadOnlyList<ChildMessageDto>? Messages = null,
     ChildMessageDto? Message = null,
     int? RetryAfterSeconds = null,
-    bool Queued = false);
+    bool Queued = false,
+    string? Token = null,
+    DateTime? ExpiresUtc = null,
+    string? ServerUrl = null);
 
 public sealed record InvitationCreatedDto(
     Guid Id,
