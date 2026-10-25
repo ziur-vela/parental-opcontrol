@@ -21,10 +21,12 @@ public sealed class PinPipeServer : BackgroundService
     private readonly ClientSettings _settings;
     private readonly DataSyncService _sync;
     private readonly MessageSyncService _messages;
+    private readonly LunaTokenBroker _lunaTokens;
     private readonly ILogger<PinPipeServer> _logger;
     private readonly ConcurrentDictionary<string, DateTime> _tickets = new();
 
-    public PinPipeServer(LockRuntime runtime, LockoutStore lockout, OverrideSync overrides, ClientSettings settings, DataSyncService sync, MessageSyncService messages, ILogger<PinPipeServer> logger)
+    public PinPipeServer(LockRuntime runtime, LockoutStore lockout, OverrideSync overrides, ClientSettings settings,
+        DataSyncService sync, MessageSyncService messages, LunaTokenBroker lunaTokens, ILogger<PinPipeServer> logger)
     {
         _runtime = runtime;
         _lockout = lockout;
@@ -32,6 +34,7 @@ public sealed class PinPipeServer : BackgroundService
         _settings = settings;
         _sync = sync;
         _messages = messages;
+        _lunaTokens = lunaTokens;
         _logger = logger;
     }
 
@@ -84,13 +87,14 @@ public sealed class PinPipeServer : BackgroundService
             var clientSession = WindowsSession.GetProcessSessionId(clientPid);
             var monitoredSession = WindowsSession.GetMonitoredSessionId(_settings.Value.MonitoredAccount);
             var imagePath = WindowsSession.GetProcessImagePath(clientPid);
-            var expectedPath = string.IsNullOrWhiteSpace(_settings.Value.HelperPath)
+            var helperPath = string.IsNullOrWhiteSpace(_settings.Value.HelperPath)
                 ? Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "Helper", "OpControl.Parental.Helper.exe"))
                 : _settings.Value.HelperPath!;
+            var lunaPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "Luna", "OpControl.Parental.Luna.exe"));
+            var helperImageOk = LunaPipePolicy.IsImage(imagePath, helperPath);
+            var lunaImageOk = LunaPipePolicy.IsImage(imagePath, lunaPath);
             var sessionOk = clientSession > 0 && monitoredSession > 0 && clientSession == monitoredSession;
-            var imageOk = !string.IsNullOrWhiteSpace(imagePath)
-                && string.Equals(Path.GetFileName(imagePath), "OpControl.Parental.Helper.exe", StringComparison.OrdinalIgnoreCase)
-                && string.Equals(Path.GetFullPath(imagePath), Path.GetFullPath(expectedPath), StringComparison.OrdinalIgnoreCase);
+            var imageOk = helperImageOk || lunaImageOk;
             if (!sessionOk || !imageOk)
             {
                 _sync.QueueTamper(new TamperEventDto("helper-auth-failed",
@@ -108,9 +112,15 @@ public sealed class PinPipeServer : BackgroundService
                 if (string.IsNullOrWhiteSpace(line)) return;
                 var request = JsonSerializer.Deserialize<PinPipeRequest>(line, JsonOptions);
                 requestType = request?.Type ?? "unknown";
-                var response = request is null
-                    ? new PinPipeResponse(false, Loc.T("Client.Pipe.InvalidRequest"))
-                    : await DispatchAsync(request, ct);
+                PinPipeResponse response;
+                if (request is null)
+                    response = new PinPipeResponse(false, Loc.T("Client.Pipe.InvalidRequest"));
+                else if (!LunaPipePolicy.IsAllowed(helperImageOk, lunaImageOk, request.Type))
+                    response = new PinPipeResponse(false, Loc.T("Client.Pipe.NotAllowed"));
+                else if (lunaImageOk && request.Type == LunaPipePolicy.TokenRequest)
+                    response = await IssueLunaTokenAsync(ct);
+                else
+                    response = await DispatchAsync(request, ct);
                 await writer.WriteLineAsync(JsonSerializer.Serialize(response, JsonOptions));
             }
         }
@@ -225,6 +235,14 @@ public sealed class PinPipeServer : BackgroundService
             return new PinPipeResponse(false, Loc.T("Client.Pipe.OverrideNoEffect"), State: state);
         }
         return new PinPipeResponse(true, State: state ?? _runtime.Current);
+    }
+
+    private async Task<PinPipeResponse> IssueLunaTokenAsync(CancellationToken ct)
+    {
+        var token = await _lunaTokens.GetAsync(ct);
+        return token is null
+            ? new PinPipeResponse(false, Loc.T("Client.Pipe.NotAllowed"))
+            : new PinPipeResponse(true, Token: token.Value, ExpiresUtc: token.ExpiresUtc, ServerUrl: token.ServerUrl);
     }
 
     private static async Task WriteAsync(NamedPipeServerStream pipe, PinPipeResponse response, CancellationToken ct)

@@ -194,6 +194,97 @@ public static class WindowsSession
         }
     }
 
+
+    public static bool LaunchLuna(int sessionId, string lunaPath, ILogger logger)
+    {
+        if (!File.Exists(lunaPath))
+        {
+            logger.LogError("Luna app not found at {Path}", lunaPath);
+            return false;
+        }
+
+        if (!WTSQueryUserToken(sessionId, out var userToken))
+        {
+            logger.LogWarning("WTSQueryUserToken failed for session {Session}: {Error}", sessionId, Marshal.GetLastWin32Error());
+            return false;
+        }
+
+        IntPtr primaryToken = IntPtr.Zero;
+        IntPtr environment = IntPtr.Zero;
+        try
+        {
+            if (!DuplicateTokenEx(userToken, TOKEN_ALL_ACCESS, IntPtr.Zero, SecurityImpersonation, TokenPrimary, out primaryToken))
+            {
+                logger.LogWarning("DuplicateTokenEx failed: {Error}", Marshal.GetLastWin32Error());
+                return false;
+            }
+
+            CreateEnvironmentBlock(out environment, primaryToken, false);
+            var si = new STARTUPINFO
+            {
+                cb = Marshal.SizeOf<STARTUPINFO>(),
+                lpDesktop = @"winsta0\default"
+            };
+            var command = $"\"{lunaPath}\"";
+            var ok = CreateProcessAsUser(primaryToken, null, command, IntPtr.Zero, IntPtr.Zero, false,
+                CREATE_UNICODE_ENVIRONMENT, environment, Path.GetDirectoryName(lunaPath), ref si, out var pi);
+            if (!ok)
+            {
+                logger.LogWarning("CreateProcessAsUser (Luna) failed: {Error}", Marshal.GetLastWin32Error());
+                return false;
+            }
+
+            CloseHandle(pi.hProcess);
+            CloseHandle(pi.hThread);
+            logger.LogInformation("Launched Luna in session {Session}", sessionId);
+            return true;
+        }
+        finally
+        {
+            if (environment != IntPtr.Zero) DestroyEnvironmentBlock(environment);
+            if (primaryToken != IntPtr.Zero) CloseHandle(primaryToken);
+            if (userToken != IntPtr.Zero) CloseHandle(userToken);
+        }
+    }
+
+    public static bool IsLunaRunning(int sessionId)
+    {
+        try
+        {
+            return Process.GetProcessesByName("OpControl.Parental.Luna").Any(p =>
+            {
+                try { return p.SessionId == sessionId; }
+                catch { return false; }
+            });
+        }
+        catch { return false; }
+    }
+
+    public static void StopLuna(int sessionId, ILogger logger)
+    {
+        try
+        {
+            foreach (var process in Process.GetProcessesByName("OpControl.Parental.Luna"))
+            {
+                if (process.SessionId != sessionId) continue;
+                try
+                {
+                    if (!process.CloseMainWindow()) process.Kill(entireProcessTree: true);
+                    else if (!process.WaitForExit(2000)) process.Kill(entireProcessTree: true);
+                    logger.LogInformation("Stopped Luna pid {Pid}", process.Id);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogDebug(ex, "Could not stop Luna pid {Pid}", process.Id);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Could not enumerate Luna processes");
+        }
+    }
+
     public static int GetPipeClientSessionId(SafePipeHandle pipe) => GetPipeClientProcessId(pipe) is var pid && pid > 0
         ? GetProcessSessionId(pid)
         : -1;

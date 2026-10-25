@@ -205,7 +205,8 @@ public sealed class LockRuntime
             state.SpokenWarnings,
             _settings.Value.IdleThresholdSeconds,
             state.Language,
-            unlockSchedule);
+            unlockSchedule,
+            state.LunaEnabled);
         var changed = _runtime is null
             || _runtime.IsLocked != runtime.IsLocked
             || _runtime.Reason != runtime.Reason

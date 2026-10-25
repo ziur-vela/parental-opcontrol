@@ -69,12 +69,15 @@ Host.CreateDefaultBuilder(args)
         services.AddSingleton<HelperSupervisor>();
         services.AddSingleton<RuntimeLoopService>();
         services.AddSingleton<PinPipeServer>();
+        services.AddSingleton<LunaTokenBroker>();
+        services.AddSingleton<LunaSupervisor>();
         services.AddSingleton<RemoteRelayService>();
         services.AddSingleton<MessageSyncService>();
         services.AddSingleton<ChildSummarySyncService>();
         services.AddHostedService(sp => sp.GetRequiredService<HelperSupervisor>());
         services.AddHostedService(sp => sp.GetRequiredService<RuntimeLoopService>());
         services.AddHostedService(sp => sp.GetRequiredService<PinPipeServer>());
+        services.AddHostedService(sp => sp.GetRequiredService<LunaSupervisor>());
         services.AddHostedService(sp => sp.GetRequiredService<DataSyncService>());
         services.AddHostedService(sp => sp.GetRequiredService<ChildSummarySyncService>());
         services.AddHostedService(sp => sp.GetRequiredService<UpdateService>());

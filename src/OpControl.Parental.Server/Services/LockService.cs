@@ -81,10 +81,17 @@ public sealed class LockService
         var appUsage = await _usage.AppUsageTodayAsync(familyId, childId, tz, now, ct);
         var limitSettings = await _usage.EnsureLimitAsync(familyId, childId, ct);
         var language = AppCulture.Normalize(deviceLanguage ?? await FamilyLanguageAsync(familyId, ct));
+        var childLuna = await _db.ChildLunaSettings.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.FamilyId == familyId && s.ChildId == childId, ct);
+        var familyLuna = await _db.LunaFamilySettings.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.FamilyId == familyId, ct);
+        var lunaEnabled = childLuna is { Enabled: true }
+            && familyLuna is { LastTestOk: true }
+            && !string.IsNullOrWhiteSpace(familyLuna.ChatKeyProtected);
         return new DeviceStateDto(
             childId, child.Name, parentName, state.ManualLock, state.UnlockUntilUtc, state.BonusUntilUtc,
             state.BonusMinutes, state.OverridePinHash, schedules, policy.Sites, policy.Apps, policy.Bonuses,
-            policy.Categories, now, appUsage, dailyLimit, limitSettings.SpokenWarnings, language);
+            policy.Categories, now, appUsage, dailyLimit, limitSettings.SpokenWarnings, language, lunaEnabled);
     }
 
     public async Task<LockStateDto> ApplyAsync(Guid familyId, Guid childId, Guid? parentId, LockAction action, int? minutes = null, CancellationToken ct = default)
