@@ -96,6 +96,25 @@
         lunaWelcomeReturnFocus = document.activeElement;
         if (typeof dialog.focus === 'function') dialog.focus();
     };
+    window.ocpLunaWelcomeHide = function () {
+        var backdrop = document.querySelector('.luna-welcome-backdrop');
+        if (!backdrop) return Promise.resolve();
+        return new Promise(function (resolve) {
+            var finished = false;
+            var finish = function () {
+                if (finished) return;
+                finished = true;
+                backdrop.removeEventListener('animationend', onEnd);
+                resolve();
+            };
+            var onEnd = function (event) {
+                if (event.target === backdrop) finish();
+            };
+            backdrop.addEventListener('animationend', onEnd);
+            backdrop.classList.add('lw-closing');
+            setTimeout(finish, 180);
+        });
+    };
     window.ocpLunaWelcomeClose = function () {
         if (lunaWelcomeReturnFocus && typeof lunaWelcomeReturnFocus.focus === 'function') {
             lunaWelcomeReturnFocus.focus();

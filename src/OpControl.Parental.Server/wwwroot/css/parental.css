@@ -733,13 +733,21 @@ body:has(.legal-text) .auth-card { width: min(880px, 100%); }
 .luna-welcome-backdrop {
     position: fixed; inset: 0; z-index: 110; background: rgba(3, 10, 8, .82);
     display: flex; align-items: center; justify-content: center; padding: 18px;
+    animation: lw-backdrop-in 200ms ease-out;
 }
 .luna-welcome {
     width: min(980px, 100%); max-height: 88vh; overflow-y: auto;
     background: var(--panel); border: 1px solid var(--line-2); padding: 28px;
     display: flex; flex-direction: row-reverse; flex-wrap: wrap; gap: 28px; align-items: flex-start;
     box-shadow: 0 20px 60px rgba(0, 0, 0, .45); box-sizing: border-box;
+    animation: lw-dialog-in 220ms ease-out;
 }
+.luna-welcome-backdrop.lw-closing { animation: lw-backdrop-out 150ms ease-in forwards; }
+.luna-welcome-backdrop.lw-closing .luna-welcome { animation: lw-dialog-out 150ms ease-in forwards; }
+@keyframes lw-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lw-backdrop-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes lw-dialog-in { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+@keyframes lw-dialog-out { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.96); } }
 .luna-welcome:focus { outline: none; }
 .luna-welcome-copy { flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
 .luna-welcome-demo { flex: 0 1 440px; min-width: 0; display: flex; flex-direction: column; align-items: center; }
@@ -827,6 +835,10 @@ body:has(.legal-text) .auth-card { width: min(880px, 100%); }
     .luna-demo-c1, .luna-demo-c2, .luna-demo-c4 { opacity: 0 !important; }
     .luna-demo-chat, .luna-demo-b1, .luna-demo-b2 { animation: none !important; opacity: 1 !important; transform: none !important; }
     .luna-demo-c3 { opacity: 1 !important; }
+    .luna-welcome-backdrop { animation: lw-backdrop-in 120ms linear; }
+    .luna-welcome { animation: none !important; }
+    .luna-welcome-backdrop.lw-closing { animation: lw-backdrop-out 120ms linear forwards; }
+    .luna-welcome-backdrop.lw-closing .luna-welcome { animation: none !important; }
 }
 .luna-setupb {
     border: 1px solid var(--line-2); background: var(--panel-2); padding: 14px;

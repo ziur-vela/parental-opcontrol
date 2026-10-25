@@ -10,6 +10,7 @@
 @inject IStringLocalizer<AppStrings> L
 @inject IJSRuntime JS
 @inject NavigationManager Nav
+@implements IDisposable
 
 <button type="button" class="luna-what-link" @onclick="OpenAsync">@L["Luna.Welcome.Link"]</button>
 
@@ -121,9 +122,9 @@
         </div>
     </div>
 }
-}
 
 @code {
+    private const int AutoOpenDelayMs = 600;
     private Guid _familyId;
     private Guid _parentId;
     private bool _isOwner;
@@ -131,6 +132,9 @@
     private bool _dontShow;
     private bool _focusPending;
     private bool _returnFocusPending;
+    private bool _autoOpenPending;
+    private bool _autoOpenScheduled;
+    private bool _disposed;
 
     protected override async Task OnInitializedAsync()
     {
@@ -144,12 +148,23 @@
         using var scope = Scopes.CreateScope();
         var preferences = scope.ServiceProvider.GetRequiredService<ParentPreferenceService>();
         if (await preferences.GetLunaWelcomeDismissedAsync(_familyId, _parentId)) return;
-        _show = true;
-        _focusPending = true;
+        _autoOpenPending = true;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender && _autoOpenPending && !_autoOpenScheduled)
+        {
+            _autoOpenScheduled = true;
+            await Task.Delay(AutoOpenDelayMs);
+            _autoOpenScheduled = false;
+            if (_disposed || !_autoOpenPending) return;
+            _autoOpenPending = false;
+            _show = true;
+            _focusPending = true;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
         if (_focusPending)
         {
             _focusPending = false;
@@ -164,6 +179,7 @@
 
     private async Task OpenAsync()
     {
+        _autoOpenPending = false;
         _dontShow = false;
         _show = true;
         _focusPending = true;
@@ -173,6 +189,7 @@
     private async Task CloseAsync()
     {
         await SavePreferenceAsync();
+        await HideAsync();
         _show = false;
         _returnFocusPending = true;
     }
@@ -181,9 +198,16 @@
     {
         var goToSetup = _isOwner && !await IsSetupReadyAsync();
         await SavePreferenceAsync();
+        await HideAsync();
         _show = false;
         _returnFocusPending = true;
         if (goToSetup) Nav.NavigateTo("/luna/setup");
+    }
+
+    private async Task HideAsync()
+    {
+        if (!_show) return;
+        try { await JS.InvokeVoidAsync("ocpLunaWelcomeHide"); } catch { }
     }
 
     private async Task<bool> IsSetupReadyAsync()
@@ -208,4 +232,6 @@
         if (string.Equals(args.Key, "Escape", StringComparison.OrdinalIgnoreCase))
             await CloseAsync();
     }
+
+    public void Dispose() => _disposed = true;
 }
