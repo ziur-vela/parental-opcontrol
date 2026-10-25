@@ -49,6 +49,17 @@ public class Job181KidTests
         }
     }
 
+    [Fact]
+    public void Both_kid_apps_use_the_shared_local_theme_channel()
+    {
+        var helper = File.ReadAllText(Path.Combine(Root, "src", "OpControl.Parental.Client.Windows.Helper", "MyOpControlForm.cs"));
+        var luna = File.ReadAllText(Path.Combine(Root, "src", "OpControl.Parental.Luna", "LunaAppView.cs"));
+        Assert.Contains("KidThemeStore.ReadLocal", helper, StringComparison.Ordinal);
+        Assert.Contains("KidThemeStore.WriteLocal", helper, StringComparison.Ordinal);
+        Assert.Contains("KidThemeStore.ReadLocal", luna, StringComparison.Ordinal);
+        Assert.Contains("KidThemeStore.WriteLocal", luna, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(true, true)]
