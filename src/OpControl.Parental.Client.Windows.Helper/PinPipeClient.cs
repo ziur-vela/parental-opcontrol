@@ -35,6 +35,9 @@ public static class PinPipeClient
     public static async Task<PinPipeResponse> MarkAcknowledgedAsync(Guid messageId, CancellationToken ct) =>
         await SendAsync(new PinPipeRequest("message-ack", MessageId: messageId), ct);
 
+    public static async Task<PinPipeResponse> SetThemeAsync(string theme, CancellationToken ct) =>
+        await SendAsync(new PinPipeRequest("set-theme", Theme: theme), ct);
+
     public static async Task<PinPipeResponse> OpenKidAsync(string tab, string? theme, string? language, bool messagesOnly, CancellationToken ct) =>
         await SendAsync(new PinPipeRequest("open-kid", Tab: tab, Theme: theme, Language: language, MessagesOnly: messagesOnly), ct);
 

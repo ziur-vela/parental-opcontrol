@@ -101,7 +101,7 @@ public sealed class MyOpControlForm : Form
     private readonly RulesView _rules;
     private readonly ActivityView _activity;
     private readonly ChildMessagingPanel _messages;
-    private readonly Panel _content = new();
+    private readonly KidSurfacePanel _content = new();
     private readonly Label _childLabel = new();
     private readonly Label _deviceLabel = new();
     private readonly Label _updatedLabel = new();
@@ -110,7 +110,7 @@ public sealed class MyOpControlForm : Form
     private readonly Label _noticeLabel = new();
     private readonly Panel _noData = new();
     private readonly TableLayoutPanel _messagesHost = new();
-    private readonly Dictionary<MyOpControlTab, NavItem> _nav = new();
+    private readonly Dictionary<MyOpControlTab, KidNavItem> _nav = new();
     private readonly System.Windows.Forms.Timer _liveTimer = new() { Interval = 1000 };
     private readonly System.Windows.Forms.Timer _cacheTimer = new() { Interval = 3000 };
     private DateTime _summaryStamp = DateTime.MinValue;
@@ -125,18 +125,21 @@ public sealed class MyOpControlForm : Form
     public event Action<int>? UnreadChanged;
 
     public MyOpControlForm(bool aboveLock, MyOpControlTab tab = MyOpControlTab.Home, bool messagesOnly = false,
-        string? themeOverride = null, string? languageOverride = null)
+        string? themeOverride = null, string? languageOverride = null, KidPreviewData? preview = null)
     {
+        _preview = preview;
         _messagesOnly = messagesOnly;
         if (!string.IsNullOrWhiteSpace(languageOverride)) Loc.SetLanguage(languageOverride);
-        Theme.Apply(string.Equals(themeOverride, "light", StringComparison.OrdinalIgnoreCase)
-            || (string.IsNullOrWhiteSpace(themeOverride) && IsLightTheme()));
+        _themeKey = ResolveTheme(themeOverride);
+        KidTheme.Apply(_themeKey);
 
         _home = new HomeView();
         _schedule = new ScheduleView();
         _rules = new RulesView();
         _activity = new ActivityView();
         _messages = new ChildMessagingPanel();
+        if (preview?.Messages is { Count: > 0 } previewMessages)
+            _messages.SetPreviewThread(previewMessages);
 
         Text = "My OpControl";
         AutoScaleMode = AutoScaleMode.None;
@@ -146,8 +149,8 @@ public sealed class MyOpControlForm : Form
         TopMost = aboveLock;
         MaximizeBox = true;
         MinimizeBox = true;
-        BackColor = Theme.Bg;
-        ForeColor = Theme.Text;
+        BackColor = KidTheme.Bg;
+        ForeColor = KidTheme.Text;
         KeyPreview = true;
         Padding = new Padding(4);
         DoubleBuffered = true;
@@ -224,6 +227,71 @@ public sealed class MyOpControlForm : Form
         }
     }
 
+    private static string ResolveTheme(string? overrideTheme)
+    {
+        if (!string.IsNullOrWhiteSpace(overrideTheme))
+        {
+            var value = overrideTheme.Trim();
+            if (string.Equals(value, "light", StringComparison.OrdinalIgnoreCase)) return "gray";
+            if (string.Equals(value, "dark", StringComparison.OrdinalIgnoreCase)) return "night";
+            if (LunaThemes.IsValid(value)) return LunaThemes.Normalize(value);
+        }
+        var local = KidThemeStore.ReadLocal();
+        if (local is not null) return local;
+        var summary = HelperPaths.ReadSummary();
+        if (summary is not null && LunaThemes.IsValid(summary.Theme)) return LunaThemes.Normalize(summary.Theme);
+        var state = HelperPaths.ReadState();
+        return LunaThemes.Normalize(state?.Theme);
+    }
+
+    public string ThemeKey => _themeKey;
+
+    public void ShowRulesApps() => _rules.ShowApps();
+
+    public void ShowActivityWeek() => _activity.ShowWeek();
+
+    public void ToggleTheme() => ApplyTheme(_themeKey == "gray" ? "night" : "gray");
+
+    public void ApplyTheme(string? theme)
+    {
+        var key = LunaThemes.Normalize(theme);
+        if (string.Equals(key, _themeKey, StringComparison.Ordinal)) return;
+        _themeKey = key;
+        KidTheme.Apply(key);
+        if (_preview is null)
+        {
+            KidThemeStore.WriteLocal(key);
+            _ = PinPipeClient.SetThemeAsync(key, CancellationToken.None);
+        }
+        RebuildForTheme();
+    }
+
+    private void RebuildForTheme()
+    {
+        SuspendLayout();
+        try
+        {
+            Controls.Clear();
+            _nav.Clear();
+            BuildShell();
+            BackColor = KidTheme.Bg;
+            ForeColor = KidTheme.Text;
+            EnableDoubleBuffering(this);
+            PerformLayout();
+            ShowTab(_activeTab);
+            _messages.ApplyTheme();
+            _home.Invalidate(true);
+            _schedule.Invalidate(true);
+            _rules.Invalidate(true);
+            _activity.Invalidate(true);
+        }
+        finally
+        {
+            ResumeLayout(true);
+            Invalidate(true);
+        }
+    }
+
     public void SetMessagesOnly(bool messagesOnly)
     {
         _messagesOnly = messagesOnly;
@@ -278,9 +346,9 @@ public sealed class MyOpControlForm : Form
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 2,
-            BackColor = Theme.Bg
+            BackColor = Color.Transparent
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
         root.Controls.Add(BuildHeader(), 0, 0);
         root.Controls.Add(BuildBody(), 0, 1);
@@ -289,10 +357,10 @@ public sealed class MyOpControlForm : Form
 
     private Control BuildHeader()
     {
-        var header = new Panel { Dock = DockStyle.Fill, BackColor = Theme.Panel, Margin = new Padding(0) };
+        var header = new Panel { Dock = DockStyle.Fill, BackColor = KidTheme.HeaderBg, Margin = new Padding(0) };
         header.Paint += (_, e) =>
         {
-            using var pen = new Pen(Theme.Line);
+            using var pen = new Pen(KidTheme.OuterBorder, 2);
             e.Graphics.DrawLine(pen, 0, header.Height - 1, header.Width, header.Height - 1);
         };
         var layout = new TableLayoutPanel
@@ -301,7 +369,7 @@ public sealed class MyOpControlForm : Form
             ColumnCount = 3,
             RowCount = 1,
             BackColor = Color.Transparent,
-            Padding = new Padding(16, 0, 8, 0),
+            Padding = new Padding(16, 0, 10, 0),
             Margin = new Padding(0)
         };
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
@@ -318,26 +386,29 @@ public sealed class MyOpControlForm : Form
             BackColor = Color.Transparent,
             Margin = new Padding(0)
         };
-        var icon = new PictureBox
-        {
-            Image = LoadShield(),
-            SizeMode = PictureBoxSizeMode.Zoom,
-            Width = 26,
-            Height = 26,
-            Margin = new Padding(0, 0, 9, 0),
-            BackColor = Color.Transparent
-        };
-        brand.Controls.Add(icon);
-        var title = new Label
+        var moon = new MoonFace(30) { Margin = new Padding(0, 2, 8, 0) };
+        brand.Controls.Add(moon);
+        brand.Controls.Add(new Label
         {
             Text = "My OpControl",
-            Font = Theme.Sans(15f, FontStyle.Bold),
-            ForeColor = Theme.Text,
+            Font = Theme.Display(13f, FontStyle.Bold),
+            ForeColor = KidTheme.Text,
             AutoSize = true,
-            Margin = new Padding(0, 4, 0, 0),
+            Margin = new Padding(0, 5, 0, 0),
             BackColor = Color.Transparent
-        };
-        brand.Controls.Add(title);
+        });
+        var subtitle = _activeTab == MyOpControlTab.Messages
+            ? Loc.T("Client.Kid.MessagesOnly")
+            : Loc.T("Client.Kid.ViewOnly");
+        brand.Controls.Add(new Label
+        {
+            Text = subtitle,
+            Font = Theme.Body(9f, FontStyle.Bold),
+            ForeColor = KidTheme.Muted,
+            AutoSize = true,
+            Margin = new Padding(10, 7, 0, 0),
+            BackColor = Color.Transparent
+        });
 
         var right = new FlowLayoutPanel
         {
@@ -348,19 +419,17 @@ public sealed class MyOpControlForm : Form
             BackColor = Color.Transparent,
             Margin = new Padding(0)
         };
-        right.Controls.Add(new Label
+        var theme = new KidIconButton(KidTheme.IsGray ? KidIconKind.Sun : KidIconKind.Moon)
         {
-            Text = Loc.T("Client.Kid.ViewOnly"),
-            Font = Theme.Mono(8.5f),
-            ForeColor = Theme.Muted,
-            AutoSize = true,
-            Margin = new Padding(0, 7, 12, 0),
-            BackColor = Color.Transparent
-        });
-        var minimize = HeaderButton("–");
+            AccessibleName = Loc.T("Client.Kid.Theme.Pick"),
+            Margin = new Padding(0, 0, 6, 0)
+        };
+        theme.Click += (_, _) => ToggleTheme();
+        var minimize = new KidIconButton(KidIconKind.Minimize) { AccessibleName = Loc.T("Client.Kid.Minimize") };
         minimize.Click += (_, _) => WindowState = FormWindowState.Minimized;
-        var close = HeaderButton("×");
+        var close = new KidIconButton(KidIconKind.Close) { AccessibleName = Loc.T("Client.Kid.Close") };
         close.Click += (_, _) => HideWindow();
+        right.Controls.Add(theme);
         right.Controls.Add(minimize);
         right.Controls.Add(close);
 
@@ -372,27 +441,6 @@ public sealed class MyOpControlForm : Form
         return header;
     }
 
-    private static Button HeaderButton(string text)
-    {
-        var button = new Button
-        {
-            Text = text,
-            Width = 40,
-            Height = 32,
-            FlatStyle = FlatStyle.Flat,
-            BackColor = Color.Transparent,
-            ForeColor = Theme.Muted,
-            Font = Theme.Sans(12f),
-            Margin = new Padding(2, 0, 0, 0),
-            TabStop = false,
-            UseVisualStyleBackColor = false
-        };
-        button.FlatAppearance.BorderSize = 0;
-        button.FlatAppearance.MouseOverBackColor = Theme.Panel2;
-        button.Cursor = Cursors.Hand;
-        return button;
-    }
-
     private Control BuildBody()
     {
         var body = new TableLayoutPanel
@@ -400,9 +448,9 @@ public sealed class MyOpControlForm : Form
             Dock = DockStyle.Fill,
             ColumnCount = 2,
             RowCount = 1,
-            BackColor = Theme.Bg
+            BackColor = Color.Transparent
         };
-        body.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 188));
+        body.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 196));
         body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
         body.Controls.Add(BuildSidebar(), 0, 0);
 
@@ -411,7 +459,7 @@ public sealed class MyOpControlForm : Form
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 2,
-            BackColor = Theme.Bg
+            BackColor = Color.Transparent
         };
         main.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         main.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
@@ -419,18 +467,18 @@ public sealed class MyOpControlForm : Form
         _notice.Visible = false;
         _notice.Height = 38;
         _notice.Dock = DockStyle.Top;
-        _notice.BackColor = Theme.Panel2;
+        _notice.BackColor = KidTheme.Sub;
         _notice.Cursor = Cursors.Hand;
         _notice.Paint += (_, e) =>
         {
-            using var pen = new Pen(Theme.Brand);
+            using var pen = new Pen(KidTheme.Ok, 2);
             e.Graphics.DrawLine(pen, 0, _notice.Height - 1, _notice.Width, _notice.Height - 1);
         };
         _noticeLabel.Dock = DockStyle.Fill;
         _noticeLabel.TextAlign = ContentAlignment.MiddleLeft;
         _noticeLabel.Padding = new Padding(24, 0, 0, 0);
-        _noticeLabel.Font = Theme.Sans(10f);
-        _noticeLabel.ForeColor = Theme.Text;
+        _noticeLabel.Font = Theme.Body(10f, FontStyle.Bold);
+        _noticeLabel.ForeColor = KidTheme.Text;
         _noticeLabel.Cursor = Cursors.Hand;
         _notice.Controls.Add(_noticeLabel);
         _notice.Click += (_, _) => ShowTab(MyOpControlTab.Messages);
@@ -438,17 +486,17 @@ public sealed class MyOpControlForm : Form
         main.Controls.Add(_notice, 0, 0);
 
         _content.Dock = DockStyle.Fill;
-        _content.BackColor = Theme.Bg;
-        _content.Padding = new Padding(24, 18, 24, 16);
+        _content.BackColor = Color.Transparent;
+        _content.Padding = new Padding(22, 16, 22, 18);
         main.Controls.Add(_content, 0, 1);
         body.Controls.Add(main, 1, 0);
 
-        _noData.BackColor = Theme.Bg;
+        _noData.BackColor = Color.Transparent;
         var noDataLabel = new Label
         {
             Text = Loc.T("Client.Kid.NoData"),
-            Font = Theme.Sans(11f),
-            ForeColor = Theme.Muted,
+            Font = Theme.Body(11f),
+            ForeColor = KidTheme.Muted,
             Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleCenter
         };
@@ -473,10 +521,10 @@ public sealed class MyOpControlForm : Form
 
     private Control BuildSidebar()
     {
-        var sidebar = new Panel { Dock = DockStyle.Fill, BackColor = Theme.Panel };
+        var sidebar = new KidSurfacePanel { Dock = DockStyle.Fill, BackColor = KidTheme.SidebarBg, Decorated = false };
         sidebar.Paint += (_, e) =>
         {
-            using var pen = new Pen(Theme.Line);
+            using var pen = new Pen(KidTheme.OuterBorder, 2);
             e.Graphics.DrawLine(pen, sidebar.Width - 1, 0, sidebar.Width - 1, sidebar.Height);
         };
         var stack = new FlowLayoutPanel
@@ -486,7 +534,7 @@ public sealed class MyOpControlForm : Form
             WrapContents = false,
             AutoScroll = false,
             BackColor = Color.Transparent,
-            Padding = new Padding(0, 16, 0, 12)
+            Padding = new Padding(10, 14, 10, 10)
         };
         AddNav(stack, MyOpControlTab.Home, Loc.T("Client.Kid.Nav.Home"), MyOpControlTab.Home);
         AddNav(stack, MyOpControlTab.Schedule, Loc.T("Client.Kid.Nav.Schedule"), MyOpControlTab.Schedule);
@@ -495,35 +543,35 @@ public sealed class MyOpControlForm : Form
         AddNav(stack, MyOpControlTab.Messages, Loc.T("Client.Kid.Nav.Messages"), MyOpControlTab.Messages);
         sidebar.Controls.Add(stack);
 
-        var bottom = new Panel { Dock = DockStyle.Bottom, Height = 122, BackColor = Color.Transparent };
+        var bottom = new Panel { Dock = DockStyle.Bottom, Height = 132, BackColor = Color.Transparent };
         _childLabel.Text = "";
-        _childLabel.Font = Theme.Sans(10.5f, FontStyle.Bold);
-        _childLabel.ForeColor = Theme.Text;
+        _childLabel.Font = Theme.Display(10.5f, FontStyle.Bold);
+        _childLabel.ForeColor = KidTheme.Text;
         _childLabel.AutoSize = false;
         _childLabel.Dock = DockStyle.Top;
         _childLabel.Height = 24;
         _childLabel.BackColor = Color.Transparent;
-        _deviceLabel.Font = Theme.Mono(8f);
-        _deviceLabel.ForeColor = Theme.Muted;
+        _deviceLabel.Font = Theme.Body(8.5f);
+        _deviceLabel.ForeColor = KidTheme.Muted;
         _deviceLabel.AutoSize = false;
         _deviceLabel.Dock = DockStyle.Top;
         _deviceLabel.Height = 20;
         _deviceLabel.BackColor = Color.Transparent;
-        _updatedLabel.Font = Theme.Mono(8f);
-        _updatedLabel.ForeColor = Theme.Faint;
+        _updatedLabel.Font = Theme.Body(8.5f);
+        _updatedLabel.ForeColor = KidTheme.Faint;
         _updatedLabel.AutoSize = false;
         _updatedLabel.Dock = DockStyle.Top;
         _updatedLabel.Height = 20;
         _updatedLabel.BackColor = Color.Transparent;
         _legalLabel.Text = "© 2026 Ziur / OpControl IT Solutions";
-        _legalLabel.Font = Theme.Mono(6.8f);
-        _legalLabel.ForeColor = Theme.Faint;
+        _legalLabel.Font = Theme.Body(7f);
+        _legalLabel.ForeColor = KidTheme.Faint;
         _legalLabel.AutoSize = false;
         _legalLabel.Dock = DockStyle.Top;
-        _legalLabel.Height = 26;
+        _legalLabel.Height = 24;
         _legalLabel.Padding = new Padding(0, 4, 0, 0);
         _legalLabel.BackColor = Color.Transparent;
-        var inner = new Panel { Dock = DockStyle.Bottom, Height = 100, Padding = new Padding(4, 0, 4, 0), BackColor = Color.Transparent };
+        var inner = new Panel { Dock = DockStyle.Bottom, Height = 108, Padding = new Padding(4, 0, 4, 0), BackColor = Color.Transparent };
         inner.Controls.Add(_legalLabel);
         inner.Controls.Add(_updatedLabel);
         inner.Controls.Add(_deviceLabel);
@@ -537,16 +585,23 @@ public sealed class MyOpControlForm : Form
     private void AddNav(FlowLayoutPanel stack, MyOpControlTab tab, string text, MyOpControlTab target)
     {
         if (_messagesOnly && target != MyOpControlTab.Messages) return;
-        var item = new NavItem(text, () => ShowTab(target));
-        item.Width = 188;
-        item.Height = 44;
-        item.Margin = new Padding(0, 0, 0, 4);
+        var icon = target switch
+        {
+            MyOpControlTab.Schedule => KidIconKind.Clock,
+            MyOpControlTab.Rules => KidIconKind.Shield,
+            MyOpControlTab.Activity => KidIconKind.Bars,
+            MyOpControlTab.Messages => KidIconKind.Chat,
+            _ => KidIconKind.Home
+        };
+        var item = new KidNavItem(text, icon) { Width = 176, Margin = new Padding(0, 0, 0, 4) };
+        item.Click += (_, _) => ShowTab(target);
         _nav[tab] = item;
         stack.Controls.Add(item);
     }
 
     private void BuildMessagesHost()
     {
+        _messagesHost.Controls.Clear();
         _messagesHost.Dock = DockStyle.Fill;
         _messagesHost.ColumnCount = 1;
         _messagesHost.RowCount = 2;
@@ -614,14 +669,26 @@ public sealed class MyOpControlForm : Form
 
     private void UpdateLive()
     {
-        var state = HelperPaths.ReadState();
-        var online = HelperPaths.ReadOnline();
+        var state = _preview?.State ?? HelperPaths.ReadState();
+        var online = _preview?.Online ?? HelperPaths.ReadOnline();
         if (online != _online) _online = online;
+        if (state is not null && _preview is null)
+        {
+            var local = KidThemeStore.ReadLocal();
+            var key = local ?? LunaThemes.Normalize(state.Theme);
+            if (!string.Equals(key, _themeKey, StringComparison.Ordinal))
+            {
+                _themeKey = key;
+                KidTheme.Apply(key);
+                RebuildForTheme();
+            }
+        }
         _home.UpdateLive(state, online);
     }
 
     private void CheckCache()
     {
+        if (_preview is not null) return;
         try
         {
             var exists = File.Exists(HelperPaths.SummaryFile);
@@ -633,6 +700,16 @@ public sealed class MyOpControlForm : Form
 
     private void LoadSummary(bool force)
     {
+        if (_preview is not null)
+        {
+            _summary = _preview.Summary;
+            _hasSummary = true;
+            _childLabel.Text = _summary.ChildName;
+            _deviceLabel.Text = _summary.DeviceName;
+            _updatedLabel.Text = Loc.T("Client.Kid.Updated", _summary.GeneratedUtc.ToLocalTime().ToString("t", System.Globalization.CultureInfo.CurrentCulture));
+            if (_activeTab != MyOpControlTab.Messages) ShowContent();
+            return;
+        }
         if (!force && _hasSummary && DateTime.UtcNow - _lastLoadUtc < TimeSpan.FromSeconds(2)) return;
         var summary = HelperPaths.ReadSummary();
         _lastLoadUtc = DateTime.UtcNow;
@@ -663,6 +740,8 @@ public sealed class MyOpControlForm : Form
     }
 
     private DateTime _lastLoadUtc = DateTime.MinValue;
+    private string _themeKey = "night";
+    private readonly KidPreviewData? _preview;
 
     private void UpdateBadge(int count)
     {
@@ -678,7 +757,7 @@ public sealed class MyOpControlForm : Form
     {
         try
         {
-            var name = Theme.IsLight
+            var name = KidTheme.IsGray
                 ? "OpControl.Parental.Helper.brand.icon-color-128.png"
                 : "OpControl.Parental.Helper.brand.icon-ondark-64.png";
             using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name);
@@ -709,7 +788,7 @@ public sealed class MyOpControlForm : Form
         {
             // WS_THICKFRAME is needed for Snap/resize; paint its 1px DWM border in the
             // window colour so the borderless window has no white outline.
-            var border = ColorTranslator.ToWin32(Theme.Bg);
+            var border = ColorTranslator.ToWin32(KidTheme.Bg);
             DwmSetWindowAttribute(Handle, 34, ref border, sizeof(int)); // DWMWA_BORDER_COLOR
         }
         catch { }
@@ -1017,79 +1096,5 @@ public sealed class MyOpControlForm : Form
             _messages.Stop();
         }
         base.Dispose(disposing);
-    }
-
-    private sealed class NavItem : Panel
-    {
-        private readonly Button _button;
-        private readonly Panel _bar;
-        private readonly Label? _badge;
-        private bool _ready;
-
-        public NavItem(string text, Action click)
-        {
-            BackColor = Color.Transparent;
-            Cursor = Cursors.Hand;
-            _bar = new Panel { Dock = DockStyle.Left, Width = 3, BackColor = Theme.Brand, Visible = false };
-            _button = new Button
-            {
-                Text = text,
-                Dock = DockStyle.Fill,
-                FlatStyle = FlatStyle.Flat,
-                TextAlign = ContentAlignment.MiddleLeft,
-                Padding = new Padding(12, 0, 8, 0),
-                BackColor = Color.Transparent,
-                ForeColor = Theme.Muted,
-                Font = Theme.Mono(9.5f),
-                Cursor = Cursors.Hand,
-                UseVisualStyleBackColor = false,
-                TabStop = false
-            };
-            _button.FlatAppearance.BorderSize = 0;
-            _button.FlatAppearance.MouseOverBackColor = Theme.Panel2;
-            _badge = new Label
-            {
-                AutoSize = false,
-                Width = 24,
-                Height = 18,
-                TextAlign = ContentAlignment.MiddleCenter,
-                BackColor = Theme.Danger,
-                ForeColor = Color.White,
-                Font = Theme.Mono(8f, FontStyle.Bold),
-                Visible = false
-            };
-            _button.Click += (_, _) => click();
-            Click += (_, _) => click();
-            Controls.Add(_button);
-            Controls.Add(_bar);
-            Controls.Add(_badge);
-            _bar.BringToFront();
-            _badge.BringToFront();
-            Height = 44;
-            _ready = true;
-        }
-
-        protected override void OnResize(EventArgs e)
-        {
-            base.OnResize(e);
-            if (!_ready || _badge is null) return;
-            _badge.Left = Width - _badge.Width - 10;
-            _badge.Top = (Height - _badge.Height) / 2;
-        }
-
-        public void SetActive(bool active)
-        {
-            _bar.Visible = active;
-            _button.BackColor = active ? Theme.Panel2 : Color.Transparent;
-            _button.ForeColor = active ? Theme.Text : Theme.Muted;
-            _button.Font = Theme.Mono(9.5f, active ? FontStyle.Bold : FontStyle.Regular);
-        }
-
-        public void SetUnread(int count)
-        {
-            if (_badge is null) return;
-            _badge.Text = count > 99 ? "99+" : count.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            _badge.Visible = count > 0;
-        }
     }
 }

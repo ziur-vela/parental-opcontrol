@@ -52,6 +52,8 @@ public static class LunaThemes
 
     public static string Normalize(string? theme) =>
         string.Equals(theme, Gray, StringComparison.OrdinalIgnoreCase) ? Gray : Night;
+
+    public static string Toggle(string? theme) => Normalize(theme) == Gray ? Night : Gray;
 }
 
 public static class LunaChatRoles

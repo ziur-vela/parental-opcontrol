@@ -22,11 +22,14 @@ public sealed class PinPipeServer : BackgroundService
     private readonly DataSyncService _sync;
     private readonly MessageSyncService _messages;
     private readonly LunaTokenBroker _lunaTokens;
+    private readonly ChildThemeReporter _themes;
+    private readonly ChildSummarySyncService _summaries;
     private readonly ILogger<PinPipeServer> _logger;
     private readonly ConcurrentDictionary<string, DateTime> _tickets = new();
 
     public PinPipeServer(LockRuntime runtime, LockoutStore lockout, OverrideSync overrides, ClientSettings settings,
-        DataSyncService sync, MessageSyncService messages, LunaTokenBroker lunaTokens, ILogger<PinPipeServer> logger)
+        DataSyncService sync, MessageSyncService messages, LunaTokenBroker lunaTokens,
+        ChildThemeReporter themes, ChildSummarySyncService summaries, ILogger<PinPipeServer> logger)
     {
         _runtime = runtime;
         _lockout = lockout;
@@ -35,6 +38,8 @@ public sealed class PinPipeServer : BackgroundService
         _sync = sync;
         _messages = messages;
         _lunaTokens = lunaTokens;
+        _themes = themes;
+        _summaries = summaries;
         _logger = logger;
     }
 
@@ -157,6 +162,11 @@ public sealed class PinPipeServer : BackgroundService
                 _logger.LogInformation("message-send result ok={Ok} queued={Queued} error={Error}",
                     result.Ok, result.Queued, result.Error ?? "");
                 return new PinPipeResponse(result.Ok, result.Error, Message: result.Message, Queued: result.Queued);
+            case "set-theme":
+                if (!await _themes.SetAsync(request.Theme, ct))
+                    return new PinPipeResponse(false, Loc.T("Client.Pipe.InvalidRequest"));
+                _summaries.RequestRefresh();
+                return new PinPipeResponse(true);
             case "message-seen":
                 if (request.MessageId is not { } seenId) return new PinPipeResponse(false, Loc.T("Client.Pipe.InvalidRequest"));
                 await _messages.MarkSeenAsync(seenId, ct);

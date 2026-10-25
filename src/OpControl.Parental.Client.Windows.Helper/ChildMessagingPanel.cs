@@ -32,7 +32,9 @@ public sealed class ChildMessagingPanel : UserControl
         bool Acknowledged);
 
     private readonly TableLayoutPanel _layout;
+    private readonly CardPanel _threadCard;
     private readonly FlowLayoutPanel _thread;
+    private readonly CardPanel _inputCard;
     private readonly TextBox _input;
     private readonly Label _count;
     private readonly Label _status;
@@ -47,6 +49,7 @@ public sealed class ChildMessagingPanel : UserControl
     private bool _busy;
     private bool _loaded;
     private bool _sending;
+    private IReadOnlyList<ChildMessageDto>? _preview;
     private string? _queuedText;
     private DateTime _clearStatusAt = DateTime.MaxValue;
     private Guid? _highlightId;
@@ -60,15 +63,15 @@ public sealed class ChildMessagingPanel : UserControl
     public ChildMessagingPanel()
     {
         Dock = DockStyle.Fill;
-        BackColor = Theme.Bg;
-        ForeColor = Theme.Text;
+        BackColor = KidTheme.Bg;
+        ForeColor = KidTheme.Text;
         Padding = new Padding(0);
 
         _layout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 6,
+            RowCount = 5,
             BackColor = Color.Transparent
         };
         _layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
@@ -76,24 +79,33 @@ public sealed class ChildMessagingPanel : UserControl
         _layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 96));
         _layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        _layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
+        _threadCard = new CardPanel
+        {
+            Dock = DockStyle.Fill,
+            FillColor = KidTheme.Card,
+            BorderColor = KidTheme.CardBorder,
+            CornerRadius = 20,
+            Padding = new Padding(0),
+            Margin = new Padding(0, 0, 0, 10)
+        };
         _thread = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false,
             AutoScroll = true,
-            BackColor = Theme.Panel,
-            Padding = new Padding(12),
-            Margin = new Padding(0, 0, 0, 8)
+            BackColor = KidTheme.Card,
+            Padding = new Padding(14),
+            Margin = new Padding(0)
         };
+        _threadCard.Controls.Add(_thread);
 
         _status = new Label
         {
             Text = "",
-            Font = Theme.Mono(9f),
-            ForeColor = Theme.Muted,
+            Font = Theme.Body(9.5f, FontStyle.Bold),
+            ForeColor = KidTheme.Muted,
             AutoSize = true,
             BackColor = Color.Transparent,
             Margin = new Padding(2, 0, 0, 6)
@@ -119,10 +131,22 @@ public sealed class ChildMessagingPanel : UserControl
             MaxLength = 500,
             Dock = DockStyle.Fill,
             ScrollBars = ScrollBars.Vertical,
-            BorderStyle = BorderStyle.FixedSingle,
+            BorderStyle = BorderStyle.None,
             WordWrap = true
         };
-        Theme.StyleInput(_input);
+        _input.BackColor = KidTheme.InputBg;
+        _input.ForeColor = KidTheme.Text;
+        _input.Font = Theme.Body(11f);
+        _inputCard = new CardPanel
+        {
+            Dock = DockStyle.Fill,
+            FillColor = KidTheme.InputBg,
+            BorderColor = KidTheme.InputBorder,
+            CornerRadius = 14,
+            Padding = new Padding(10, 8, 10, 8),
+            Margin = new Padding(0, 0, 10, 0)
+        };
+        _inputCard.Controls.Add(_input);
         _input.KeyDown += async (_, e) =>
         {
             if (e.KeyCode == Keys.Enter && !e.Shift)
@@ -146,8 +170,8 @@ public sealed class ChildMessagingPanel : UserControl
         _legend = new Label
         {
             Text = Loc.T("Client.Messages.Legend"),
-            Font = Theme.Mono(8f),
-            ForeColor = Theme.Muted,
+            Font = Theme.Body(8.5f),
+            ForeColor = KidTheme.Muted,
             AutoSize = true,
             Anchor = AnchorStyles.Left,
             BackColor = Color.Transparent
@@ -155,8 +179,8 @@ public sealed class ChildMessagingPanel : UserControl
         _count = new Label
         {
             Text = "0/500",
-            Font = Theme.Mono(8.5f),
-            ForeColor = Theme.Muted,
+            Font = Theme.Body(8.5f),
+            ForeColor = KidTheme.Muted,
             AutoSize = true,
             Anchor = AnchorStyles.Right,
             BackColor = Color.Transparent
@@ -164,28 +188,27 @@ public sealed class ChildMessagingPanel : UserControl
         meta.Controls.Add(_legend, 0, 0);
         meta.Controls.Add(_count, 1, 0);
 
-        var footer = new TableLayoutPanel
+        var composer = new TableLayoutPanel
         {
-            Dock = DockStyle.Top,
+            Dock = DockStyle.Fill,
             ColumnCount = 2,
             RowCount = 1,
-            AutoSize = true,
             BackColor = Color.Transparent,
-            Margin = new Padding(0, 6, 0, 0)
+            Margin = new Padding(0)
         };
-        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
-        footer.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        _send = new Button
+        composer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+        composer.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        _send = new KidButton(Loc.T("Client.Messages.Send"), KidButtonKind.Primary)
         {
-            Text = Loc.T("Client.Messages.Send"),
-            AutoSize = true,
-            MinimumSize = new Size(120, 40),
-            Anchor = AnchorStyles.Right
+            AutoSize = false,
+            Width = 120,
+            Height = 44,
+            Anchor = AnchorStyles.Right | AnchorStyles.Bottom,
+            Margin = new Padding(0, 0, 0, 0)
         };
-        Theme.StyleButton(_send, primary: true);
         _send.Click += async (_, _) => await SendAsync();
-        footer.Controls.Add(new Label { Text = "", AutoSize = true }, 0, 0);
-        footer.Controls.Add(_send, 1, 0);
+        composer.Controls.Add(_inputCard, 0, 0);
+        composer.Controls.Add(_send, 1, 0);
 
         _input.TextChanged += (_, _) =>
         {
@@ -193,12 +216,11 @@ public sealed class ChildMessagingPanel : UserControl
             if (_input.TextLength > 500) _input.Text = _input.Text[..500];
         };
 
-        _layout.Controls.Add(_thread, 0, 0);
+        _layout.Controls.Add(_threadCard, 0, 0);
         _layout.Controls.Add(_status, 0, 1);
         _layout.Controls.Add(quick, 0, 2);
-        _layout.Controls.Add(_input, 0, 3);
+        _layout.Controls.Add(composer, 0, 3);
         _layout.Controls.Add(meta, 0, 4);
-        _layout.Controls.Add(footer, 0, 5);
         Controls.Add(_layout);
 
         _timer = new System.Windows.Forms.Timer { Interval = 30000 };
@@ -237,15 +259,13 @@ public sealed class ChildMessagingPanel : UserControl
 
     private void AddQuickReply(FlowLayoutPanel row, string key)
     {
-        var button = new Button
+        var button = new KidButton(Loc.T(key), KidButtonKind.Chip)
         {
-            Text = Loc.T(key),
-            AutoSize = true,
-            Height = 34,
+            AutoSize = false,
+            Width = TextRenderer.MeasureText(Loc.T(key), Theme.Body(9.5f, FontStyle.Bold)).Width + 28,
+            Height = 38,
             Margin = new Padding(0, 0, 6, 4)
         };
-        Theme.StyleButton(button);
-        button.Font = Theme.Mono(8.5f);
         button.Click += (_, _) =>
         {
             _input.Text = Loc.T(key);
@@ -255,8 +275,43 @@ public sealed class ChildMessagingPanel : UserControl
         row.Controls.Add(button);
     }
 
+    public void ApplyTheme()
+    {
+        BackColor = KidTheme.Bg;
+        ForeColor = KidTheme.Text;
+        _thread.BackColor = KidTheme.Card;
+        _threadCard.FillColor = KidTheme.Card;
+        _threadCard.BorderColor = KidTheme.CardBorder;
+        _threadCard.Invalidate();
+        _inputCard.FillColor = KidTheme.InputBg;
+        _inputCard.BorderColor = KidTheme.InputBorder;
+        _inputCard.Invalidate();
+        _status.ForeColor = KidTheme.Muted;
+        _legend.ForeColor = KidTheme.Muted;
+        _count.ForeColor = KidTheme.Muted;
+        _input.BackColor = KidTheme.InputBg;
+        _input.ForeColor = KidTheme.Text;
+        _send.Invalidate();
+        foreach (Control control in _layout.Controls)
+            if (control is FlowLayoutPanel quick)
+                foreach (Control child in quick.Controls) child.Invalidate();
+        if (_loaded) BuildFromCache();
+    }
+
+    public void SetPreviewThread(IReadOnlyList<ChildMessageDto> messages)
+    {
+        _preview = messages;
+        _loaded = true;
+        BuildThread(messages);
+    }
+
     public void Start()
     {
+        if (_preview is not null)
+        {
+            BuildThread(_preview);
+            return;
+        }
         if (!_timer.Enabled) _timer.Start();
         StartWatcher();
         BuildFromCache();
@@ -340,7 +395,7 @@ public sealed class ChildMessagingPanel : UserControl
                 if (showStatus && !_loaded)
                 {
                     _status.Text = response.Error ?? Loc.T("Client.Messages.Loading");
-                    _status.ForeColor = Theme.Warn;
+                    _status.ForeColor = KidTheme.Warn;
                 }
                 return;
             }
@@ -354,7 +409,7 @@ public sealed class ChildMessagingPanel : UserControl
             if (showStatus && !_loaded)
             {
                 _status.Text = ex.Message;
-                _status.ForeColor = Theme.Warn;
+                _status.ForeColor = KidTheme.Warn;
             }
         }
         finally
@@ -365,6 +420,12 @@ public sealed class ChildMessagingPanel : UserControl
 
     private void BuildFromCache()
     {
+        if (_preview is not null)
+        {
+            _loaded = true;
+            BuildThread(_preview);
+            return;
+        }
         if (!_loaded && !File.Exists(HelperPaths.MessageThreadFile)) return;
         var thread = ReadCachedThread() ?? [];
         _loaded = true;
@@ -456,10 +517,10 @@ public sealed class ChildMessagingPanel : UserControl
                 _thread.Controls.Add(new Label
                 {
                     Text = Loc.T("Client.Messages.Empty"),
-                    Font = Theme.Sans(10f),
-                    ForeColor = Theme.Muted,
+                    Font = Theme.Body(10.5f),
+                    ForeColor = KidTheme.Muted,
                     AutoSize = true,
-                    Margin = new Padding(4, 6, 4, 6)
+                    Margin = new Padding(6, 8, 6, 8)
                 });
                 return;
             }
@@ -500,9 +561,10 @@ public sealed class ChildMessagingPanel : UserControl
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             MaximumSize = new Size(maxBubble, 0),
-            Padding = new Padding(11, 9, 11, 9),
-            BackColor = highlight ? Theme.Highlight : own ? Theme.OwnBubble : Theme.ParentBubble,
-            BorderColor = own ? Theme.OwnBubbleBorder : Theme.ParentBubbleBorder,
+            Padding = new Padding(12, 10, 12, 10),
+            FillColor = highlight ? KidTheme.Highlight : own ? KidTheme.OwnBubble : KidTheme.ParentBubble,
+            BorderColor = own ? KidTheme.OwnBubble : KidTheme.ParentBubble,
+            CornerRadius = 18,
             Anchor = own ? AnchorStyles.Right | AnchorStyles.Top : AnchorStyles.Left | AnchorStyles.Top,
             Margin = new Padding(0)
         };
@@ -529,8 +591,8 @@ public sealed class ChildMessagingPanel : UserControl
         head.Controls.Add(new Label
         {
             Text = message.Sender,
-            Font = Theme.Mono(8.5f),
-            ForeColor = own ? Theme.Value : Theme.Label,
+            Font = Theme.Body(8.5f, FontStyle.Bold),
+            ForeColor = own ? KidTheme.OwnBubbleInk : KidTheme.Label,
             AutoSize = true,
             BackColor = Color.Transparent,
             Margin = new Padding(0, 0, 6, 0)
@@ -538,8 +600,8 @@ public sealed class ChildMessagingPanel : UserControl
         head.Controls.Add(new Label
         {
             Text = MessageDisplay.Time(message.CreatedUtc),
-            Font = Theme.Mono(8.5f),
-            ForeColor = Theme.Muted,
+            Font = Theme.Body(8.5f),
+            ForeColor = own ? KidTheme.OwnBubbleInk : KidTheme.Muted,
             AutoSize = true,
             BackColor = Color.Transparent,
             Margin = new Padding(0, 0, 0, 0)
@@ -550,8 +612,8 @@ public sealed class ChildMessagingPanel : UserControl
             var statusLabel = new Label
             {
                 Text = $"{MessageStatusRules.Icon(message.Status)} {StatusText(message.Status)}",
-                Font = Theme.Mono(8.5f, FontStyle.Bold),
-                ForeColor = StatusColor(message.Status),
+                Font = Theme.Body(8.5f, FontStyle.Bold),
+                ForeColor = own ? KidTheme.OwnBubbleInk : StatusColor(message.Status),
                 AutoSize = true,
                 BackColor = Color.Transparent,
                 Cursor = Cursors.Hand,
@@ -566,8 +628,8 @@ public sealed class ChildMessagingPanel : UserControl
         var body = new Label
         {
             Text = message.Text,
-            Font = Theme.Sans(10.5f),
-            ForeColor = Theme.Text,
+            Font = Theme.Body(11f, FontStyle.Bold),
+            ForeColor = own ? KidTheme.OwnBubbleInk : KidTheme.ParentBubbleInk,
             AutoSize = true,
             MaximumSize = new Size(Math.Max(150, maxBubble - 24), 0),
             BackColor = Color.Transparent,
@@ -591,23 +653,21 @@ public sealed class ChildMessagingPanel : UserControl
                 ack.Controls.Add(new Label
                 {
                     Text = "✓ " + Loc.T("Client.Messages.Status.Ack"),
-                    Font = Theme.Mono(8.5f, FontStyle.Bold),
-                    ForeColor = Theme.BrandText,
+                    Font = Theme.Body(8.5f, FontStyle.Bold),
+                    ForeColor = KidTheme.Ok,
                     AutoSize = true,
                     BackColor = Color.Transparent
                 });
             }
             else
             {
-                var button = new Button
+                var button = new KidButton(Loc.T("Client.Messages.GotIt"), KidButtonKind.Primary)
                 {
-                    Text = Loc.T("Client.Messages.GotIt"),
-                    AutoSize = true,
-                    MinimumSize = new Size(100, 32),
+                    AutoSize = false,
+                    Width = 108,
+                    Height = 38,
                     Margin = new Padding(0)
                 };
-                Theme.StyleButton(button, primary: true);
-                button.Font = Theme.Mono(8.5f, FontStyle.Bold);
                 button.Click += async (_, _) => await AckAsync(message.Id);
                 ack.Controls.Add(button);
             }
@@ -615,14 +675,13 @@ public sealed class ChildMessagingPanel : UserControl
         }
         else if (message.Local?.State == LocalState.Failed)
         {
-            var retry = new Button
+            var retry = new KidButton(Loc.T("Client.Messages.Retry"), KidButtonKind.Ghost)
             {
-                Text = Loc.T("Client.Messages.Retry"),
-                AutoSize = true,
-                MinimumSize = new Size(96, 32),
+                AutoSize = false,
+                Width = 100,
+                Height = 36,
                 Margin = new Padding(0, 6, 0, 0)
             };
-            Theme.StyleButton(retry, danger: true);
             var local = message.Local;
             retry.Click += async (_, _) => await RetryAsync(local);
             inner.Controls.Add(retry, 0, 2);
@@ -670,10 +729,10 @@ public sealed class ChildMessagingPanel : UserControl
 
     private static Color StatusColor(MessageUiStatus status) => status switch
     {
-        MessageUiStatus.Read => Theme.Value,
-        MessageUiStatus.Failed => Theme.Danger,
-        MessageUiStatus.Pending => Theme.Muted,
-        _ => Theme.Muted
+        MessageUiStatus.Read => KidTheme.Ok,
+        MessageUiStatus.Failed => KidTheme.Bad,
+        MessageUiStatus.Pending => KidTheme.Muted,
+        _ => KidTheme.Muted
     };
 
     private static string MessageDetails(ChildMessageDto message)
@@ -787,7 +846,7 @@ public sealed class ChildMessagingPanel : UserControl
     private void ShowStatus(string text, bool error, TimeSpan? clearAfter = null)
     {
         _status.Text = text;
-        _status.ForeColor = error ? Theme.Danger : Theme.Value;
+        _status.ForeColor = error ? KidTheme.Bad : KidTheme.Ok;
         _clearStatusAt = clearAfter is { } span
             ? DateTime.UtcNow.Add(span)
             : error ? DateTime.MaxValue : DateTime.MaxValue;

@@ -91,7 +91,8 @@ public sealed class LockService
         return new DeviceStateDto(
             childId, child.Name, parentName, state.ManualLock, state.UnlockUntilUtc, state.BonusUntilUtc,
             state.BonusMinutes, state.OverridePinHash, schedules, policy.Sites, policy.Apps, policy.Bonuses,
-            policy.Categories, now, appUsage, dailyLimit, limitSettings.SpokenWarnings, language, lunaEnabled);
+            policy.Categories, now, appUsage, dailyLimit, limitSettings.SpokenWarnings, language, lunaEnabled,
+            LunaThemes.Normalize(childLuna?.Theme));
     }
 
     public async Task<LockStateDto> ApplyAsync(Guid familyId, Guid childId, Guid? parentId, LockAction action, int? minutes = null, CancellationToken ct = default)

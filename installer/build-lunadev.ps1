@@ -45,7 +45,15 @@ as the demo child Ana. It is NOT a Release build and must not be installed.
        Ctrl+Alt+Shift+Home       reset
    - The chosen size is saved on this PC.
 
-2. Lock screen preview
+2. My OpControl preview (kid view)
+   Run: OpControl.Parental.Helper.exe --kid-preview --tab home --theme night --language en
+   Tabs: home, schedule, rules, activity, messages
+   Themes: night, gray
+   Languages: en, es-MX
+   The demo child is Ana; this reads no real data and changes no settings.
+   Press Esc to close, or use the moon/sun button in the title bar to switch themes.
+
+3. Lock screen preview
    Run: OpControl.Parental.Helper.exe --lock-preview --reason parent --language en --width 1600 --height 900
    Reasons: parent, bedtime, daily-limit, paused
    Languages: en, es-MX

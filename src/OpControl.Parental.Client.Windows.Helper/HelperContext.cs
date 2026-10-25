@@ -23,7 +23,10 @@ public sealed class HelperContext : ApplicationContext
     private MessagePopupForm? _messagePopup;
     private MyOpControlForm? _myOpControl;
     private NotifyIcon? _tray;
-    private ToolStripMenuItem? _trayTimeItem;
+    private ToolStripControlHost? _trayHeaderHost;
+    private KidTrayHeader? _trayHeader;
+    private ContextMenuStrip? _trayMenu;
+    private string _trayTheme = "night";
     private ToolStripMenuItem? _trayOpenItem;
     private ToolStripMenuItem? _trayMessageItem;
     private ToolStripMenuItem? _trayLunaItem;
@@ -193,39 +196,44 @@ public sealed class HelperContext : ApplicationContext
             }
             _trayIcon ??= SystemIcons.Shield;
 
-            _trayTimeItem = new ToolStripMenuItem("TIME LEFT TODAY")
+            _trayTheme = ResolveStoredTheme();
+            KidTheme.Apply(_trayTheme);
+            _trayHeader = new KidTrayHeader();
+            _trayHeader.ThemeButton.Click += (_, _) => ToggleTrayTheme();
+            _trayHeaderHost = new ToolStripControlHost(_trayHeader)
             {
-                Enabled = false,
-                Font = Theme.Mono(8.5f, FontStyle.Bold),
-                ForeColor = Theme.Value
+                AutoSize = false,
+                Size = new Size(332, 66),
+                Margin = new Padding(2, 2, 2, 4)
             };
-            _trayOpenItem = new ToolStripMenuItem(Loc.T("Client.Kid.Open"))
-            {
-                Font = Theme.Mono(9.5f, FontStyle.Bold)
-            };
+            _trayOpenItem = new ToolStripMenuItem(Loc.T("Client.Kid.Open")) { Padding = new Padding(6, 6, 6, 6) };
             _trayOpenItem.Click += (_, _) => ShowMyOpControl(MyOpControlTab.Home);
-            _trayMessageItem = new ToolStripMenuItem(Loc.T("Client.Messages.Open"));
+            _trayMessageItem = new ToolStripMenuItem(Loc.T("Client.Messages.Open")) { Padding = new Padding(6, 6, 6, 6) };
             _trayMessageItem.Click += (_, _) => ShowMyOpControl(MyOpControlTab.Messages);
-            _trayLunaItem = new ToolStripMenuItem(Loc.T("Client.Kid.LunaSoon"))
-            {
-                Enabled = false,
-                ForeColor = Theme.Faint
-            };
+            _trayLunaItem = new ToolStripMenuItem(Loc.T("Client.Kid.LunaOpen")) { Padding = new Padding(6, 6, 6, 6) };
             _trayLunaItem.Click += (_, _) => OpenLuna();
 
-            var menu = new ContextMenuStrip();
-            menu.Items.Add(_trayTimeItem);
-            menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add(_trayOpenItem);
-            menu.Items.Add(_trayMessageItem);
-            menu.Items.Add(_trayLunaItem);
-            menu.Opening += (_, _) => UpdateTrayMenu();
+            _trayMenu = new ContextMenuStrip
+            {
+                ShowImageMargin = false,
+                ShowCheckMargin = false,
+                BackColor = KidTheme.Card,
+                ForeColor = KidTheme.Text,
+                Padding = new Padding(6),
+                Renderer = new KidMenuRenderer()
+            };
+            _trayMenu.Items.Add(_trayHeaderHost);
+            _trayMenu.Items.Add(new ToolStripSeparator());
+            _trayMenu.Items.Add(_trayOpenItem);
+            _trayMenu.Items.Add(_trayMessageItem);
+            _trayMenu.Items.Add(_trayLunaItem);
+            _trayMenu.Opening += (_, _) => UpdateTrayMenu();
             _tray = new NotifyIcon
             {
                 Icon = _trayIcon,
                 Text = "Parental OpControl",
                 Visible = true,
-                ContextMenuStrip = menu
+                ContextMenuStrip = _trayMenu
             };
             _tray.MouseClick += (_, e) =>
             {
@@ -238,6 +246,41 @@ public sealed class HelperContext : ApplicationContext
         {
             HelperPaths.LogEvent($"tray-icon-failed {ex.Message}");
         }
+    }
+
+    private static string ResolveStoredTheme()
+    {
+        var local = KidThemeStore.ReadLocal();
+        if (local is not null) return local;
+        var summary = HelperPaths.ReadSummary();
+        if (summary is not null && LunaThemes.IsValid(summary.Theme)) return LunaThemes.Normalize(summary.Theme);
+        var state = HelperPaths.ReadState();
+        return LunaThemes.Normalize(state?.Theme);
+    }
+
+    private void ToggleTrayTheme()
+    {
+        var next = KidThemeStore.Toggle(_trayTheme);
+        KidThemeStore.WriteLocal(next);
+        _ = PinPipeClient.SetThemeAsync(next, CancellationToken.None);
+        ApplyTrayTheme(next, updateWindow: true);
+        UpdateTrayMenu();
+    }
+
+    private void ApplyTrayTheme(string theme, bool updateWindow)
+    {
+        _trayTheme = LunaThemes.Normalize(theme);
+        KidTheme.Apply(_trayTheme);
+        if (_trayMenu is not null)
+        {
+            _trayMenu.BackColor = KidTheme.Card;
+            _trayMenu.ForeColor = KidTheme.Text;
+            _trayMenu.Renderer = new KidMenuRenderer();
+        }
+        _trayHeader?.ApplyTheme(KidTheme.IsGray);
+        if (updateWindow && _myOpControl is { IsDisposed: false } form
+            && !string.Equals(form.ThemeKey, _trayTheme, StringComparison.Ordinal))
+            form.ApplyTheme(_trayTheme);
     }
 
     private void OpenLuna()
@@ -271,22 +314,72 @@ public sealed class HelperContext : ApplicationContext
 
     private void UpdateTrayMenu()
     {
-        if (_trayTimeItem is null || _trayOpenItem is null || _trayMessageItem is null || _trayLunaItem is null) return;
+        if (_trayOpenItem is null || _trayMessageItem is null || _trayLunaItem is null || _trayHeader is null) return;
         var state = HelperPaths.ReadState();
+        var local = KidThemeStore.ReadLocal();
+        var theme = local ?? LunaThemes.Normalize(state?.Theme ?? _trayTheme);
+        if (!string.Equals(theme, _trayTheme, StringComparison.Ordinal))
+            ApplyTrayTheme(theme, updateWindow: true);
+
         var left = CountdownText(state);
-        _trayTimeItem.Text = Loc.T("Client.Kid.TrayTime", left ?? Loc.T("Client.Kid.NoLimit"));
+        _trayHeader.Caption.Text = Loc.T("Client.Kid.TimeLeft");
+        _trayHeader.Time.Text = left ?? Loc.T("Client.Kid.NoLimit");
+        _trayHeader.ApplyTheme(KidTheme.IsGray);
         _trayOpenItem.Text = Loc.T("Client.Kid.Open");
-        _trayOpenItem.Font = Theme.Mono(9.5f, FontStyle.Bold);
-        var lunaEnabled = state?.LunaEnabled == true;
-        _trayLunaItem.Text = lunaEnabled ? Loc.T("Client.Kid.LunaOpen") : Loc.T("Client.Kid.LunaSoon");
-        _trayLunaItem.Enabled = lunaEnabled;
-        _trayLunaItem.ForeColor = lunaEnabled ? Theme.Text : Theme.Faint;
         var unread = UnreadCount();
         _trayMessageItem.Text = unread > 0
             ? Loc.T("Client.Kid.TrayMessagesUnread", unread)
             : Loc.T("Client.Messages.Open");
-        _trayLunaItem.Text = Loc.T("Client.Kid.LunaSoon");
-        _trayLunaItem.Enabled = false;
+        var lunaEnabled = state?.LunaEnabled == true;
+        _trayLunaItem.Text = Loc.T("Client.Kid.LunaOpen");
+        _trayLunaItem.Visible = KidTrayPolicy.ShowOpenLuna(lunaEnabled);
+        _trayLunaItem.Enabled = lunaEnabled;
+    }
+
+    private sealed class KidMenuColors : ProfessionalColorTable
+    {
+        public override Color ToolStripDropDownBackground => KidTheme.Card;
+        public override Color ImageMarginGradientBegin => KidTheme.Card;
+        public override Color ImageMarginGradientMiddle => KidTheme.Card;
+        public override Color ImageMarginGradientEnd => KidTheme.Card;
+        public override Color MenuBorder => KidTheme.CardBorder;
+        public override Color MenuItemBorder => KidTheme.CardBorder;
+        public override Color MenuItemSelected => KidTheme.Highlight;
+        public override Color MenuItemSelectedGradientBegin => KidTheme.Highlight;
+        public override Color MenuItemSelectedGradientEnd => KidTheme.Highlight;
+        public override Color SeparatorDark => KidTheme.SubBorder;
+        public override Color SeparatorLight => KidTheme.SubBorder;
+    }
+
+    private sealed class KidMenuRenderer : ToolStripProfessionalRenderer
+    {
+        public KidMenuRenderer() : base(new KidMenuColors()) { RoundedEdges = false; }
+
+        protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
+        {
+            e.Graphics.Clear(KidTheme.Card);
+        }
+
+        protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
+        {
+            if (!e.Item.Selected) return;
+            var rect = new Rectangle(4, 1, e.Item.Width - 8, e.Item.Height - 2);
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            KidDraw.FillRound(e.Graphics, rect, 12, KidTheme.Highlight);
+        }
+
+        protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
+        {
+            e.TextColor = e.Item.Enabled ? KidTheme.Text : KidTheme.Faint;
+            base.OnRenderItemText(e);
+        }
+
+        protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
+        {
+            using var pen = new Pen(KidTheme.SubBorder);
+            var y = e.Item.Height / 2;
+            e.Graphics.DrawLine(pen, 10, y, e.Item.Width - 10, y);
+        }
     }
 
     private static int UnreadCount()
@@ -439,6 +532,7 @@ public sealed class HelperContext : ApplicationContext
             _myOpControl = form;
             var owner = aboveLock ? _overlays.Owner : null;
             form.RestoreAndShow(owner is { IsDisposed: false } ? owner : null);
+            ApplyTrayTheme(form.ThemeKey, updateWindow: false);
             HelperPaths.LogEvent("my-opcontrol-opened");
         }
         catch (Exception ex)

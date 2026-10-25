@@ -70,6 +70,7 @@ Host.CreateDefaultBuilder(args)
         services.AddSingleton<RuntimeLoopService>();
         services.AddSingleton<PinPipeServer>();
         services.AddSingleton<LunaTokenBroker>();
+        services.AddSingleton<ChildThemeReporter>();
         services.AddSingleton<LunaSupervisor>();
         services.AddSingleton<RemoteRelayService>();
         services.AddSingleton<MessageSyncService>();

@@ -157,7 +157,8 @@ public sealed record DeviceStateDto(
     DailyLimitDto? DailyLimit = null,
     bool SpokenWarnings = false,
     string? Language = null,
-    bool LunaEnabled = false);
+    bool LunaEnabled = false,
+    string Theme = "night");
 
 public sealed record DailyLimitDto(
     bool Enabled,
@@ -290,7 +291,8 @@ public sealed record RuntimeLockStateDto(
     int? IdleThresholdSeconds = null,
     string? Language = null,
     string? UnlockScheduleName = null,
-    bool LunaEnabled = false);
+    bool LunaEnabled = false,
+    string Theme = "night");
 
 public sealed record UsageIntervalDto(
     Guid Id,
@@ -524,7 +526,8 @@ public sealed record ChildSummaryDto(
     IReadOnlyList<SummaryVisitDto> Visits,
     IReadOnlyList<SummaryHistoryDto> History,
     IReadOnlyList<ChildMessageDto> RecentMessages,
-    int UnreadMessages);
+    int UnreadMessages,
+    string Theme = "night");
 
 public sealed record ParentMessageRequest(
     string Text,

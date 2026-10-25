@@ -38,6 +38,8 @@ public class LunaClientTests
 
         Assert.True(LunaPipePolicy.IsAllowed(isHelperImage: true, isLunaImage: false, "verify-pin"));
         Assert.True(LunaPipePolicy.IsAllowed(isHelperImage: true, isLunaImage: false, "messages-thread"));
+        Assert.True(LunaPipePolicy.IsAllowed(isHelperImage: true, isLunaImage: false, "set-theme"));
+        Assert.False(LunaPipePolicy.IsAllowed(isHelperImage: false, isLunaImage: true, "set-theme"));
         Assert.False(LunaPipePolicy.IsAllowed(isHelperImage: false, isLunaImage: true, "verify-pin"));
         Assert.False(LunaPipePolicy.IsAllowed(isHelperImage: false, isLunaImage: true, "open-kid"));
         Assert.True(LunaPipePolicy.IsAllowed(isHelperImage: false, isLunaImage: true, LunaPipePolicy.TokenRequest));
@@ -97,6 +99,11 @@ public class LunaClientTests
         Assert.True(previewIndex > 0);
         Assert.True(helperProgram.LastIndexOf("#if DEBUG", previewIndex, StringComparison.Ordinal) >= 0);
         Assert.True(helperProgram.IndexOf("#endif", previewIndex, StringComparison.Ordinal) > previewIndex);
+
+        var kidPreviewIndex = helperProgram.IndexOf("--kid-preview", StringComparison.Ordinal);
+        Assert.True(kidPreviewIndex > 0);
+        Assert.True(helperProgram.LastIndexOf("#if DEBUG", kidPreviewIndex, StringComparison.Ordinal) >= 0);
+        Assert.True(helperProgram.IndexOf("#endif", kidPreviewIndex, StringComparison.Ordinal) > kidPreviewIndex);
     }
 
     [Fact]

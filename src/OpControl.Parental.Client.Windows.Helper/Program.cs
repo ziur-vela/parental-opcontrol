@@ -14,6 +14,11 @@ internal static class Program
             OpControl.Parental.Helper.LockPreview.Run(args);
             return;
         }
+        if (args.Any(a => string.Equals(a, "--kid-preview", StringComparison.OrdinalIgnoreCase)))
+        {
+            OpControl.Parental.Helper.KidPreview.Run(args);
+            return;
+        }
 #endif
         if (args.Any(a => string.Equals(a, "--open-kid", StringComparison.OrdinalIgnoreCase)))
         {

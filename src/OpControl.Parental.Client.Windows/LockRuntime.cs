@@ -206,7 +206,8 @@ public sealed class LockRuntime
             _settings.Value.IdleThresholdSeconds,
             state.Language,
             unlockSchedule,
-            state.LunaEnabled);
+            state.LunaEnabled,
+            state.Theme);
         var changed = _runtime is null
             || _runtime.IsLocked != runtime.IsLocked
             || _runtime.Reason != runtime.Reason
@@ -216,7 +217,8 @@ public sealed class LockRuntime
             || _runtime.BonusUntilUtc != runtime.BonusUntilUtc
             || _runtime.BonusMinutes != runtime.BonusMinutes
             || _runtime.DailyLimitRemainingSeconds != runtime.DailyLimitRemainingSeconds
-            || _runtime.DailyLimitMinutes != runtime.DailyLimitMinutes;
+            || _runtime.DailyLimitMinutes != runtime.DailyLimitMinutes
+            || !string.Equals(_runtime.Theme, runtime.Theme, StringComparison.Ordinal);
         _runtime = runtime;
         _writer.Save(runtime);
         if (changed)

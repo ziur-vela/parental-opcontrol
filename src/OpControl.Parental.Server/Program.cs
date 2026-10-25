@@ -1085,6 +1085,26 @@ app.MapPost("/api/device/luna/token", async (ClaimsPrincipal user, ParentalDbCon
     }
 }).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = DeviceTokenAuthenticationHandler.SchemeName });
 
+// The child can pick Night sky or Moon gray from either Luna or My OpControl.
+// The service relays the Helper's choice with the device credential so both apps share it.
+app.MapPost("/api/device/luna/theme", async (LunaThemeRequest request, ClaimsPrincipal user, ParentalDbContext db, CancellationToken ct) =>
+{
+    var device = await DeviceFromClaimsAsync(user, db, ct);
+    if (device is null) return Results.Unauthorized();
+    if (!LunaThemes.IsValid(request.Theme)) return Results.BadRequest();
+    var settings = await db.ChildLunaSettings
+        .FirstOrDefaultAsync(s => s.FamilyId == device.FamilyId && s.ChildId == device.ChildId, ct);
+    if (settings is null)
+    {
+        settings = new ChildLunaSettings { FamilyId = device.FamilyId, ChildId = device.ChildId };
+        db.ChildLunaSettings.Add(settings);
+    }
+    settings.Theme = LunaThemes.Normalize(request.Theme);
+    settings.UpdatedUtc = DateTime.UtcNow;
+    await db.SaveChangesAsync(ct);
+    return Results.Ok(new { theme = settings.Theme });
+}).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = DeviceTokenAuthenticationHandler.SchemeName });
+
 app.MapPost("/api/dev/luna-token", async (IHostEnvironment environment, IConfiguration configuration,
     ParentalDbContext db, LunaTokenService tokens, CancellationToken ct) =>
 {

@@ -145,6 +145,9 @@ public sealed class ChildSummaryService
         var unread = await _db.ChildMessages.AsNoTracking()
             .CountAsync(m => m.FamilyId == device.FamilyId && m.ChildId == device.ChildId
                 && m.Direction == MessageDirection.ParentToChild && m.SeenUtc == null && m.DeletedUtc == null, ct);
+        var childLuna = await _db.ChildLunaSettings.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.FamilyId == device.FamilyId && s.ChildId == device.ChildId, ct);
+        var theme = LunaThemes.Normalize(childLuna?.Theme);
 
         var localDay = TimeZoneInfo.ConvertTimeFromUtc(now, tz).DayOfWeek;
         var weekdays = Enumerable.Range(0, 7)
@@ -171,7 +174,8 @@ public sealed class ChildSummaryService
             visits,
             history,
             recentDtos,
-            unread);
+            unread,
+            theme);
     }
 
     public static DateTime LocalWeekStartUtc(TimeZoneInfo tz, DateTime nowUtc)
