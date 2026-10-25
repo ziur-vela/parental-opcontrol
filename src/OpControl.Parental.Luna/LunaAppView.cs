@@ -748,47 +748,64 @@ public sealed class LunaAppView : UserControl
     private Control ChildBubble(string text, bool flagged)
     {
         var style = _palette.Subject(_chat?.Subject ?? "curious");
+        var gray = _palette.Key == "gray";
+        var bubbleBg = flagged ? (gray ? Color.Parse("#f4ece1") : Color.Parse("#3d3478")) : style.Tile;
+        var bubbleInk = flagged ? (gray ? Color.Parse("#5a4a33") : Color.Parse("#d9d3ff")) : _palette.AccentInk;
+        var border = flagged ? (gray ? Color.Parse("#c9a26b") : Color.Parse("#6b5fc4")) : style.Shadow;
         var content = new TextBlock
         {
             Text = text,
             TextWrapping = TextWrapping.Wrap,
             FontFamily = LunaThemes.Body,
-            FontSize = 14,
+            FontSize = 14.5,
             LineHeight = 20,
-            Foreground = LunaBrushes.B(_palette.AccentInk)
+            Foreground = LunaBrushes.B(bubbleInk)
         };
-        var stack = new StackPanel { Spacing = 4 };
-        stack.Children.Add(content);
-        if (flagged)
-            stack.Children.Add(Text(Loc.T("Luna.Chat.BlockedNote"), 11, _palette.Danger, FontWeight.Bold));
         var bubble = new Border
         {
-            Child = stack,
-            Background = LunaBrushes.B(style.Tile),
-            BorderBrush = LunaBrushes.B(flagged ? Colors.Transparent : style.Shadow),
+            Child = content,
+            Background = LunaBrushes.B(bubbleBg),
+            BorderBrush = LunaBrushes.B(flagged ? Colors.Transparent : border),
             BorderThickness = new Thickness(flagged ? 0 : 1),
-            CornerRadius = new CornerRadius(14),
+            CornerRadius = new CornerRadius(14, 14, flagged ? 4 : 14, 14),
             Padding = new Thickness(12, 9, 12, 9),
             MaxWidth = 360,
             HorizontalAlignment = HorizontalAlignment.Right
         };
-        if (flagged)
+        if (!flagged) return bubble;
+
+        var dashed = new Rectangle
         {
-            var dashed = new Rectangle
-            {
-                Stroke = LunaBrushes.B(_palette.Danger),
-                StrokeThickness = 2,
-                StrokeDashArray = new AvaloniaList<double> { 3, 3 },
-                RadiusX = 14,
-                RadiusY = 14,
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Stretch,
-                IsHitTestVisible = false
-            };
-            var grid = new Grid { Children = { bubble, dashed }, HorizontalAlignment = HorizontalAlignment.Right };
-            return grid;
-        }
-        return bubble;
+            Stroke = LunaBrushes.B(border),
+            StrokeThickness = 2,
+            StrokeDashArray = new AvaloniaList<double> { 3, 3 },
+            RadiusX = 14,
+            RadiusY = 14,
+            IsHitTestVisible = false
+        };
+        var bubbleGrid = new Grid { Children = { bubble, dashed }, HorizontalAlignment = HorizontalAlignment.Right, MaxWidth = 360 };
+        var noteRow = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 5,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 3, 2, 0)
+        };
+        noteRow.Children.Add(new Path
+        {
+            Data = Geometry.Parse("M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20M12 8v5M12 16h.01"),
+            Stroke = LunaBrushes.B(_palette.Muted),
+            StrokeThickness = 2.2,
+            StrokeLineCap = PenLineCap.Round,
+            Width = 14,
+            Height = 14,
+            Stretch = Stretch.Uniform
+        });
+        noteRow.Children.Add(Text(Loc.T("Luna.Chat.BlockedNote"), 11.5, _palette.Muted, FontWeight.Bold));
+        var stack = new StackPanel { Spacing = 2, HorizontalAlignment = HorizontalAlignment.Right };
+        stack.Children.Add(bubbleGrid);
+        stack.Children.Add(noteRow);
+        return stack;
     }
 
     private static bool Flagged(string? flag) =>
@@ -866,10 +883,11 @@ public sealed class LunaAppView : UserControl
             else
             {
                 var refresh = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
-                refresh.Tick += (_, _) =>
+                refresh.Tick += async (_, _) =>
                 {
                     refresh.Stop();
                     _timers.Remove(refresh);
+                    await RefreshChatsQuietAsync();
                     if (_screen == Screen.Chat && !_sending) ShowChat();
                 };
                 _timers.Add(refresh);

@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Ziur / OpControl IT Solutions
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
+using System.Text.Json;
 using OpControl.Parental.Contracts;
 using Xunit;
 
@@ -96,5 +97,29 @@ public class LunaClientTests
         Assert.True(previewIndex > 0);
         Assert.True(helperProgram.LastIndexOf("#if DEBUG", previewIndex, StringComparison.Ordinal) >= 0);
         Assert.True(helperProgram.IndexOf("#endif", previewIndex, StringComparison.Ordinal) > previewIndex);
+    }
+
+    [Fact]
+    public void New_luna_strings_are_neutral_and_use_IA_in_spanish()
+    {
+        var root = FindRoot();
+        var english = JsonSerializer.Deserialize<Dictionary<string, string>>(
+            File.ReadAllText(Path.Combine(root, "src", "OpControl.Parental.Localization", "en.json")))!;
+        var spanish = JsonSerializer.Deserialize<Dictionary<string, string>>(
+            File.ReadAllText(Path.Combine(root, "src", "OpControl.Parental.Localization", "es-MX.json")))!;
+        var pronoun = new System.Text.RegularExpressions.Regex(@"\b(he|him|his|she|her|hers)\b",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        foreach (var (key, value) in english.Where(p => p.Key.StartsWith("Luna.", StringComparison.Ordinal)))
+        {
+            // "Luna" is the speaker; the child is never described with a pronoun.
+            Assert.DoesNotMatch(pronoun, value);
+        }
+        foreach (var (key, value) in spanish.Where(p => p.Key.StartsWith("Luna.", StringComparison.Ordinal)))
+        {
+            Assert.DoesNotContain("Luna AI", value, StringComparison.Ordinal);
+            Assert.DoesNotContain("niños y niñas", value, StringComparison.Ordinal);
+            Assert.DoesNotContain("hijo o hija", value, StringComparison.Ordinal);
+            Assert.DoesNotContain("hijos e hijas", value, StringComparison.Ordinal);
+        }
     }
 }

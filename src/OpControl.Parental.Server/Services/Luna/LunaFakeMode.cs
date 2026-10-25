@@ -43,7 +43,12 @@ public sealed class FakeLunaChatProvider : ILunaChatProvider
     public async Task<LunaChatResult> CompleteAsync(LunaProviderConfig config, LunaChatRequest request, CancellationToken ct)
     {
         if (request.SystemPrompt == LunaPrompts.TitlePrompt)
-            return new LunaChatResult("Fractions practice", 4, 2);
+        {
+            var snippet = request.Messages.LastOrDefault()?.Content ?? "";
+            var spanishSnippet = snippet.Contains('¿') || snippet.Contains("fraccion", StringComparison.OrdinalIgnoreCase)
+                || snippet.Contains("ayuda", StringComparison.OrdinalIgnoreCase);
+            return new LunaChatResult(spanishSnippet ? "Práctica de fracciones" : "Fractions practice", 4, 2);
+        }
         if (request.SystemPrompt.StartsWith(LunaPrompts.SummaryPrompt, StringComparison.Ordinal))
             return new LunaChatResult("The child practised fractions and times tables.", 8, 6);
         if (request.SystemPrompt.StartsWith(LunaPrompts.ProfilePrompt, StringComparison.Ordinal))
@@ -55,11 +60,19 @@ public sealed class FakeLunaChatProvider : ILunaChatProvider
         // Slow enough for the preview to show the thinking animation by hand.
         await Task.Delay(1_200, ct);
         var last = request.Messages.LastOrDefault()?.Content ?? "";
-        var reply = last.Contains("fraction", StringComparison.OrdinalIgnoreCase)
-            ? "Great question! To add fractions, the bottom numbers have to match first.\n\n$$\\frac{3}{4} = \\frac{6}{8}$$\n\nWhat do you multiply 4 by to get 8?"
-            : last.Contains("7", StringComparison.Ordinal)
-                ? "Let's work it out together. What is 7 × 8? Try counting in sevens: 7, 14, 21…"
-                : "That's a good question. What do you already know about it? We can work out the next step together.";
+        var spanish = last.Contains('¿') || last.Contains("fraccion", StringComparison.OrdinalIgnoreCase)
+            || last.Contains("ayuda", StringComparison.OrdinalIgnoreCase);
+        var reply = spanish
+            ? last.Contains("fraccion", StringComparison.OrdinalIgnoreCase)
+                ? "¡Buena pregunta! Para sumar fracciones, primero los números de abajo tienen que coincidir.\n\n$$\\frac{3}{4} = \\frac{6}{8}$$\n\n¿Por qué número multiplicas 4 para obtener 8?"
+                : last.Contains("7", StringComparison.Ordinal)
+                    ? "Vamos a resolverlo juntos. ¿Cuánto es 7 × 8? Prueba contar de siete en siete: 7, 14, 21…"
+                    : "Buena pregunta. ¿Qué sabes ya sobre esto? Podemos resolver el siguiente paso juntos."
+            : last.Contains("fraction", StringComparison.OrdinalIgnoreCase)
+                ? "Great question! To add fractions, the bottom numbers have to match first.\n\n$$\\frac{3}{4} = \\frac{6}{8}$$\n\nWhat do you multiply 4 by to get 8?"
+                : last.Contains("7", StringComparison.Ordinal)
+                    ? "Let's work it out together. What is 7 × 8? Try counting in sevens: 7, 14, 21…"
+                    : "That's a good question. What do you already know about it? We can work out the next step together.";
         return new LunaChatResult(reply, 12, 8);
     }
 }

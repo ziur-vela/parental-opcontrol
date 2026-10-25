@@ -41,6 +41,19 @@ internal static class LockPreview
             return;
         }
 
+        var captureForm = Arg(args, "--capture-form");
+        if (!string.IsNullOrWhiteSpace(captureForm))
+        {
+            form.Show();
+            Application.DoEvents();
+            Thread.Sleep(250);
+            using var bitmap = new Bitmap(form.ClientSize.Width, form.ClientSize.Height);
+            form.DrawToBitmap(bitmap, new Rectangle(0, 0, bitmap.Width, bitmap.Height));
+            bitmap.Save(captureForm, ImageFormat.Png);
+            form.Close();
+            return;
+        }
+
         form.Show();
         Application.Run(form);
     }
