@@ -1,6 +1,9 @@
 // Copyright (c) 2026 Ziur / OpControl IT Solutions
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Drawing.Drawing2D;
 using System.Reflection;
 using OpControl.Parental.Contracts;
 using OpControl.Parental.Localization;
@@ -26,7 +29,7 @@ public sealed class LockOverlayManager : IDisposable
         {
             foreach (var screen in Screen.AllScreens)
             {
-                var form = new LockForm(screen);
+                var form = new LockForm(screen.Bounds, screen.Primary);
                 form.OverrideClicked += () => OverrideClicked?.Invoke();
                 form.MessageClicked += () => MessageClicked?.Invoke();
                 _forms.Add(form);
@@ -74,186 +77,218 @@ public sealed class LockOverlayManager : IDisposable
 public sealed class LockForm : Form
 {
     private static readonly Image? Logo = LoadLogo();
+    private readonly Label _title;
     private readonly Label _reason;
-    private readonly Label _end;
+    private readonly Label _hint;
+    private readonly PillButton _message;
+    private readonly PillButton _override;
+    private readonly System.Windows.Forms.Timer _zTimer;
+    private readonly Stopwatch _clock = Stopwatch.StartNew();
+    private LockSceneLayout _layout;
+    private Bitmap? _background;
+    private bool _previewMode;
+
     public event Action? OverrideClicked;
     public event Action? MessageClicked;
 
     public bool IsPrimary { get; }
-
-    public LockForm(Screen screen)
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public bool PreviewMode
     {
-        IsPrimary = screen.Primary;
+        get => _previewMode;
+        set
+        {
+            _previewMode = value;
+            TopMost = !value;
+            ShowInTaskbar = false;
+        }
+    }
+
+    public LockForm(Screen screen) : this(screen.Bounds, screen.Primary) { }
+
+    public LockForm(Rectangle bounds, bool primary)
+    {
+        IsPrimary = primary;
         AutoScaleMode = AutoScaleMode.None;
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.Manual;
-        Bounds = screen.Bounds;
-        BackColor = Theme.Bg;
-        ForeColor = Theme.Text;
+        Bounds = bounds;
+        BackColor = Color.FromArgb(0x17, 0x39, 0x3d);
+        ForeColor = Color.White;
         ShowInTaskbar = false;
         TopMost = true;
         KeyPreview = true;
+        DoubleBuffered = true;
+        SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
+        _layout = LockSceneLayout.For(Math.Max(1, bounds.Width), Math.Max(1, bounds.Height));
 
-        var layout = new TableLayoutPanel
+        _title = LabelFor(Theme.DisplayPx(56, FontStyle.Bold), Color.White);
+        _reason = LabelFor(Theme.DisplayPx(32, FontStyle.Regular), Color.FromArgb(0x7e, 0xe8, 0xc4));
+        _hint = LabelFor(Theme.BodyPx(22, FontStyle.Bold), Color.FromArgb(0xc8, 0xea, 0xdf));
+        _title.AutoSize = true;
+        _reason.AutoSize = true;
+        _hint.AutoSize = true;
+        _message = new PillButton
         {
-            Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 8,
-            BackColor = Color.Transparent,
-            Padding = new Padding(Dpi.S(this, 48))
-        };
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 34f));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 20f));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-
-        var logo = new PictureBox
-        {
-            Image = Logo,
-            SizeMode = PictureBoxSizeMode.Zoom,
-            Width = Dpi.S(this, 330),
-            Height = Dpi.S(this, 66),
-            Anchor = AnchorStyles.None,
-            BackColor = Color.Transparent
-        };
-        var title = new Label
-        {
-            Text = Loc.T("Client.Lock.Title"),
-            Font = Theme.Sans(38f, FontStyle.Bold),
-            ForeColor = Theme.Text,
-            AutoSize = true,
-            Anchor = AnchorStyles.None,
-            BackColor = Color.Transparent,
-            Margin = new Padding(0, 18, 0, 6)
-        };
-        _reason = new Label
-        {
-            Text = Loc.T("Client.Lock.Paused"),
-            Font = Theme.Mono(14f),
-            ForeColor = Theme.Muted,
-            AutoSize = true,
-            Anchor = AnchorStyles.None,
-            BackColor = Color.Transparent
-        };
-        _end = new Label
-        {
-            Text = "",
-            Font = Theme.Mono(12f),
-            ForeColor = Theme.Warn,
-            AutoSize = true,
-            Anchor = AnchorStyles.None,
-            BackColor = Color.Transparent,
-            Margin = new Padding(0, 8, 0, 0)
-        };
-        var overrideLink = new Button
-        {
-            Text = Loc.T("Client.Lock.Override"),
-            Font = Theme.Mono(12f, FontStyle.Bold),
-            ForeColor = Theme.Brand,
-            AutoSize = true,
-            AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Padding = new Padding(Dpi.S(this, 16), Dpi.S(this, 6), Dpi.S(this, 16), Dpi.S(this, 6)),
-            TextAlign = ContentAlignment.MiddleCenter,
-            Anchor = AnchorStyles.None,
-            BackColor = Theme.Bg,
-            FlatStyle = FlatStyle.Flat,
-            Cursor = Cursors.Hand
-        };
-        overrideLink.FlatAppearance.BorderSize = 0;
-        overrideLink.Click += (_, _) => OverrideClicked?.Invoke();
-
-        var messageLink = new Button
-        {
+            Primary = true,
+            MessageIcon = true,
             Text = Loc.T("Client.Messages.Open"),
-            Font = Theme.Mono(12f, FontStyle.Bold),
-            ForeColor = Theme.Value,
-            AutoSize = true,
-            AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Padding = new Padding(Dpi.S(this, 16), Dpi.S(this, 6), Dpi.S(this, 16), Dpi.S(this, 6)),
-            TextAlign = ContentAlignment.MiddleCenter,
-            BackColor = Theme.Bg,
-            FlatStyle = FlatStyle.Flat,
-            Cursor = Cursors.Hand,
-            Margin = new Padding(0, 0, 0, 0)
+            Font = Theme.DisplayPx(26, FontStyle.Bold)
         };
-        messageLink.FlatAppearance.BorderSize = 0;
-        messageLink.Click += (_, _) => MessageClicked?.Invoke();
-
-        var linkRow = new FlowLayoutPanel
+        _message.Click += (_, _) => MessageClicked?.Invoke();
+        _override = new PillButton
         {
-            FlowDirection = FlowDirection.LeftToRight,
-            WrapContents = false,
-            AutoSize = true,
-            AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Anchor = AnchorStyles.None,
-            BackColor = Color.Transparent,
-            Margin = new Padding(0)
+            Primary = false,
+            Text = Loc.T("Client.Lock.Override"),
+            Font = Theme.BodyPx(18, FontStyle.Bold)
         };
-        linkRow.Controls.Add(overrideLink);
-        linkRow.Controls.Add(messageLink);
+        _override.Click += (_, _) => OverrideClicked?.Invoke();
 
-        var footer = new Label
-        {
-            Text = Loc.T("Client.Lock.ManagedBy"),
-            Font = Theme.Mono(9f),
-            ForeColor = Theme.Muted,
-            AutoSize = true,
-            Anchor = AnchorStyles.Left,
-            BackColor = Color.Transparent
-        };
+        Controls.Add(_title);
+        Controls.Add(_reason);
+        Controls.Add(_hint);
+        Controls.Add(_message);
+        Controls.Add(_override);
 
-        layout.Controls.Add(new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent }, 0, 0);
-        layout.Controls.Add(logo, 0, 1);
-        layout.Controls.Add(title, 0, 2);
-        layout.Controls.Add(_reason, 0, 3);
-        layout.Controls.Add(_end, 0, 4);
-        layout.Controls.Add(new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent }, 0, 5);
-        layout.Controls.Add(linkRow, 0, 6);
-        layout.Controls.Add(footer, 0, 7);
-        Controls.Add(layout);
+        _zTimer = new System.Windows.Forms.Timer { Interval = 90 };
+        _zTimer.Tick += (_, _) => { if (Visible) Invalidate(); };
+        _zTimer.Start();
 
+        Resize += (_, _) => Relayout();
         FormClosing += (_, e) =>
         {
-            if (e.CloseReason is CloseReason.UserClosing or CloseReason.TaskManagerClosing)
+            if (!PreviewMode && e.CloseReason is CloseReason.UserClosing or CloseReason.TaskManagerClosing)
                 e.Cancel = true;
         };
         KeyDown += (_, e) =>
         {
-            if (e.KeyCode == Keys.Escape) e.SuppressKeyPress = true;
+            if (e.KeyCode == Keys.Escape)
+            {
+                e.SuppressKeyPress = true;
+                if (PreviewMode) Close();
+            }
         };
+        Relayout();
     }
+
+    private static Label LabelFor(Font font, Color color) => new()
+    {
+        AutoSize = false,
+        BackColor = Color.Transparent,
+        ForeColor = color,
+        Font = font,
+        TextAlign = ContentAlignment.MiddleCenter,
+        UseCompatibleTextRendering = false
+    };
 
     public void UpdateState(RuntimeLockStateDto state)
     {
-        _reason.Text = state.Reason switch
+        var (title, reason, hint) = Texts(state);
+        _title.Text = title;
+        _reason.Text = reason;
+        _hint.Text = hint;
+        _message.Text = Loc.T("Client.Messages.Open");
+        _override.Text = Loc.T("Client.Lock.Override");
+        Relayout();
+        Invalidate();
+    }
+
+    public static (string Title, string Reason, string Hint) Texts(RuntimeLockStateDto state)
+    {
+        var title = Loc.T("Client.Lock.Title");
+        var reason = state.Reason switch
         {
             "manual" => Loc.T("Client.Lock.ReasonManual", state.ParentDisplayName ?? Loc.T("Client.Lock.AParent")),
             "schedule" => Loc.T("Client.Lock.ReasonSchedule", string.IsNullOrWhiteSpace(state.ScheduleName) ? Loc.T("Client.Lock.ASchedule") : state.ScheduleName),
             "daily-limit" => Loc.T("Client.Lock.ReasonDailyLimit"),
+            "paused" => Loc.T("Client.Lock.Paused"),
             _ => Loc.T("Client.Lock.ReasonLocked")
         };
-        _end.Text = state.Reason == "daily-limit"
-            ? Loc.T("Client.Lock.ResetsMidnight")
-            : state.EndsUtc is { } ends
+        var hint = state.Reason switch
+        {
+            "daily-limit" => Loc.T("Client.Lock.ResetsMidnight"),
+            "paused" => Loc.T("Client.Lock.AskParent"),
+            _ => state.EndsUtc is { } ends
                 ? Loc.T("Client.Lock.Unlocks", ends.ToLocalTime().ToString("t"))
-                : Loc.T("Client.Lock.AskParent");
+                : Loc.T("Client.Lock.AskParent")
+        };
+        return (title, reason, hint);
     }
 
-    protected override bool ShowWithoutActivation => true;
+    private void Relayout()
+    {
+        if (ClientSize.Width <= 0 || ClientSize.Height <= 0) return;
+        _layout = LockSceneLayout.For(ClientSize.Width, ClientSize.Height);
+        var scale = (float)_layout.Scale;
+
+        var textLeft = (int)_layout.TextColumn.X;
+        var textWidth = (int)_layout.TextColumn.Width;
+        _title.MaximumSize = new Size(textWidth, 0);
+        _reason.MaximumSize = new Size(textWidth, 0);
+        _hint.MaximumSize = new Size(textWidth, 0);
+        _title.Location = new Point(textLeft, (int)_layout.TextColumn.Y);
+        _reason.Location = new Point(textLeft, _title.Bottom + (int)(14 * scale));
+        _hint.Location = new Point(textLeft, _reason.Bottom + (int)(8 * scale));
+        _title.Width = textWidth;
+        _reason.Width = textWidth;
+        _hint.Width = textWidth;
+
+        _message.Bounds = new Rectangle(
+            (int)_layout.PrimaryButton.X,
+            (int)_layout.PrimaryButton.Y,
+            (int)_layout.PrimaryButton.Width,
+            (int)_layout.PrimaryButton.Height);
+        _override.Bounds = new Rectangle(
+            (int)_layout.SecondaryButton.X,
+            (int)_layout.SecondaryButton.Y,
+            (int)_layout.SecondaryButton.Width,
+            (int)_layout.SecondaryButton.Height);
+        _message.Invalidate();
+        _override.Invalidate();
+
+        _background?.Dispose();
+        _background = LockSceneRenderer.Render(ClientSize.Width, ClientSize.Height);
+        BackgroundImage = _background;
+        BackgroundImageLayout = ImageLayout.None;
+        Invalidate();
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        base.OnPaint(e);
+        LockSceneRenderer.DrawSleepingZ(e.Graphics, _layout, _clock.Elapsed.TotalSeconds);
+        if (Logo is not null)
+        {
+            var box = _layout.Logo;
+            e.Graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            e.Graphics.DrawImage(Logo, new Rectangle((int)box.X, (int)box.Y, (int)box.Width, (int)box.Height));
+        }
+    }
+
+    protected override bool ShowWithoutActivation => !PreviewMode;
 
     protected override CreateParams CreateParams
     {
         get
         {
             var cp = base.CreateParams;
-            cp.ExStyle |= 0x08000000; // WS_EX_NOACTIVATE
-            cp.ExStyle |= 0x00000080; // WS_EX_TOOLWINDOW
+            if (!PreviewMode)
+            {
+                cp.ExStyle |= 0x08000000; // WS_EX_NOACTIVATE
+                cp.ExStyle |= 0x00000080; // WS_EX_TOOLWINDOW
+            }
             return cp;
         }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _zTimer.Dispose();
+            _background?.Dispose();
+        }
+        base.Dispose(disposing);
     }
 
     private static Image? LoadLogo()
@@ -268,6 +303,98 @@ public sealed class LockForm : Form
         catch
         {
             return null;
+        }
+    }
+
+    private sealed class PillButton : Button
+    {
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public bool Primary { get; init; }
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public bool MessageIcon { get; init; }
+
+        public PillButton()
+        {
+            FlatStyle = FlatStyle.Flat;
+            FlatAppearance.BorderSize = 0;
+            BackColor = Color.Transparent;
+            UseVisualStyleBackColor = false;
+            Cursor = Cursors.Hand;
+            TabStop = true;
+            SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
+        }
+
+        protected override void OnResize(EventArgs e)
+        {
+            base.OnResize(e);
+            if (Width <= 0 || Height <= 0) return;
+            using var path = Rounded(new Rectangle(0, 0, Width, Height), Height / 2);
+            Region = new Region(path);
+            Invalidate();
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            var rect = new Rectangle(0, 0, Width - 1, Height - 1);
+            using var path = Rounded(rect, Height / 2);
+            if (Primary)
+            {
+                using var fill = new SolidBrush(Color.FromArgb(0x16, 0xa3, 0x4a));
+                e.Graphics.FillPath(fill, path);
+                using var shadow = new Pen(Color.FromArgb(0x0f, 0x7a, 0x37), 5);
+                using var shadowPath = Rounded(new Rectangle(1, 5, Width - 3, Height - 3), Height / 2);
+                e.Graphics.DrawPath(shadow, shadowPath);
+            }
+            else
+            {
+                using var fill = new SolidBrush(Color.FromArgb(90, 11, 29, 32));
+                e.Graphics.FillPath(fill, path);
+                using var border = new Pen(Color.FromArgb(0x4f, 0xd1, 0xa5), 2);
+                e.Graphics.DrawPath(border, path);
+            }
+
+            var iconSize = Math.Max(18, Height / 3);
+            var iconSpace = MessageIcon ? iconSize + 14 : 0;
+            if (MessageIcon)
+            {
+                using var pen = new Pen(Primary ? Color.White : Color.FromArgb(0xd8, 0xf5, 0xea), 2.2f)
+                {
+                    StartCap = LineCap.Round,
+                    EndCap = LineCap.Round,
+                    LineJoin = LineJoin.Round
+                };
+                var ix = (Width - TextRenderer.MeasureText(Text, Font).Width - iconSpace) / 2;
+                var iy = (Height - iconSize) / 2;
+                using var bubble = new GraphicsPath();
+                bubble.AddArc(ix, iy, iconSize, iconSize * 0.8f, 180, 180);
+                bubble.AddLine(ix + iconSize, iy + iconSize * 0.4f, ix + iconSize, iy + iconSize * 0.8f);
+                bubble.AddLine(ix + iconSize, iy + iconSize * 0.8f, ix + iconSize * 0.55f, iy + iconSize);
+                bubble.AddLine(ix + iconSize * 0.55f, iy + iconSize, ix + iconSize * 0.25f, iy + iconSize * 0.8f);
+                bubble.AddLine(ix + iconSize * 0.25f, iy + iconSize * 0.8f, ix, iy + iconSize * 0.8f);
+                bubble.AddArc(ix, iy, iconSize, iconSize * 0.8f, 90, 90);
+                e.Graphics.DrawPath(pen, bubble);
+                using var dot = new SolidBrush(Primary ? Color.White : Color.FromArgb(0xd8, 0xf5, 0xea));
+                e.Graphics.FillEllipse(dot, ix + iconSize * 0.25f, iy + iconSize * 0.3f, 2.5f, 2.5f);
+                e.Graphics.FillEllipse(dot, ix + iconSize * 0.45f, iy + iconSize * 0.3f, 2.5f, 2.5f);
+                e.Graphics.FillEllipse(dot, ix + iconSize * 0.65f, iy + iconSize * 0.3f, 2.5f, 2.5f);
+            }
+            var textRect = new Rectangle(MessageIcon ? iconSpace : 0, 0, Width - (MessageIcon ? iconSpace : 0), Height);
+            TextRenderer.DrawText(e.Graphics, Text, Font, textRect,
+                Primary ? Color.White : Color.FromArgb(0xd8, 0xf5, 0xea),
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+        }
+
+        private static GraphicsPath Rounded(Rectangle rect, int radius)
+        {
+            var path = new GraphicsPath();
+            var d = Math.Max(1, radius * 2);
+            path.AddArc(rect.X, rect.Y, d, d, 180, 90);
+            path.AddArc(rect.Right - d, rect.Y, d, d, 270, 90);
+            path.AddArc(rect.Right - d, rect.Bottom - d, d, d, 0, 90);
+            path.AddArc(rect.X, rect.Bottom - d, d, d, 90, 90);
+            path.CloseFigure();
+            return path;
         }
     }
 }

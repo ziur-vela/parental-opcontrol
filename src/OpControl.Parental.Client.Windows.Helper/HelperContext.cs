@@ -211,6 +211,7 @@ public sealed class HelperContext : ApplicationContext
                 Enabled = false,
                 ForeColor = Theme.Faint
             };
+            _trayLunaItem.Click += (_, _) => OpenLuna();
 
             var menu = new ContextMenuStrip();
             menu.Items.Add(_trayTimeItem);
@@ -239,6 +240,28 @@ public sealed class HelperContext : ApplicationContext
         }
     }
 
+    private void OpenLuna()
+    {
+        try
+        {
+            if (System.Diagnostics.Process.GetProcessesByName("OpControl.Parental.Luna")
+                .Any(p => { try { return p.SessionId == System.Diagnostics.Process.GetCurrentProcess().SessionId; } catch { return false; } }))
+                return;
+            var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "Luna", "OpControl.Parental.Luna.exe"));
+            if (!File.Exists(path))
+            {
+                HelperPaths.LogEvent("luna-open-missing");
+                return;
+            }
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
+            HelperPaths.LogEvent("luna-open-requested");
+        }
+        catch (Exception ex)
+        {
+            HelperPaths.LogEvent($"luna-open-failed {ex.Message}");
+        }
+    }
+
     private void UpdateTrayLanguage()
     {
         if (_trayMessageItem is null || _trayLanguage == Loc.Language) return;
@@ -254,6 +277,10 @@ public sealed class HelperContext : ApplicationContext
         _trayTimeItem.Text = Loc.T("Client.Kid.TrayTime", left ?? Loc.T("Client.Kid.NoLimit"));
         _trayOpenItem.Text = Loc.T("Client.Kid.Open");
         _trayOpenItem.Font = Theme.Mono(9.5f, FontStyle.Bold);
+        var lunaEnabled = state?.LunaEnabled == true;
+        _trayLunaItem.Text = lunaEnabled ? Loc.T("Client.Kid.LunaOpen") : Loc.T("Client.Kid.LunaSoon");
+        _trayLunaItem.Enabled = lunaEnabled;
+        _trayLunaItem.ForeColor = lunaEnabled ? Theme.Text : Theme.Faint;
         var unread = UnreadCount();
         _trayMessageItem.Text = unread > 0
             ? Loc.T("Client.Kid.TrayMessagesUnread", unread)

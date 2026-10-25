@@ -8,6 +8,13 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+#if DEBUG
+        if (args.Any(a => string.Equals(a, "--lock-preview", StringComparison.OrdinalIgnoreCase)))
+        {
+            OpControl.Parental.Helper.LockPreview.Run(args);
+            return;
+        }
+#endif
         if (args.Any(a => string.Equals(a, "--open-kid", StringComparison.OrdinalIgnoreCase)))
         {
             var tab = GetArgument(args, "--tab") ?? "home";

@@ -88,6 +88,8 @@ internal static class Theme
     private static readonly FontFamily? SansRegular;
     private static readonly FontFamily? SansSemiBold;
     private static readonly FontFamily? SansBold;
+    private static readonly FontFamily? DisplayFamily;
+    private static readonly FontFamily? BodyFamily;
 
     static Theme()
     {
@@ -96,6 +98,8 @@ internal static class Theme
         SansRegular = Load("OpControl.Parental.Helper.fonts.Manrope-500.ttf");
         SansSemiBold = Load("OpControl.Parental.Helper.fonts.Manrope-600.ttf");
         SansBold = Load("OpControl.Parental.Helper.fonts.Manrope-700.ttf");
+        DisplayFamily = Load("OpControl.Parental.Helper.fonts.Fredoka.ttf");
+        BodyFamily = Load("OpControl.Parental.Helper.fonts.Nunito.ttf");
     }
 
     private static FontFamily? Load(string resource)
@@ -124,6 +128,18 @@ internal static class Theme
     public static Font Mono(float size, FontStyle style = FontStyle.Regular) =>
         Make(style.HasFlag(FontStyle.Bold) ? MonoSemiBold : MonoRegular, "Consolas", size);
 
+    public static Font Display(float size, FontStyle style = FontStyle.Regular) =>
+        Make(DisplayFamily, "Segoe UI Semibold", size);
+
+    public static Font Body(float size, FontStyle style = FontStyle.Regular) =>
+        Make(BodyFamily, "Segoe UI", size);
+
+    public static Font DisplayPx(float pixels, FontStyle style = FontStyle.Regular) =>
+        MakePx(DisplayFamily, "Segoe UI Semibold", pixels);
+
+    public static Font BodyPx(float pixels, FontStyle style = FontStyle.Regular) =>
+        MakePx(BodyFamily, "Segoe UI", pixels);
+
     private static Font Make(FontFamily? family, string fallback, float size)
     {
         if (family is not null)
@@ -131,6 +147,15 @@ internal static class Theme
             try { return new Font(family, size, FontStyle.Regular); } catch { }
         }
         return new Font(fallback, size, FontStyle.Regular);
+    }
+
+    private static Font MakePx(FontFamily? family, string fallback, float pixels)
+    {
+        if (family is not null)
+        {
+            try { return new Font(family, pixels, FontStyle.Regular, GraphicsUnit.Pixel); } catch { }
+        }
+        return new Font(fallback, pixels, FontStyle.Regular, GraphicsUnit.Pixel);
     }
 
     public static void StyleForm(Form form)
