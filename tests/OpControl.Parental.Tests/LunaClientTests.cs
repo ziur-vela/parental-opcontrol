@@ -74,6 +74,21 @@ public class LunaClientTests
     }
 
     [Fact]
+    public void Send_is_guarded_and_calls_the_api_once_per_click_or_enter()
+    {
+        var root = FindRoot();
+        var text = File.ReadAllText(Path.Combine(root, "src", "OpControl.Parental.Luna", "LunaAppView.cs"));
+        var start = text.IndexOf("private async Task SendFromInputAsync()", StringComparison.Ordinal);
+        Assert.True(start > 0);
+        var body = text[start..Math.Min(text.Length, start + 1200)];
+        Assert.Contains("if (_sending ||", body, StringComparison.Ordinal);
+        Assert.Contains("_sending = true;", body, StringComparison.Ordinal);
+        Assert.True(body.IndexOf("_sending = true;", StringComparison.Ordinal)
+                    < body.IndexOf("_api.SendMessageAsync", StringComparison.Ordinal));
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(body, "_api\\.SendMessageAsync"));
+    }
+
+    [Fact]
     public void Luna_token_broker_never_writes_the_token_to_disk()
     {
         var root = FindRoot();

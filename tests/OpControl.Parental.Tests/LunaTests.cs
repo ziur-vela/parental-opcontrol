@@ -324,7 +324,69 @@ public class LunaTests
         var result = await h.Chat.SendAsync(ctx, chat.Id, "Tell me a story", default);
         Assert.Equal("None", result.LunaMessage!.Flag);
         Assert.Equal("A safe second reply.", result.LunaMessage.Text);
+        Assert.DoesNotContain("Bad first reply", result.LunaMessage.Text);
         Assert.DoesNotContain(await h.Db.Alerts.ToListAsync(), a => a.Type == "luna-flagged");
+    }
+
+    [Fact]
+    public async Task History_is_chronological_and_puts_the_current_child_message_last()
+    {
+        await using var h = await NewHarnessAsync();
+        var (chat, ctx) = await NewChatAsync(h);
+        var sameTime = new DateTime(2026, 10, 25, 22, 27, 15, DateTimeKind.Utc);
+        h.Db.LunaMessages.AddRange(
+            new LunaMessage
+            {
+                FamilyId = h.Family.Id, ChildId = h.Child.Id, ChatId = chat.Id,
+                Role = LunaChatRoles.Child, Text = "old question", ShownText = "old question",
+                CreatedUtc = sameTime
+            },
+            new LunaMessage
+            {
+                FamilyId = h.Family.Id, ChildId = h.Child.Id, ChatId = chat.Id,
+                Role = LunaChatRoles.Luna, Text = "old answer", ShownText = "old answer",
+                CreatedUtc = sameTime
+            });
+        await h.Db.SaveChangesAsync();
+        h.Providers.Moderator.Script.Enqueue(_ => FakeModerator.Safe());
+
+        await h.Chat.SendAsync(ctx, chat.Id, "new question", default);
+
+        var request = h.Providers.Chat.Requests.Last(r => r.SystemPrompt.Contains("Core rules version"));
+        Assert.Equal(3, request.Messages.Count);
+        Assert.Equal(("user", "old question"), (request.Messages[0].Role, request.Messages[0].Content));
+        Assert.Equal(("assistant", "old answer"), (request.Messages[1].Role, request.Messages[1].Content));
+        Assert.Equal(("user", "new question"), (request.Messages[2].Role, request.Messages[2].Content));
+        Assert.Single(request.Messages, m => m.Content == "new question");
+    }
+
+    [Fact]
+    public async Task Child_message_and_luna_reply_get_distinct_increasing_timestamps()
+    {
+        await using var h = await NewHarnessAsync();
+        var (chat, ctx) = await NewChatAsync(h);
+        h.Providers.Moderator.Script.Enqueue(_ => FakeModerator.Safe());
+
+        var result = await h.Chat.SendAsync(ctx, chat.Id, "Help me with fractions", default);
+
+        var child = await h.Db.LunaMessages.SingleAsync(m => m.Role == LunaChatRoles.Child);
+        var luna = await h.Db.LunaMessages.SingleAsync(m => m.Role == LunaChatRoles.Luna);
+        Assert.True(child.CreatedUtc < luna.CreatedUtc);
+        Assert.Equal(child.Id, result.ChildMessage!.Id);
+        Assert.Equal(luna.Id, result.LunaMessage!.Id);
+    }
+
+    [Fact]
+    public async Task One_send_invokes_the_chat_model_once()
+    {
+        await using var h = await NewHarnessAsync();
+        var (chat, ctx) = await NewChatAsync(h);
+        h.Providers.Moderator.Script.Enqueue(_ => FakeModerator.Safe());
+
+        await h.Chat.SendAsync(ctx, chat.Id, "One question", default);
+
+        Assert.Single(h.Providers.Chat.Requests, r => r.SystemPrompt.Contains("Core rules version"));
+        Assert.Single(await h.Db.LunaMessages.Where(m => m.Role == LunaChatRoles.Luna && m.ChatId == chat.Id).ToListAsync());
     }
 
     [Fact]

@@ -113,6 +113,7 @@ public sealed class LunaChatService
         var rows = await _db.LunaMessages.AsNoTracking()
             .Where(m => m.ChatId == chatId && m.FamilyId == ctx.FamilyId && m.ChildId == ctx.ChildId)
             .OrderBy(m => m.CreatedUtc)
+            .ThenBy(m => m.Role == LunaChatRoles.Child ? 0 : 1)
             .Take(500)
             .ToListAsync(ct);
         return rows.Select(m => new LunaChildMessageDto(m.Id, m.ChatId, m.Role,
@@ -461,10 +462,17 @@ public sealed class LunaChatService
         return AppCulture.Normalize(device.ClientLanguage ?? family);
     }
 
+    // A child message and Luna's reply belong to the same turn. They must never share
+    // CreatedUtc: ordering by time alone then becomes non-deterministic and the reply can
+    // move in front of the child's message (the 0.17.0 wrong-message bug).
+    private static DateTime NextMessageUtc(LunaChat chat, DateTime now) =>
+        now > chat.LastMessageUtc ? now : chat.LastMessageUtc.AddTicks(1);
+
     private async Task<LunaMessage> SaveExchangeAsync(LunaChat chat, LunaUsageDay usage, Child child,
         string childText, string? lunaText, LunaMessageFlag flag, string? categories, string? scores,
         int promptTokens, int completionTokens, DateTime now, CancellationToken ct)
     {
+        var created = NextMessageUtc(chat, now);
         var message = new LunaMessage
         {
             FamilyId = chat.FamilyId,
@@ -473,22 +481,23 @@ public sealed class LunaChatService
             Role = LunaChatRoles.Child,
             Text = childText,
             ShownText = childText,
-            CreatedUtc = now,
+            CreatedUtc = created,
             Flag = flag,
             FlagCategories = categories,
             FlagScores = scores
         };
         _db.LunaMessages.Add(message);
+        chat.LastMessageUtc = created;
+        chat.UpdatedUtc = created;
         if (lunaText is not null)
             await AddLunaAsync(chat, lunaText, lunaText, LunaMessageFlag.None, null, null, promptTokens, completionTokens, now, ct);
-        chat.LastMessageUtc = now;
-        chat.UpdatedUtc = now;
         return message;
     }
 
     private async Task<LunaMessage> AddLunaAsync(LunaChat chat, string text, string shown, LunaMessageFlag flag,
         string? categories, string? scores, int promptTokens, int completionTokens, DateTime now, CancellationToken ct)
     {
+        var created = NextMessageUtc(chat, now);
         var message = new LunaMessage
         {
             FamilyId = chat.FamilyId,
@@ -497,7 +506,7 @@ public sealed class LunaChatService
             Role = LunaChatRoles.Luna,
             Text = text,
             ShownText = shown,
-            CreatedUtc = now,
+            CreatedUtc = created,
             Flag = flag,
             FlagCategories = categories,
             FlagScores = scores,
@@ -505,8 +514,8 @@ public sealed class LunaChatService
             CompletionTokens = completionTokens
         };
         _db.LunaMessages.Add(message);
-        chat.LastMessageUtc = now;
-        chat.UpdatedUtc = now;
+        chat.LastMessageUtc = created;
+        chat.UpdatedUtc = created;
         return message;
     }
 
@@ -581,6 +590,9 @@ public sealed class LunaChatService
         ChildLunaSettings settings, string language, string childText, string notice, DateTime now,
         CancellationToken ct, int promptTokens = 0, int completionTokens = 0)
     {
+        var childCreated = NextMessageUtc(chat, now);
+        chat.LastMessageUtc = childCreated;
+        var lunaCreated = NextMessageUtc(chat, now);
         var childMessage = new LunaMessage
         {
             FamilyId = chat.FamilyId,
@@ -589,7 +601,7 @@ public sealed class LunaChatService
             Role = LunaChatRoles.Child,
             Text = childText,
             ShownText = childText,
-            CreatedUtc = now
+            CreatedUtc = childCreated
         };
         var lunaMessage = new LunaMessage
         {
@@ -599,13 +611,13 @@ public sealed class LunaChatService
             Role = LunaChatRoles.Luna,
             Text = notice,
             ShownText = notice,
-            CreatedUtc = now,
+            CreatedUtc = lunaCreated,
             PromptTokens = promptTokens,
             CompletionTokens = completionTokens
         };
         _db.LunaMessages.AddRange(childMessage, lunaMessage);
-        chat.LastMessageUtc = now;
-        chat.UpdatedUtc = now;
+        chat.LastMessageUtc = lunaCreated;
+        chat.UpdatedUtc = lunaCreated;
         usage.Messages++;
         usage.PromptTokens += promptTokens;
         usage.CompletionTokens += completionTokens;
@@ -631,24 +643,27 @@ public sealed class LunaChatService
         var rows = await _db.LunaMessages.AsNoTracking()
             .Where(m => m.ChatId == chatId)
             .OrderByDescending(m => m.CreatedUtc)
+            .ThenByDescending(m => m.Role == LunaChatRoles.Luna ? 1 : 0)
             .Take(60)
             .ToListAsync(ct);
         rows.Reverse();
 
-        var turns = new List<LunaChatTurn>();
+        var reply = new List<LunaChatTurn>();
         var budget = LunaLimits.RecentTokenBudget;
         var used = Estimate(currentText);
-        turns.Add(new LunaChatTurn("user", currentText));
-        for (var i = rows.Count - 1; i >= 0; i--)
+        for (var i = 0; i < rows.Count; i++)
         {
             var row = rows[i];
             var content = LunaTranscript.ProviderText(row);
             var cost = Estimate(content);
-            if (used + cost > budget && turns.Count > 1) break;
+            if (used + cost > budget && reply.Count > 0) break;
             used += cost;
-            turns.Insert(0, new LunaChatTurn(row.Role == LunaChatRoles.Child ? "user" : "assistant", content));
+            reply.Add(new LunaChatTurn(row.Role == LunaChatRoles.Child ? "user" : "assistant", content));
         }
-        return turns;
+
+        // The current child message is never read from the table; it must always be the last turn.
+        reply.Add(new LunaChatTurn("user", currentText));
+        return reply;
     }
 
     private static int Estimate(string text) => Math.Max(1, (text.Length + 3) / 4);
