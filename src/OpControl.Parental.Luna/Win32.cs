@@ -38,6 +38,10 @@ internal static class Win32
     public static extern IntPtr CreateEllipticRgn(int left, int top, int right, int bottom);
 
     [DllImport("gdi32.dll", SetLastError = true)]
+    public static extern IntPtr CreateRoundRectRgn(int left, int top, int right, int bottom,
+        int ellipseWidth, int ellipseHeight);
+
+    [DllImport("gdi32.dll", SetLastError = true)]
     public static extern int CombineRgn(IntPtr dest, IntPtr src1, IntPtr src2, int mode);
 
     [DllImport("user32.dll", SetLastError = true)]

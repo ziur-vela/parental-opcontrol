@@ -118,6 +118,7 @@ public partial class LunaWindow : Window
     private int _lastRgnY1 = int.MinValue;
     private int _lastRgnX2 = int.MinValue;
     private int _lastRgnY2 = int.MinValue;
+    private int _lastRgnRadius = -1;
     private string _lastRgnShape = string.Empty;
     private bool _hitProofSleepLogged;
     private bool _hitProofAwakeLogged;
@@ -761,6 +762,7 @@ public partial class LunaWindow : Window
         _morphStart = _clock.Elapsed.TotalSeconds;
         _morphLogStart = _morphStart;
         _morphFrames = 0;
+        _blob.IsVisible = true;
         StartProbe(1.5);
         LunaLog.Write("morph_close_begin");
     }
@@ -792,6 +794,7 @@ public partial class LunaWindow : Window
             _mode = Mode.Chat;
             SetBlob(0, 0, _chatWidth, _chatHeight, 0);
             _blobYellow.Opacity = 0;
+            _blob.IsVisible = false;
             _chatRoot.Opacity = 1;
             _chatRoot.IsVisible = true;
             UpdateRegion();
@@ -1086,6 +1089,7 @@ public partial class LunaWindow : Window
         var s = RenderScaling;
         string shape;
         int x1, y1, x2, y2;
+        var radius = 0.0;
 
         switch (_mode)
         {
@@ -1104,6 +1108,7 @@ public partial class LunaWindow : Window
 
             case Mode.MorphOpen:
                 shape = "blob";
+                radius = _blob.CornerRadius.TopLeft;
                 x1 = (int)Math.Floor(_blobX * s);
                 y1 = (int)Math.Floor(_blobY * s);
                 x2 = (int)Math.Ceiling((_blobX + _blobW) * s);
@@ -1112,6 +1117,7 @@ public partial class LunaWindow : Window
 
             case Mode.MorphClose:
                 shape = "closing";
+                radius = _blob.CornerRadius.TopLeft;
                 x1 = 0; y1 = 0;
                 x2 = (int)Math.Ceiling(_chatWidth * s);
                 y2 = (int)Math.Ceiling(_chatHeight * s);
@@ -1119,6 +1125,7 @@ public partial class LunaWindow : Window
 
             case Mode.Chat:
                 shape = "full";
+                radius = 22;
                 x1 = 0; y1 = 0;
                 x2 = (int)Math.Ceiling(_chatWidth * s); y2 = (int)Math.Ceiling(_chatHeight * s);
                 break;
@@ -1136,15 +1143,17 @@ public partial class LunaWindow : Window
                 shape = "moon";
                 var cx = (-20 + _slide * SlideDistance) * s;
                 var cy = (-20 + _slide * SlideDistance + _bob) * s;
-                var radius = 58 * s;
-                x1 = (int)Math.Floor(cx - radius);
-                y1 = (int)Math.Floor(cy - radius);
-                x2 = (int)Math.Ceiling(cx + radius);
-                y2 = (int)Math.Ceiling(cy + radius);
+                var moonRadius = 58 * s;
+                x1 = (int)Math.Floor(cx - moonRadius);
+                y1 = (int)Math.Floor(cy - moonRadius);
+                x2 = (int)Math.Ceiling(cx + moonRadius);
+                y2 = (int)Math.Ceiling(cy + moonRadius);
                 break;
         }
 
-        if (shape == _lastRgnShape && x1 == _lastRgnX1 && y1 == _lastRgnY1 && x2 == _lastRgnX2 && y2 == _lastRgnY2)
+        var radiusPx = (int)Math.Ceiling(radius * 2 * s);
+        if (shape == _lastRgnShape && x1 == _lastRgnX1 && y1 == _lastRgnY1 && x2 == _lastRgnX2 &&
+            y2 == _lastRgnY2 && radiusPx == _lastRgnRadius)
         {
             return;
         }
@@ -1154,6 +1163,7 @@ public partial class LunaWindow : Window
         _lastRgnY1 = y1;
         _lastRgnX2 = x2;
         _lastRgnY2 = y2;
+        _lastRgnRadius = radiusPx;
 
         IntPtr region;
         if (shape == "moon")
@@ -1170,6 +1180,10 @@ public partial class LunaWindow : Window
                     Win32.DeleteObject(bubble);
                 }
             }
+        }
+        else if (radiusPx > 0)
+        {
+            region = Win32.CreateRoundRectRgn(x1, y1, x2, y2, radiusPx, radiusPx);
         }
         else
         {
