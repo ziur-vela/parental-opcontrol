@@ -12,7 +12,7 @@ using Xunit;
 
 namespace OpControl.Parental.Tests;
 
-public class Job181Tests
+public class Job181KidTests
 {
     private static string Root
     {

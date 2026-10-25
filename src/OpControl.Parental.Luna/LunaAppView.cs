@@ -46,6 +46,7 @@ public sealed class LunaAppView : UserControl
     private bool _initialized;
     private string? _pausedDetail;
     private readonly List<DispatcherTimer> _timers = [];
+    private DispatcherTimer? _themeWatch;
     private Grid? _modalLayer;
     private Control? _emptyLabel;
 
@@ -96,9 +97,19 @@ public sealed class LunaAppView : UserControl
             _status = await _api.GetStatusAsync();
             Loc.SetLanguage(_status.Language);
             _palette = LunaThemes.From(_status.Theme);
+            KidThemeStore.WriteLocal(_palette.Key);
             ApplyThemeVariant(_palette);
             _root.Background = LunaBrushes.B(_palette.Bg);
             _root.BorderBrush = LunaBrushes.B(_palette.Border);
+            _themeWatch = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _themeWatch.Tick += (_, _) =>
+            {
+                var local = KidThemeStore.ReadLocal();
+                if (local is not null && !string.Equals(local, _palette.Key, StringComparison.Ordinal))
+                    _ = SetThemeKeyAsync(local);
+            };
+            _themeWatch.Start();
+            _timers.Add(_themeWatch);
             if (!_status.Enabled)
             {
                 ShowPaused();
@@ -1048,6 +1059,7 @@ public sealed class LunaAppView : UserControl
     {
         var next = LunaThemes.Toggle(_status?.Theme ?? _palette.Key);
         _palette = next;
+        KidThemeStore.WriteLocal(next.Key);
         ApplyThemeVariant(_palette);
         if (_status is not null) _status = _status with { Theme = next.Key };
         try { await _api.SetThemeAsync(next.Key); }
@@ -1233,6 +1245,7 @@ public sealed class LunaAppView : UserControl
     public async Task SetThemeKeyAsync(string theme)
     {
         _palette = LunaThemes.From(theme);
+        KidThemeStore.WriteLocal(_palette.Key);
         ApplyThemeVariant(_palette);
         if (_status is not null) _status = _status with { Theme = _palette.Key };
         try { await _api.SetThemeAsync(_palette.Key); } catch (Exception ex) { LunaLog.Exception("theme", ex); }
