@@ -33,7 +33,7 @@
     </div>
     <div class="card">
         <h2>@L["Pin.Status"]</h2>
-        <p class="muted">@(Model.HasPin ? L["Pin.IsSet"] : L["Pin.NotSet"])</p>
+        <p class="muted">@(Model.HasPin ? L["Pin.IsSet", Model.ChildName] : L["Pin.NotSet"])</p>
         @if (Model.HasPin)
         {
             <form method="post" asp-page-handler="Clear">

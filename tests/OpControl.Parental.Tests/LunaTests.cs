@@ -715,6 +715,72 @@ public class LunaTests
     }
 
     [Fact]
+    public async Task Luna_welcome_is_server_side_per_parent_and_can_be_reopened()
+    {
+        await using var db = NewDb();
+        var family = new Family { Name = "Welcome family" };
+        var first = new ParentUser { FamilyId = family.Id, DisplayName = "First", UserName = "first@demo.local" };
+        var second = new ParentUser { FamilyId = family.Id, DisplayName = "Second", UserName = "second@demo.local" };
+        db.Families.Add(family);
+        db.Users.AddRange(first, second);
+        await db.SaveChangesAsync();
+        var preferences = new ParentPreferenceService(db);
+
+        // First visit: nobody has dismissed the welcome dialog yet.
+        Assert.False(await preferences.GetLunaWelcomeDismissedAsync(family.Id, first.Id));
+        Assert.False(await preferences.GetLunaWelcomeDismissedAsync(family.Id, second.Id));
+
+        // "Don't show this again" is saved on the server for that parent only.
+        await preferences.SaveLunaWelcomeDismissedAsync(family.Id, first.Id, true);
+        Assert.True(await preferences.GetLunaWelcomeDismissedAsync(family.Id, first.Id));
+        Assert.False(await preferences.GetLunaWelcomeDismissedAsync(family.Id, second.Id));
+
+        // The header link can clear the setting, so the dialog opens again next visit.
+        await preferences.SaveLunaWelcomeDismissedAsync(family.Id, first.Id, false);
+        Assert.False(await preferences.GetLunaWelcomeDismissedAsync(family.Id, first.Id));
+    }
+
+    [Fact]
+    public void Luna_welcome_component_is_linked_from_every_luna_page_and_reopens()
+    {
+        var root = FindRoot();
+        var pages = new[]
+        {
+            Path.Combine(root, "src", "OpControl.Parental.Server", "Components", "Pages", "LunaChild.razor"),
+            Path.Combine(root, "src", "OpControl.Parental.Server", "Components", "Pages", "LunaSetup.razor"),
+            Path.Combine(root, "src", "OpControl.Parental.Server", "Components", "Pages", "LunaReview.razor")
+        };
+        foreach (var page in pages)
+            Assert.Contains("<LunaWelcome />", File.ReadAllText(page));
+
+        var component = File.ReadAllText(Path.Combine(root, "src", "OpControl.Parental.Server",
+            "Components", "Shared", "LunaWelcome.razor"));
+        Assert.Contains("GetLunaWelcomeDismissedAsync", component);
+        Assert.Contains("SaveLunaWelcomeDismissedAsync", component);
+        Assert.Contains("aria-modal=\"true\"", component);
+        Assert.Contains("role=\"dialog\"", component);
+        Assert.Contains("@onclick=\"OpenAsync\"", component);
+        Assert.Contains("_show = true;", component);
+    }
+
+    [Fact]
+    public void Setup_b_key_instructions_live_in_the_setup_b_card()
+    {
+        var root = FindRoot();
+        var setup = File.ReadAllText(Path.Combine(root, "src", "OpControl.Parental.Server",
+            "Components", "Pages", "LunaSetup.razor"));
+        Assert.DoesNotContain("luna-why", setup);
+        Assert.DoesNotContain("Luna.Guide.GetKey.SetupB", setup);
+        Assert.Contains("Luna.SetupB.HowTo", setup);
+        Assert.Contains("Luna.SetupB.OpenAi.Step1", setup);
+        Assert.Contains("Luna.SetupB.Anthropic.Step1", setup);
+        Assert.Contains("Luna.SetupB.Gemini.Step1", setup);
+        Assert.Contains("Luna.SetupB.DeepSeek.Step1", setup);
+        Assert.Contains("Luna.SetupB.Moderation.Step1", setup);
+        Assert.Contains("Luna.SetupB.Reminder", setup);
+    }
+
+    [Fact]
     public void Push_rules_cover_luna_types_and_permissions()
     {
         Assert.Equal("luna", PushService.Category("luna-flagged"));

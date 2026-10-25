@@ -26,6 +26,7 @@ public class ParentUser : IdentityUser<Guid>
     public ParentPermissions Permissions { get; set; } = ParentPermissions.None;
     public bool IsServerAdmin { get; set; }
     public bool EnterToSend { get; set; } = true;
+    public bool LunaWelcomeDismissed { get; set; }
     public string? PreferredLanguage { get; set; }
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
     public Family? Family { get; set; }

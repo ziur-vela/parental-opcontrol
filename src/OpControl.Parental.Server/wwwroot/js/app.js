@@ -88,4 +88,18 @@
             alert(((window.ocpStrings && window.ocpStrings.updateFailed) || 'Could not request the update: ') + e.message);
         }
     };
+
+    var lunaWelcomeReturnFocus = null;
+    window.ocpLunaWelcomeOpen = function () {
+        var dialog = document.querySelector('.luna-welcome');
+        if (!dialog) return;
+        lunaWelcomeReturnFocus = document.activeElement;
+        if (typeof dialog.focus === 'function') dialog.focus();
+    };
+    window.ocpLunaWelcomeClose = function () {
+        if (lunaWelcomeReturnFocus && typeof lunaWelcomeReturnFocus.focus === 'function') {
+            lunaWelcomeReturnFocus.focus();
+        }
+        lunaWelcomeReturnFocus = null;
+    };
 })();

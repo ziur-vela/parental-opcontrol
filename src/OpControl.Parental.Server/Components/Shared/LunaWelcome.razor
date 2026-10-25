@@ -1,0 +1,134 @@
+@* Copyright (c) 2026 Ziur / OpControl IT Solutions
+   SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 *@
+
+@using OpControl.Parental.Server.Auth
+@using OpControl.Parental.Server.Data
+@using OpControl.Parental.Server.Services
+@using OpControl.Parental.Server.Services.Luna
+@inject AuthenticationStateProvider AuthState
+@inject IServiceScopeFactory Scopes
+@inject IStringLocalizer<AppStrings> L
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<button type="button" class="luna-what-link" @onclick="OpenAsync">@L["Luna.Welcome.Link"]</button>
+
+@if (_show)
+{
+    <div class="luna-welcome-backdrop" @onclick="CloseAsync">
+        <div class="luna-welcome" role="dialog" aria-modal="true" aria-labelledby="luna-welcome-title"
+             tabindex="-1" @onclick:stopPropagation @onkeydown="OnKeyDownAsync">
+            <div class="luna-welcome-head">
+                <LunaMoon State="LunaMoonState.Awake" Size="72" />
+                <h2 id="luna-welcome-title">@L["Luna.Welcome.Title"]</h2>
+            </div>
+            <p>@L["Luna.Welcome.Intro"]</p>
+            <h3>@L["Luna.Why.Title"]</h3>
+            <p>@L["Luna.Why.Text"]</p>
+            <ul class="luna-welcome-list">
+                <li>@L["Luna.Why.Bullet.Kids"]</li>
+                <li>@L["Luna.Why.Bullet.Filter"]</li>
+                <li>@L["Luna.Why.Bullet.Alerts"]</li>
+                <li>@L["Luna.Why.Bullet.NoAds"]</li>
+                <li>@L["Luna.Why.Bullet.Limits"]</li>
+            </ul>
+            <div class="luna-welcome-amber">
+                <span>@L["Luna.Why.Footer"]</span>
+                <a class="btn btn-ghost" href="/websites">@L["Luna.Child.OpenWebsites"]</a>
+            </div>
+            <label class="check-row">
+                <input type="checkbox" @bind="_dontShow" data-autofocus />
+                <span>@L["Luna.Welcome.DontShow"]</span>
+            </label>
+            <div class="button-row">
+                <button type="button" class="btn btn-primary" @onclick="GetStartedAsync">@L["Luna.Welcome.GetStarted"]</button>
+                <button type="button" class="btn btn-ghost" @onclick="CloseAsync">@L["Luna.Common.Close"]</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private Guid _familyId;
+    private Guid _parentId;
+    private bool _isOwner;
+    private bool _show;
+    private bool _dontShow;
+    private bool _focusPending;
+    private bool _returnFocusPending;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthState.GetAuthenticationStateAsync();
+        Guid.TryParse(auth.User.FindFirst(ParentalClaims.FamilyId)?.Value, out _familyId);
+        Guid.TryParse(auth.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out _parentId);
+        _isOwner = string.Equals(auth.User.FindFirst(ParentalClaims.FamilyRole)?.Value, "Owner",
+            StringComparison.OrdinalIgnoreCase);
+        if (_familyId == Guid.Empty || _parentId == Guid.Empty) return;
+
+        using var scope = Scopes.CreateScope();
+        var preferences = scope.ServiceProvider.GetRequiredService<ParentPreferenceService>();
+        if (await preferences.GetLunaWelcomeDismissedAsync(_familyId, _parentId)) return;
+        _show = true;
+        _focusPending = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusPending)
+        {
+            _focusPending = false;
+            try { await JS.InvokeVoidAsync("ocpLunaWelcomeOpen"); } catch { }
+        }
+        if (_returnFocusPending)
+        {
+            _returnFocusPending = false;
+            try { await JS.InvokeVoidAsync("ocpLunaWelcomeClose"); } catch { }
+        }
+    }
+
+    private async Task OpenAsync()
+    {
+        _dontShow = false;
+        _show = true;
+        _focusPending = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task CloseAsync()
+    {
+        await SavePreferenceAsync();
+        _show = false;
+        _returnFocusPending = true;
+    }
+
+    private async Task GetStartedAsync()
+    {
+        var goToSetup = _isOwner && !await IsSetupReadyAsync();
+        await SavePreferenceAsync();
+        _show = false;
+        _returnFocusPending = true;
+        if (goToSetup) Nav.NavigateTo("/luna/setup");
+    }
+
+    private async Task<bool> IsSetupReadyAsync()
+    {
+        using var scope = Scopes.CreateScope();
+        var settings = scope.ServiceProvider.GetRequiredService<LunaSettingsService>();
+        return await settings.IsReadyAsync(_familyId);
+    }
+
+    private async Task SavePreferenceAsync()
+    {
+        if (_familyId == Guid.Empty || _parentId == Guid.Empty) return;
+        using var scope = Scopes.CreateScope();
+        var preferences = scope.ServiceProvider.GetRequiredService<ParentPreferenceService>();
+        await preferences.SaveLunaWelcomeDismissedAsync(_familyId, _parentId, _dontShow);
+    }
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (string.Equals(args.Key, "Escape", StringComparison.OrdinalIgnoreCase))
+            await CloseAsync();
+    }
+}

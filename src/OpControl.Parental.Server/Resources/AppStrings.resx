@@ -1255,8 +1255,6 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Luna.Guide.GetKey.Step1" xml:space="preserve"><value>Create an account at openrouter.ai and add a few dollars of credit.</value></data>
   <data name="Luna.Guide.GetKey.Step2" xml:space="preserve"><value>Open Keys, create a key named "Luna", and copy it.</value></data>
   <data name="Luna.Guide.GetKey.Step3" xml:space="preserve"><value>Paste it below, then press Test connection.</value></data>
-  <data name="Luna.Guide.GetKey.SetupB" xml:space="preserve"><value>Setup B instructions (OpenAI, Anthropic, Gemini, DeepSeek)</value></data>
-  <data name="Luna.Guide.GetKey.SetupBText" xml:space="preserve"><value>Create a key with your chat provider and an OpenAI key for the safety filter, then choose Setup B below and paste both keys.</value></data>
   <data name="Luna.Setup.Choose" xml:space="preserve"><value>1. Choose a setup</value></data>
   <data name="Luna.Setup.SetupAName" xml:space="preserve"><value>Setup A · OpenRouter</value></data>
   <data name="Luna.Setup.SetupBName" xml:space="preserve"><value>Setup B · Your provider + OpenAI safety filter</value></data>
@@ -1398,7 +1396,7 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Luna.Moon.Happy" xml:space="preserve"><value>Luna AI is happy</value></data>
   <data name="Luna.Moon.Looking" xml:space="preserve"><value>Luna AI is looking around</value></data>
   <data name="Luna.Moon.Phase" xml:space="preserve"><value>Luna AI is thinking</value></data>
-  <data name="Luna.Why.Title" xml:space="preserve"><value>Why Luna instead of a free AI website</value></data>
+  <data name="Luna.Why.Title" xml:space="preserve"><value>Why Luna instead of a free AI chat</value></data>
   <data name="Luna.Why.Text" xml:space="preserve"><value>Sooner or later, kids this age find an AI chat on their own, at school, at a friend's house, or built into a search engine. Public AI chats are made for everyone, not for kids, and you can't see what your child asks them. Luna meets your child halfway: a real AI they can use every day, with you in charge.</value></data>
   <data name="Luna.Why.Bullet.Kids" xml:space="preserve"><value>Made for kids: Luna helps them think and learn instead of just giving answers.</value></data>
   <data name="Luna.Why.Bullet.Filter" xml:space="preserve"><value>Every message and every answer passes a safety filter first.</value></data>
@@ -1413,4 +1411,38 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Luna.Review.AllCaughtUp" xml:space="preserve"><value>All caught up</value></data>
   <data name="Luna.Review.NothingToReview" xml:space="preserve"><value>Nothing from {0} needs your review.</value></data>
   <data name="Luna.Child.TestFailed" xml:space="preserve"><value>last test failed</value></data>
+  <data name="Luna.Common.Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Luna.Welcome.Link" xml:space="preserve"><value>What is Luna AI?</value></data>
+  <data name="Luna.Welcome.Title" xml:space="preserve"><value>Meet Luna AI</value></data>
+  <data name="Luna.Welcome.Intro" xml:space="preserve"><value>Luna is an AI study buddy for your kids. It helps with homework and questions about math, science, history, word meanings, languages, or anything they're curious about. It uses your own AI key, follows your family's rules, and you can read every chat.</value></data>
+  <data name="Luna.Welcome.DontShow" xml:space="preserve"><value>Don't show this again</value></data>
+  <data name="Luna.Welcome.GetStarted" xml:space="preserve"><value>Get started</value></data>
+  <data name="Luna.SetupB.HowTo" xml:space="preserve"><value>How to get your keys</value></data>
+  <data name="Luna.SetupB.ChatHeading" xml:space="preserve"><value>Chat provider key</value></data>
+  <data name="Luna.SetupB.OpenAi.Step1" xml:space="preserve"><value>Sign up or sign in at platform.openai.com.</value></data>
+  <data name="Luna.SetupB.OpenAi.Step2" xml:space="preserve"><value>Open Billing at platform.openai.com/account/billing and add a payment method and credit.</value></data>
+  <data name="Luna.SetupB.OpenAi.Step3" xml:space="preserve"><value>Open API keys at platform.openai.com/settings/organization/api-keys and select Create new secret key.</value></data>
+  <data name="Luna.SetupB.OpenAi.Step4" xml:space="preserve"><value>Name the key "Luna", create it, and copy it.</value></data>
+  <data name="Luna.SetupB.OpenAi.Step5" xml:space="preserve"><value>Paste it in the Chat provider key field above.</value></data>
+  <data name="Luna.SetupB.Anthropic.Step1" xml:space="preserve"><value>Sign up or sign in at platform.claude.com.</value></data>
+  <data name="Luna.SetupB.Anthropic.Step2" xml:space="preserve"><value>Open Settings &gt; Billing at platform.claude.com/settings/billing and buy credits.</value></data>
+  <data name="Luna.SetupB.Anthropic.Step3" xml:space="preserve"><value>Open API keys at platform.claude.com/settings/keys and select Create key.</value></data>
+  <data name="Luna.SetupB.Anthropic.Step4" xml:space="preserve"><value>Name the key "Luna", choose an expiration, and copy it (it starts with sk-ant-).</value></data>
+  <data name="Luna.SetupB.Anthropic.Step5" xml:space="preserve"><value>Paste it in the Chat provider key field above.</value></data>
+  <data name="Luna.SetupB.Gemini.Step1" xml:space="preserve"><value>Sign in to Google AI Studio at aistudio.google.com.</value></data>
+  <data name="Luna.SetupB.Gemini.Step2" xml:space="preserve"><value>Open the API keys page at aistudio.google.com/apikey and select Create API key.</value></data>
+  <data name="Luna.SetupB.Gemini.Step3" xml:space="preserve"><value>Choose or create a Google Cloud project for the key.</value></data>
+  <data name="Luna.SetupB.Gemini.Step4" xml:space="preserve"><value>For the paid tier, link a Cloud Billing account; see ai.google.dev/gemini-api/docs/billing. Name the key "Luna" if the page asks for a name, then copy it.</value></data>
+  <data name="Luna.SetupB.Gemini.Step5" xml:space="preserve"><value>Paste it in the Chat provider key field above.</value></data>
+  <data name="Luna.SetupB.DeepSeek.Step1" xml:space="preserve"><value>Sign up or sign in at platform.deepseek.com.</value></data>
+  <data name="Luna.SetupB.DeepSeek.Step2" xml:space="preserve"><value>Open Top up at platform.deepseek.com/top_up and add balance.</value></data>
+  <data name="Luna.SetupB.DeepSeek.Step3" xml:space="preserve"><value>Open API keys at platform.deepseek.com/api_keys and select Create new API key.</value></data>
+  <data name="Luna.SetupB.DeepSeek.Step4" xml:space="preserve"><value>Name the key "Luna" and copy it.</value></data>
+  <data name="Luna.SetupB.DeepSeek.Step5" xml:space="preserve"><value>Paste it in the Chat provider key field above.</value></data>
+  <data name="Luna.SetupB.ModerationHeading" xml:space="preserve"><value>OpenAI moderation key</value></data>
+  <data name="Luna.SetupB.ModerationNote" xml:space="preserve"><value>Luna needs this key unless your chat provider is OpenAI. Moderation itself is free, but OpenAI may require a payment method on the account.</value></data>
+  <data name="Luna.SetupB.Moderation.Step1" xml:space="preserve"><value>Create or sign in to an OpenAI API account at platform.openai.com.</value></data>
+  <data name="Luna.SetupB.Moderation.Step2" xml:space="preserve"><value>Open API keys at platform.openai.com/settings/organization/api-keys, create a key named "Luna moderation", and copy it.</value></data>
+  <data name="Luna.SetupB.Moderation.Step3" xml:space="preserve"><value>Paste it in the OpenAI key for the safety filter field above.</value></data>
+  <data name="Luna.SetupB.Reminder" xml:space="preserve"><value>Luna AI stays off until both keys are saved and Test connection passes.</value></data>
 </root>

@@ -47,11 +47,11 @@ public class LocalizationTests
     private const string AppStringsMarker = "OpControl.Parental.Server.Resources.AppStrings";
 
     [Fact]
-    public void Spanish_family_invite_uses_inclusive_child_wording()
+    public void Spanish_family_invite_uses_generic_child_wording()
     {
         var spanish = ReadResx("AppStrings.es-MX.resx");
-        Assert.Contains("tu hijo o hija", spanish["Email.InviteNewFamily.Intro"]);
-        Assert.DoesNotContain("tu hijo.", spanish["Email.InviteNewFamily.Intro"]);
+        Assert.Contains("tu primer hijo", spanish["Email.InviteNewFamily.Intro"]);
+        Assert.DoesNotContain("hijo o hija", spanish["Email.InviteNewFamily.Intro"]);
     }
 
     [Fact]
@@ -149,6 +149,10 @@ public class LocalizationTests
         var spanish = ReadResx("AppStrings.es-MX.resx");
         var englishPronouns = new Regex(@"\b(he|him|his|she|her|hers|himself|herself)\b", RegexOptions.IgnoreCase);
         var spanishGendered = new Regex(@"\b(él|ella|ellas|ellos|niño|niña|cansado|cansada)\b", RegexOptions.IgnoreCase);
+        // "niños" and "hijos" are the generic plurals this dashboard uses for family-level
+        // text. They include every child without assuming gender, so they are allowed.
+        // Only the singular gendered forms above are rejected.
+        var spanishGenericPlurals = new Regex(@"\b(niños|hijos)\b", RegexOptions.IgnoreCase);
         // Luna's own gender is allowed. This one string is about Luna, not the child.
         var allowedEnglishKeys = new HashSet<string>(StringComparer.Ordinal) { "Luna.Child.MonthlyCap" };
         var failures = new List<string>();
@@ -160,7 +164,7 @@ public class LocalizationTests
         }
         foreach (var (key, value) in spanish)
         {
-            if (spanishGendered.IsMatch(value))
+            if (spanishGendered.IsMatch(spanishGenericPlurals.Replace(value, "")))
                 failures.Add($"es-MX {key}: {value}");
         }
 
@@ -170,7 +174,8 @@ public class LocalizationTests
         }
         foreach (var (key, value) in ReadJsonValues("es-MX.json"))
         {
-            if (spanishGendered.IsMatch(value)) failures.Add($"es-MX.json {key}: {value}");
+            if (spanishGendered.IsMatch(spanishGenericPlurals.Replace(value, "")))
+                failures.Add($"es-MX.json {key}: {value}");
         }
 
         Assert.True(failures.Count == 0, "Gendered child wording found:\n" + string.Join('\n', failures));

@@ -54,7 +54,7 @@ public class PinModel : PageModel
         try
         {
             await _locks.SetPinAsync(_family.FamilyId, ChildId, NewPin);
-            Message = _l["Pin.Saved"];
+            Message = _l["Pin.Saved", ChildName];
             HasPin = true;
         }
         catch (InvalidOperationException ex)

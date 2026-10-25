@@ -34,7 +34,10 @@ else
                 <p>@L["Luna.Setup.Subtitle"]</p>
             </div>
         </div>
-        <a class="btn" href="/luna">@L["Luna.Setup.Back"]</a>
+        <div class="button-row">
+            <LunaWelcome />
+            <a class="btn" href="/luna">@L["Luna.Setup.Back"]</a>
+        </div>
     </div>
 
     @if (_error is not null) { <div class="alert danger">@_error</div> }
@@ -80,18 +83,6 @@ else
         </div>
         @if (_guideOpen)
         {
-            <div class="luna-why">
-                <h3>@L["Luna.Why.Title"]</h3>
-                <p>@L["Luna.Why.Text"]</p>
-                <ul>
-                    <li>@L["Luna.Why.Bullet.Kids"]</li>
-                    <li>@L["Luna.Why.Bullet.Filter"]</li>
-                    <li>@L["Luna.Why.Bullet.Alerts"]</li>
-                    <li>@L["Luna.Why.Bullet.NoAds"]</li>
-                    <li>@L["Luna.Why.Bullet.Limits"]</li>
-                </ul>
-                <p class="luna-why-foot">@L["Luna.Why.Footer"]</p>
-            </div>
             <div class="luna-guide-grid">
                 <div><div class="lbl">@L["Luna.Guide.Checks.Title"]</div><p class="small">@L["Luna.Guide.Checks.Text"]</p></div>
                 <div><div class="lbl">@L["Luna.Guide.Charge.Title"]</div><p class="small">@L["Luna.Guide.Charge.Text"]</p></div>
@@ -105,10 +96,6 @@ else
                         <li>@L["Luna.Guide.GetKey.Step2"]</li>
                         <li>@L["Luna.Guide.GetKey.Step3"]</li>
                     </ol>
-                    <details class="inline-message small">
-                        <summary class="ghost-btn">@L["Luna.Guide.GetKey.SetupB"]</summary>
-                        <p class="muted small">@L["Luna.Guide.GetKey.SetupBText"]</p>
-                    </details>
                 </div>
             </div>
         }
@@ -246,6 +233,63 @@ else
                 </div>
             }
         </div>
+        @if (_setup == "B")
+        {
+            <details class="luna-setupb">
+                <summary>@L["Luna.SetupB.HowTo"]</summary>
+                <div class="luna-setupb-body">
+                    <h3>@L["Luna.SetupB.ChatHeading"]</h3>
+                    <div class="luna-setupb-provider">
+                        <h4>@ProviderLabel(LunaChatProviders.OpenAi)</h4>
+                        <ol class="small">
+                            <li>@L["Luna.SetupB.OpenAi.Step1"]</li>
+                            <li>@L["Luna.SetupB.OpenAi.Step2"]</li>
+                            <li>@L["Luna.SetupB.OpenAi.Step3"]</li>
+                            <li>@L["Luna.SetupB.OpenAi.Step4"]</li>
+                            <li>@L["Luna.SetupB.OpenAi.Step5"]</li>
+                        </ol>
+                    </div>
+                    <div class="luna-setupb-provider">
+                        <h4>@ProviderLabel(LunaChatProviders.Anthropic)</h4>
+                        <ol class="small">
+                            <li>@L["Luna.SetupB.Anthropic.Step1"]</li>
+                            <li>@L["Luna.SetupB.Anthropic.Step2"]</li>
+                            <li>@L["Luna.SetupB.Anthropic.Step3"]</li>
+                            <li>@L["Luna.SetupB.Anthropic.Step4"]</li>
+                            <li>@L["Luna.SetupB.Anthropic.Step5"]</li>
+                        </ol>
+                    </div>
+                    <div class="luna-setupb-provider">
+                        <h4>@ProviderLabel(LunaChatProviders.Gemini)</h4>
+                        <ol class="small">
+                            <li>@L["Luna.SetupB.Gemini.Step1"]</li>
+                            <li>@L["Luna.SetupB.Gemini.Step2"]</li>
+                            <li>@L["Luna.SetupB.Gemini.Step3"]</li>
+                            <li>@L["Luna.SetupB.Gemini.Step4"]</li>
+                            <li>@L["Luna.SetupB.Gemini.Step5"]</li>
+                        </ol>
+                    </div>
+                    <div class="luna-setupb-provider">
+                        <h4>@ProviderLabel(LunaChatProviders.DeepSeek)</h4>
+                        <ol class="small">
+                            <li>@L["Luna.SetupB.DeepSeek.Step1"]</li>
+                            <li>@L["Luna.SetupB.DeepSeek.Step2"]</li>
+                            <li>@L["Luna.SetupB.DeepSeek.Step3"]</li>
+                            <li>@L["Luna.SetupB.DeepSeek.Step4"]</li>
+                            <li>@L["Luna.SetupB.DeepSeek.Step5"]</li>
+                        </ol>
+                    </div>
+                    <h3>@L["Luna.SetupB.ModerationHeading"]</h3>
+                    <p class="muted small">@L["Luna.SetupB.ModerationNote"]</p>
+                    <ol class="small">
+                        <li>@L["Luna.SetupB.Moderation.Step1"]</li>
+                        <li>@L["Luna.SetupB.Moderation.Step2"]</li>
+                        <li>@L["Luna.SetupB.Moderation.Step3"]</li>
+                    </ol>
+                    <p class="luna-setupb-reminder small">@L["Luna.SetupB.Reminder"]</p>
+                </div>
+            </details>
+        }
         <div class="button-row">
             <button id="luna-test" type="button" class="btn luna-test-button @(_busy ? "" : "btn-primary")"
                     disabled="@_busy"

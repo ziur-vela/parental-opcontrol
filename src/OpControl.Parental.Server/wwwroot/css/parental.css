@@ -711,10 +711,64 @@ body:has(.legal-text) .auth-card { width: min(880px, 100%); }
 .luna-why ul { margin: 0; padding-left: 18px; line-height: 1.6; }
 .luna-why .luna-why-foot { border-top: 1px solid color-mix(in srgb, var(--brand) 35%, var(--line)); padding-top: 10px; color: var(--muted); font-size: 13px; }
 .luna-tip {
-    border: 1px solid var(--warn); background: var(--warn-soft); padding: 10px 12px;
+    border: 1px solid #e7b04a; background: color-mix(in srgb, #e7b04a 14%, var(--panel)); padding: 10px 12px;
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; line-height: 1.5;
+    color: var(--text);
 }
+.t-light .luna-tip { background: color-mix(in srgb, #e7b04a 22%, #ffffff); }
 .luna-tip .btn { margin-left: auto; }
+
+/* Job 17.2: Luna welcome dialog and Setup B instructions */
+.luna-what-link {
+    background: none; border: 0; padding: 0; margin: 0; color: var(--muted);
+    font-family: var(--mono); font-size: 11px; letter-spacing: .04em;
+    text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+}
+.luna-what-link:hover { color: var(--text); }
+.luna-what-link:focus-visible { outline: 2px solid var(--value); outline-offset: 3px; }
+.luna-welcome-backdrop {
+    position: fixed; inset: 0; z-index: 110; background: rgba(3, 10, 8, .82);
+    display: flex; align-items: center; justify-content: center; padding: 18px;
+}
+.luna-welcome {
+    width: min(640px, 100%); max-height: 88vh; overflow-y: auto;
+    background: var(--panel); border: 1px solid var(--line-2); padding: 22px;
+    display: flex; flex-direction: column; gap: 14px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .45);
+}
+.luna-welcome:focus { outline: none; }
+.luna-welcome-head { display: flex; align-items: center; gap: 14px; }
+.luna-welcome-head h2 { margin: 0; font-size: 24px; font-weight: 800; }
+.luna-welcome h3 { margin: 0; font-size: 16px; font-weight: 800; }
+.luna-welcome p { margin: 0; line-height: 1.55; }
+.luna-welcome-list { margin: 0; padding-left: 18px; line-height: 1.6; }
+.luna-welcome-amber {
+    border: 1px solid #e7b04a; background: color-mix(in srgb, #e7b04a 14%, var(--panel));
+    padding: 12px 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    font-size: 13px; line-height: 1.5; color: var(--text);
+}
+.t-light .luna-welcome-amber { background: color-mix(in srgb, #e7b04a 22%, #ffffff); }
+.luna-welcome-amber .btn { margin-left: auto; }
+.luna-setupb {
+    border: 1px solid var(--line-2); background: var(--panel-2); padding: 14px;
+}
+.luna-setupb summary {
+    cursor: pointer; font-weight: 800; display: flex; align-items: center; gap: 8px;
+}
+.luna-setupb summary::-webkit-details-marker { display: none; }
+.luna-setupb-body { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; }
+.luna-setupb-body h3 { margin: 4px 0 0; font-size: 15px; }
+.luna-setupb-body h4 { margin: 0 0 2px; font-size: 13px; font-weight: 800; }
+.luna-setupb-body ol { margin: 0; padding-left: 20px; line-height: 1.6; }
+.luna-setupb-provider { display: flex; flex-direction: column; gap: 2px; }
+.luna-setupb-reminder { margin: 0; border-top: 1px solid var(--line); padding-top: 10px; }
+@media (max-width: 620px) {
+    .luna-welcome-backdrop { padding: 0; align-items: stretch; }
+    .luna-welcome { width: 100%; height: 100%; max-height: none; border: 0; padding: 20px; }
+    .luna-welcome-head h2 { font-size: 21px; }
+    .luna-welcome-amber { align-items: flex-start; }
+    .luna-welcome-amber .btn { margin-left: 0; }
+}
 .luna-empty-state {
     display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
     gap: 10px; padding: 26px 18px;

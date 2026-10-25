@@ -55,9 +55,9 @@
   <data name="Activity.Tamper.UsageSanity" xml:space="preserve"><value>Los datos de uso no pasaron las verificaciones</value></data>
   <data name="Activity.Timeline" xml:space="preserve"><value>Línea de tiempo</value></data>
   <data name="Activity.WebsiteBlocked" xml:space="preserve"><value>Sitio web bloqueado</value></data>
-  <data name="AddDevice.AddChildFirst" xml:space="preserve"><value>Primero agrega el perfil de un hijo o hija.</value></data>
+  <data name="AddDevice.AddChildFirst" xml:space="preserve"><value>Primero agrega el perfil de un hijo.</value></data>
   <data name="AddDevice.AndroidSoon" xml:space="preserve"><value>Android — próximamente</value></data>
-  <data name="AddDevice.AssignChild" xml:space="preserve"><value>Asignar al hijo o hija</value></data>
+  <data name="AddDevice.AssignChild" xml:space="preserve"><value>Asignar a un hijo</value></data>
   <data name="AddDevice.ConnectedLabel" xml:space="preserve"><value>Conectado</value></data>
   <data name="AddDevice.Copy" xml:space="preserve"><value>Copiar</value></data>
   <data name="AddDevice.CreateButton" xml:space="preserve"><value>Crear enlace de instalación</value></data>
@@ -78,12 +78,12 @@
   <data name="AddDevice.OpenLink" xml:space="preserve"><value>Abrir página del enlace</value></data>
   <data name="AddDevice.QrAlt" xml:space="preserve"><value>Código QR del enlace de instalación</value></data>
   <data name="AddDevice.Recent" xml:space="preserve"><value>Enlaces de instalación recientes</value></data>
-  <data name="AddDevice.ScanQr" xml:space="preserve"><value>Escanea este QR con la computadora del hijo o hija o abre el enlace en esa PC.</value></data>
+  <data name="AddDevice.ScanQr" xml:space="preserve"><value>Escanea este QR con la computadora del hijo o abre el enlace en esa PC.</value></data>
   <data name="AddDevice.SingleUse" xml:space="preserve"><value>Un solo uso</value></data>
   <data name="AddDevice.StateExpired" xml:space="preserve"><value>Vencido</value></data>
   <data name="AddDevice.StateRevoked" xml:space="preserve"><value>Revocado</value></data>
   <data name="AddDevice.StateWaiting" xml:space="preserve"><value>En espera</value></data>
-  <data name="AddDevice.Subtitle" xml:space="preserve"><value>Crea un enlace de instalación de un solo uso y ábrelo en la computadora del hijo o hija con una cuenta de administrador. Los enlaces y códigos vencen y se usan una sola vez.</value></data>
+  <data name="AddDevice.Subtitle" xml:space="preserve"><value>Crea un enlace de instalación de un solo uso y ábrelo en la computadora de tus hijos con una cuenta de administrador. Los enlaces y códigos vencen y se usan una sola vez.</value></data>
   <data name="AddDevice.Title" xml:space="preserve"><value>Agregar dispositivo</value></data>
   <data name="AddDevice.WaitingDevice" xml:space="preserve"><value>Esperando al dispositivo…</value></data>
   <data name="AddDevice.WindowsPc" xml:space="preserve"><value>PC con Windows</value></data>
@@ -178,7 +178,7 @@
   <data name="Common.CategoryCountPlural" xml:space="preserve"><value>{0} categorías</value></data>
   <data name="Common.Close" xml:space="preserve"><value>Cerrar</value></data>
   <data name="Common.Connected" xml:space="preserve"><value>Conectado</value></data>
-  <data name="Common.CreateChildFirst" xml:space="preserve"><value>Primero crea el perfil de un hijo o hija.</value></data>
+  <data name="Common.CreateChildFirst" xml:space="preserve"><value>Primero crea el perfil de un hijo.</value></data>
   <data name="Common.DayCount" xml:space="preserve"><value>{0} día</value></data>
   <data name="Common.DayCountPlural" xml:space="preserve"><value>{0} días</value></data>
   <data name="Common.Delete" xml:space="preserve"><value>Eliminar</value></data>
@@ -194,7 +194,7 @@
   <data name="Common.Never" xml:space="preserve"><value>nunca</value></data>
   <data name="Common.Next" xml:space="preserve"><value>Siguiente</value></data>
   <data name="Common.No" xml:space="preserve"><value>No</value></data>
-  <data name="Common.NoChildYet" xml:space="preserve"><value>Aún no hay un perfil de hijo o hija</value></data>
+  <data name="Common.NoChildYet" xml:space="preserve"><value>Aún no hay un perfil de hijo</value></data>
   <data name="Common.None" xml:space="preserve"><value>Ninguno</value></data>
   <data name="Common.Offline" xml:space="preserve"><value>Sin conexión</value></data>
   <data name="Common.Online" xml:space="preserve"><value>En línea</value></data>
@@ -290,8 +290,8 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Error.CannotRemoveOwner" xml:space="preserve"><value>No se puede eliminar al propietario de la familia.</value></data>
   <data name="Error.CannotRemoveSelf" xml:space="preserve"><value>No puedes eliminar tu propia cuenta.</value></data>
   <data name="Error.CategoryNotFound" xml:space="preserve"><value>No se encontró la categoría.</value></data>
-  <data name="Error.ChildNotFound" xml:space="preserve"><value>No se encontró al hijo o hija en esta familia.</value></data>
-  <data name="Error.ChildNotFoundShort" xml:space="preserve"><value>No se encontró al hijo o hija.</value></data>
+  <data name="Error.ChildNotFound" xml:space="preserve"><value>No se encontró al hijo en esta familia.</value></data>
+  <data name="Error.ChildNotFoundShort" xml:space="preserve"><value>No se encontró al hijo.</value></data>
   <data name="Error.ChooseApp" xml:space="preserve"><value>Elige una aplicación.</value></data>
   <data name="Error.ConfirmFamilyName" xml:space="preserve"><value>Escribe exactamente el nombre de la familia para confirmar.</value></data>
   <data name="Error.DeviceNameRequired" xml:space="preserve"><value>El nombre del dispositivo es obligatorio (máximo 120 caracteres).</value></data>
@@ -326,7 +326,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Error.PickSchedule" xml:space="preserve"><value>Elige un horario para una regla programada.</value></data>
   <data name="Error.PinFormat" xml:space="preserve"><value>El PIN debe tener de 4 a 12 dígitos.</value></data>
   <data name="Error.RemoteBusy" xml:space="preserve"><value>Ya hay una sesión remota activa para este dispositivo.</value></data>
-  <data name="Error.ScheduleNotFound" xml:space="preserve"><value>No se encontró el horario para este hijo o hija.</value></data>
+  <data name="Error.ScheduleNotFound" xml:space="preserve"><value>No se encontró el horario para este hijo.</value></data>
   <data name="Error.ServerAdminOnly" xml:space="preserve"><value>Solo para el administrador del servidor.</value></data>
   <data name="Error.SignInAgain" xml:space="preserve"><value>Vuelve a iniciar sesión.</value></data>
   <data name="Error.Title" xml:space="preserve"><value>Algo salió mal</value></data>
@@ -343,7 +343,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Home.Bonus30" xml:space="preserve"><value>+30 min</value></data>
   <data name="Home.BonusActive" xml:space="preserve"><value>Tiempo extra activo</value></data>
   <data name="Home.ChangePin" xml:space="preserve"><value>Cambiar PIN</value></data>
-  <data name="Home.ChildSections" xml:space="preserve"><value>Secciones del hijo o hija</value></data>
+  <data name="Home.ChildSections" xml:space="preserve"><value>Secciones</value></data>
   <data name="Home.ClientVersion" xml:space="preserve"><value>cliente {0}</value></data>
   <data name="Home.DevicesOnline" xml:space="preserve"><value>Dispositivos en línea</value></data>
   <data name="Home.DistinctSiteMany" xml:space="preserve"><value>Hoy · {0} sitios distintos</value></data>
@@ -357,7 +357,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Home.NextLock" xml:space="preserve"><value>Próximo bloqueo</value></data>
   <data name="Home.NextSchedule" xml:space="preserve"><value>Próximo horario</value></data>
   <data name="Home.NoAlertsToday" xml:space="preserve"><value>No hay alertas hoy.</value></data>
-  <data name="Home.NoChildBody" xml:space="preserve"><value>Crea el perfil de un hijo o hija para empezar a administrar dispositivos.</value></data>
+  <data name="Home.NoChildBody" xml:space="preserve"><value>Crea el perfil de un hijo para empezar a administrar dispositivos.</value></data>
   <data name="Home.NoDailyLimitSet" xml:space="preserve"><value>Sin límite diario</value></data>
   <data name="Home.NoDevices" xml:space="preserve"><value>Sin dispositivos</value></data>
   <data name="Home.NoDevicesEnrolled" xml:space="preserve"><value>Aún no hay dispositivos registrados.</value></data>
@@ -409,7 +409,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Identity.PasswordTooShort" xml:space="preserve"><value>La contraseña es demasiado corta.</value></data>
   <data name="Install.AdminHelp" xml:space="preserve"><value>¿Iniciaste sesión como administrador? El instalador preguntará qué cuenta de Windows proteger.</value></data>
   <data name="Install.AndroidBody" xml:space="preserve"><value>Este enlace de instalación es para la computadora Windows de {0}. La aplicación para Android aún no está disponible.</value></data>
-  <data name="Install.AndroidHelp" xml:space="preserve"><value>Abre este enlace en la PC Windows del hijo o hija con una cuenta de administrador.</value></data>
+  <data name="Install.AndroidHelp" xml:space="preserve"><value>Abre este enlace en la PC Windows del hijo con una cuenta de administrador.</value></data>
   <data name="Install.AndroidSoon" xml:space="preserve"><value>Android próximamente</value></data>
   <data name="Install.CodeHelp" xml:space="preserve"><value>¿El instalador no incluyó el código?</value></data>
   <data name="Install.CodeHelpBody" xml:space="preserve"><value>Ejecuta el instalador y escribe el código de un solo uso que aparece en el panel de padres. También puedes descargar el instalador más reciente desde la página Descargas del panel.</value></data>
@@ -435,20 +435,20 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Invite.CreateLogin" xml:space="preserve"><value>Crear inicio de sesión</value></data>
   <data name="Invite.EmailExists" xml:space="preserve"><value>Ya existe una cuenta con ese correo en este servidor.</value></data>
   <data name="Invite.EmailFailed" xml:space="preserve"><value>La invitación es válida, pero no se pudo enviar el correo.</value></data>
-  <data name="Invite.EnterChildName" xml:space="preserve"><value>Escribe el nombre del primer hijo o hija.</value></data>
+  <data name="Invite.EnterChildName" xml:space="preserve"><value>Escribe el nombre del primer hijo.</value></data>
   <data name="Invite.EnterEmail" xml:space="preserve"><value>Escribe tu correo electrónico.</value></data>
   <data name="Invite.EnterFamilyName" xml:space="preserve"><value>Escribe el nombre de la familia.</value></data>
   <data name="Invite.Expired" xml:space="preserve"><value>Esta invitación venció.</value></data>
   <data name="Invite.FamilyNotFound" xml:space="preserve"><value>No se encontró la familia.</value></data>
   <data name="Invite.FamilySuspended" xml:space="preserve"><value>Esta familia está suspendida.</value></data>
-  <data name="Invite.FirstChild" xml:space="preserve"><value>Nombre del primer hijo o hija</value></data>
+  <data name="Invite.FirstChild" xml:space="preserve"><value>Nombre del primer hijo</value></data>
   <data name="Invite.GoSignIn" xml:space="preserve"><value>Ir al inicio de sesión</value></data>
   <data name="Invite.Invalid" xml:space="preserve"><value>Este enlace de invitación no es válido.</value></data>
   <data name="Invite.JoinBody" xml:space="preserve"><value>Te invitaron como otro padre o madre. Crea tu propio inicio de sesión. Puedes agregar una aplicación de autenticación después, en Configuración.</value></data>
   <data name="Invite.JoinHeading" xml:space="preserve"><value>Únete a {0}</value></data>
   <data name="Invite.JoinTitle" xml:space="preserve"><value>Únete como otro padre o madre</value></data>
   <data name="Invite.Missing" xml:space="preserve"><value>Falta el enlace de la invitación.</value></data>
-  <data name="Invite.NewBody" xml:space="preserve"><value>Te invitaron al servidor. Crea la cuenta del propietario de la familia y el primer hijo o hija. Llegarás a tu propio panel vacío.</value></data>
+  <data name="Invite.NewBody" xml:space="preserve"><value>Te invitaron al servidor. Crea la cuenta del propietario de la familia y el primer hijo. Llegarás a tu propio panel vacío.</value></data>
   <data name="Invite.NewTitle" xml:space="preserve"><value>Crea tu familia</value></data>
   <data name="Invite.NoEmail" xml:space="preserve"><value>Esta invitación no tiene correo; mejor copia el enlace de nuevo.</value></data>
   <data name="Invite.NotCoParent" xml:space="preserve"><value>Esta invitación no es para otro padre o madre.</value></data>
@@ -517,13 +517,13 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Pin.Clear" xml:space="preserve"><value>Borrar PIN</value></data>
   <data name="Pin.Cleared" xml:space="preserve"><value>PIN borrado.</value></data>
   <data name="Pin.Confirm" xml:space="preserve"><value>Confirmar PIN</value></data>
-  <data name="Pin.IsSet" xml:space="preserve"><value>Hay un PIN de desbloqueo configurado para este hijo o hija.</value></data>
+  <data name="Pin.IsSet" xml:space="preserve"><value>{0} tiene un PIN de desbloqueo configurado.</value></data>
   <data name="Pin.Mismatch" xml:space="preserve"><value>Los PIN no coinciden.</value></data>
   <data name="Pin.New" xml:space="preserve"><value>PIN nuevo</value></data>
   <data name="Pin.NotSet" xml:space="preserve"><value>No hay un PIN de desbloqueo configurado.</value></data>
   <data name="Pin.Rule" xml:space="preserve"><value>De 4 a 12 dígitos. Cinco intentos incorrectos bloquean el desbloqueo durante 60 segundos.</value></data>
   <data name="Pin.Save" xml:space="preserve"><value>Guardar PIN</value></data>
-  <data name="Pin.Saved" xml:space="preserve"><value>PIN guardado y sincronizado con los dispositivos del hijo o hija.</value></data>
+  <data name="Pin.Saved" xml:space="preserve"><value>PIN guardado y sincronizado con los dispositivos de {0}.</value></data>
   <data name="Pin.Status" xml:space="preserve"><value>Estado</value></data>
   <data name="Pin.Subtitle" xml:space="preserve"><value>El PIN se verifica en el dispositivo. Solo se guarda un hash PBKDF2 y el asistente de la sesión del usuario nunca lo recibe.</value></data>
   <data name="Pin.Title" xml:space="preserve"><value>PIN de desbloqueo de padres</value></data>
@@ -561,7 +561,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Schedules.SameTimes" xml:space="preserve"><value>La hora de inicio y la de fin no pueden ser iguales.</value></data>
   <data name="Schedules.ScheduleFallback" xml:space="preserve"><value>Horario</value></data>
   <data name="Schedules.Start" xml:space="preserve"><value>Inicio</value></data>
-  <data name="Schedules.Subtitle" xml:space="preserve"><value>Los horarios se aplican a todos los dispositivos de este hijo o hija. Se admiten periodos que cruzan la medianoche.</value></data>
+  <data name="Schedules.Subtitle" xml:space="preserve"><value>Los horarios se aplican a todos los dispositivos de {0}. Se admiten periodos que cruzan la medianoche.</value></data>
   <data name="Schedules.Title" xml:space="preserve"><value>Horarios de bloqueo</value></data>
   <data name="ScreenTime.ActiveUse" xml:space="preserve"><value>Uso activo</value></data>
   <data name="ScreenTime.ApproximateTime" xml:space="preserve"><value>El tiempo es aproximado</value></data>
@@ -582,7 +582,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="ScreenTime.SaveLimits" xml:space="preserve"><value>Guardar límites</value></data>
   <data name="ScreenTime.SharedAcross" xml:space="preserve"><value>Se comparte en todos los dispositivos de {0}. Se reinicia a la medianoche local.</value></data>
   <data name="ScreenTime.SpokenWarnings" xml:space="preserve"><value>Avisos hablados antes del límite</value></data>
-  <data name="ScreenTime.Subtitle" xml:space="preserve"><value>Uso activo, límites de aplicaciones e informes de cada dispositivo de este hijo o hija.</value></data>
+  <data name="ScreenTime.Subtitle" xml:space="preserve"><value>Uso activo, límites de aplicaciones e informes de cada dispositivo de {0}.</value></data>
   <data name="ScreenTime.ThisMonth" xml:space="preserve"><value>Este mes</value></data>
   <data name="ScreenTime.ThisWeek" xml:space="preserve"><value>Esta semana</value></data>
   <data name="ScreenTime.TimeNote" xml:space="preserve"><value>El tiempo se guarda en UTC y se agrupa por la zona horaria del dispositivo (medianoche local). El tiempo de sitios web es aproximado: se calcula con el registro de visitas DNS y el tiempo en primer plano del navegador.</value></data>
@@ -603,7 +603,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="ServerAdmin.EmailSent" xml:space="preserve"><value>Correo enviado a la persona invitada.</value></data>
   <data name="ServerAdmin.Eyebrow" xml:space="preserve"><value>Servidor</value></data>
   <data name="ServerAdmin.Families" xml:space="preserve"><value>Familias</value></data>
-  <data name="ServerAdmin.FamilyCounts" xml:space="preserve"><value>{0} hijos e hijas · {1} dispositivos</value></data>
+  <data name="ServerAdmin.FamilyCounts" xml:space="preserve"><value>{0} hijos · {1} dispositivos</value></data>
   <data name="ServerAdmin.FamilyHint" xml:space="preserve"><value>Sugerencia de nombre de familia (opcional)</value></data>
   <data name="ServerAdmin.FamilyNameChosen" xml:space="preserve"><value>Nombre de familia elegido por la persona invitada</value></data>
   <data name="ServerAdmin.FromName" xml:space="preserve"><value>Nombre del remitente</value></data>
@@ -689,11 +689,11 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Settings.Stamped" xml:space="preserve"><value>registrada al compilar</value></data>
   <data name="Settings.Stored" xml:space="preserve"><value>(guardada)</value></data>
   <data name="Settings.Subtitle" xml:space="preserve"><value>Configuración del propietario para alertas, envío de correo y la familia.</value></data>
-  <data name="Settings.TheChild" xml:space="preserve"><value>el hijo o hija</value></data>
+  <data name="Settings.TheChild" xml:space="preserve"><value>el hijo</value></data>
   <data name="Settings.TwoFactor" xml:space="preserve"><value>Autenticación de dos factores</value></data>
   <data name="Settings.UseSsl" xml:space="preserve"><value>Usar SSL/TLS</value></data>
-  <data name="Setup.ChildName" xml:space="preserve"><value>Nombre del hijo o hija</value></data>
-  <data name="Setup.ChildPlaceholder" xml:space="preserve"><value>Nombre del hijo o hija</value></data>
+  <data name="Setup.ChildName" xml:space="preserve"><value>Nombre del primer hijo</value></data>
+  <data name="Setup.ChildPlaceholder" xml:space="preserve"><value>Nombre del primer hijo</value></data>
   <data name="Setup.ConfirmPassword" xml:space="preserve"><value>Confirmar contraseña</value></data>
   <data name="Setup.CreateFamily" xml:space="preserve"><value>Crear familia</value></data>
   <data name="Setup.FamilyName" xml:space="preserve"><value>Nombre de la familia</value></data>
@@ -701,7 +701,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Setup.Note" xml:space="preserve"><value>Solo el primer administrador del servidor puede usar esta página. Después de la configuración, agrega familias por invitación.</value></data>
   <data name="Setup.ParentPlaceholder" xml:space="preserve"><value>Nombre del padre o madre</value></data>
   <data name="Setup.PasswordRule" xml:space="preserve"><value>Al menos 8 caracteres con mayúscula, minúscula y un número.</value></data>
-  <data name="Setup.Subtitle" xml:space="preserve"><value>Crea la cuenta del propietario y el perfil del primer hijo o hija. El registro se cierra después de este paso.</value></data>
+  <data name="Setup.Subtitle" xml:space="preserve"><value>Crea la cuenta del propietario y el perfil del primer hijo. El registro se cierra después de este paso.</value></data>
   <data name="Setup.Title" xml:space="preserve"><value>Configuración inicial</value></data>
   <data name="Setup.YourName" xml:space="preserve"><value>Tu nombre</value></data>
   <data name="Team.AllPermissions" xml:space="preserve"><value>Todos los permisos</value></data>
@@ -833,7 +833,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Email.InviteCoParent.Preheader" xml:space="preserve"><value>Te invitaron a unirte a {0} como otro padre o madre en Parental OpControl.</value></data>
   <data name="Email.InviteNewFamily.Button" xml:space="preserve"><value>Crear mi familia</value></data>
   <data name="Email.InviteNewFamily.Headline" xml:space="preserve"><value>Crea tu familia en Parental OpControl</value></data>
-  <data name="Email.InviteNewFamily.Intro" xml:space="preserve"><value>Te invitaron a crear una familia en Parental OpControl. Usa el botón de abajo para elegir el nombre de tu familia, tu cuenta y el nombre de tu hijo o hija.</value></data>
+  <data name="Email.InviteNewFamily.Intro" xml:space="preserve"><value>Te invitaron a crear una familia en Parental OpControl. Usa el botón de abajo para elegir el nombre de tu familia, tu cuenta y el nombre de tu primer hijo.</value></data>
   <data name="Email.InviteNewFamily.Preheader" xml:space="preserve"><value>Te invitaron a crear tu familia en Parental OpControl.</value></data>
   <data name="Email.Layout.ButtonFallback" xml:space="preserve"><value>Si el botón no funciona, copia y pega este enlace en tu navegador:</value></data>
   <data name="Email.Layout.Details" xml:space="preserve"><value>Detalles</value></data>
@@ -876,9 +876,9 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Settings.TestEmailSent" xml:space="preserve"><value>Correo de prueba enviado a {0}.</value></data>
   <data name="Nav.Messages" xml:space="preserve"><value>Mensajes</value></data>
   <data name="Messages.PageTitle" xml:space="preserve"><value>Mensajes</value></data>
-  <data name="Messages.Subtitle" xml:space="preserve"><value>Mensajes cortos entre tú y tu hijo o hija. Nunca se envían a un modelo de IA.</value></data>
+  <data name="Messages.Subtitle" xml:space="preserve"><value>Mensajes cortos entre tú y tus hijos. Nunca se envían a un modelo de IA.</value></data>
   <data name="Messages.Empty" xml:space="preserve"><value>Aún no hay mensajes. Envía el primero abajo.</value></data>
-  <data name="Messages.NoChild" xml:space="preserve"><value>Aún no hay ningún hijo o hija. Agrega uno antes de enviar mensajes.</value></data>
+  <data name="Messages.NoChild" xml:space="preserve"><value>Aún no hay hijos. Agrega uno antes de enviar mensajes.</value></data>
   <data name="Messages.Placeholder" xml:space="preserve"><value>Escribe un mensaje (máximo 500 caracteres)</value></data>
   <data name="Messages.Send" xml:space="preserve"><value>Enviar</value></data>
   <data name="Messages.Preset" xml:space="preserve"><value>Mensaje rápido</value></data>
@@ -908,7 +908,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Error.MessageNotFound" xml:space="preserve"><value>Mensaje no encontrado.</value></data>
   <data name="Error.MessageNotForDevice" xml:space="preserve"><value>Este mensaje es para otro dispositivo.</value></data>
   <data name="Team.Perm.Messages" xml:space="preserve"><value>mensajes</value></data>
-  <data name="Settings.MuteChildMessage" xml:space="preserve"><value>El hijo o hija envió un mensaje</value></data>
+  <data name="Settings.MuteChildMessage" xml:space="preserve"><value>Un hijo envió un mensaje</value></data>
   <data name="Alert.ChildMessage.Title" xml:space="preserve"><value>{0} envió un mensaje</value></data>
   <data name="Alert.ChildMessage.Detail" xml:space="preserve"><value>«{1}»</value></data>
   <data name="Email.MessageSubject" xml:space="preserve"><value>Nuevo mensaje de {0}</value></data>
@@ -916,8 +916,8 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Email.Message.Headline" xml:space="preserve"><value>Nuevo mensaje de {0}</value></data>
   <data name="Email.Message.Button" xml:space="preserve"><value>Abrir mensajes</value></data>
   <data name="Email.Message.Sample" xml:space="preserve"><value>¿Puedes venir a casa a las seis?</value></data>
-  <data name="Email.Digest.MessageCountOne" xml:space="preserve"><value>{0} mensaje de tu hijo o hija</value></data>
-  <data name="Email.Digest.MessageCountMany" xml:space="preserve"><value>{0} mensajes de tu hijo o hija</value></data>
+  <data name="Email.Digest.MessageCountOne" xml:space="preserve"><value>{0} mensaje de tus hijos</value></data>
+  <data name="Email.Digest.MessageCountMany" xml:space="preserve"><value>{0} mensajes de tus hijos</value></data>
   <data name="Home.MessageChild" xml:space="preserve"><value>Mensaje</value></data>
   <data name="Devices.Message" xml:space="preserve"><value>Mensaje</value></data>
   <data name="Messages.Target" xml:space="preserve"><value>Enviar a</value></data>
@@ -1100,7 +1100,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="SiteReview.Service.Twitch" xml:space="preserve"><value>Twitch</value></data>
   <data name="Websites.RelatedAllowedToastOne" xml:space="preserve"><value>Se permitió {0} dominio más</value></data>
   <data name="Push.Title" xml:space="preserve"><value>Notificaciones en tu teléfono y computadora</value></data>
-  <data name="Push.Help" xml:space="preserve"><value>Recibe notificaciones al instante de los mensajes de tu hijo o hija y de las alertas importantes en este dispositivo. Actívalas en cada navegador o app instalada que uses.</value></data>
+  <data name="Push.Help" xml:space="preserve"><value>Recibe notificaciones al instante de los mensajes de tus hijos y de las alertas importantes en este dispositivo. Actívalas en cada navegador o app instalada que uses.</value></data>
   <data name="Push.Checking" xml:space="preserve"><value>Revisando este dispositivo…</value></data>
   <data name="Push.Ios.Title" xml:space="preserve"><value>En iPhone y iPad, primero agrega el panel a tu pantalla de inicio:</value></data>
   <data name="Push.Ios.Step1" xml:space="preserve"><value>Toca el botón Compartir en Safari.</value></data>
@@ -1113,7 +1113,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Push.EnableHere" xml:space="preserve"><value>Activar en este dispositivo</value></data>
   <data name="Push.InstallApp" xml:space="preserve"><value>Instalar la app</value></data>
   <data name="Push.WhatToSend" xml:space="preserve"><value>Sobre qué notificarme</value></data>
-  <data name="Push.Pref.Messages" xml:space="preserve"><value>Mensajes de mi hijo o hija</value></data>
+  <data name="Push.Pref.Messages" xml:space="preserve"><value>Mensajes de mis hijos</value></data>
   <data name="Push.Pref.Tampering" xml:space="preserve"><value>Señales de manipulación</value></data>
   <data name="Push.Pref.Limits" xml:space="preserve"><value>Límite diario o de app alcanzado</value></data>
   <data name="Push.Pref.Pin" xml:space="preserve"><value>PIN de padres usado en un dispositivo</value></data>
@@ -1154,9 +1154,9 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Luna.Child.Resting" xml:space="preserve"><value>Luna está descansando mientras este dispositivo está bloqueado.</value></data>
   <data name="Luna.Child.Refusal" xml:space="preserve"><value>No puedo responder eso ahora. Inténtalo más tarde o pide ayuda a un adulto.</value></data>
   <data name="Luna.Child.MonthlyCap" xml:space="preserve"><value>Luna ya usó todo su tiempo de chat de este mes. Pide a un adulto si necesitas más.</value></data>
-  <data name="Luna.Error.Disabled" xml:space="preserve"><value>Luna AI no está activada para este perfil.</value></data>
-  <data name="Luna.Error.SetupNotTested" xml:space="preserve"><value>La configuración del proveedor de Luna AI no ha superado su última prueba.</value></data>
-  <data name="Luna.Error.SetupIncomplete" xml:space="preserve"><value>La configuración del proveedor de Luna AI está incompleta.</value></data>
+  <data name="Luna.Error.Disabled" xml:space="preserve"><value>Luna IA no está activada para este perfil.</value></data>
+  <data name="Luna.Error.SetupNotTested" xml:space="preserve"><value>La configuración del proveedor de Luna IA no ha superado su última prueba.</value></data>
+  <data name="Luna.Error.SetupIncomplete" xml:space="preserve"><value>La configuración del proveedor de Luna IA está incompleta.</value></data>
   <data name="Luna.Error.SetupAProvider" xml:space="preserve"><value>La configuración A usa OpenRouter para el modelo de chat y el filtro de seguridad. Elige OpenAI, Anthropic, Google Gemini o DeepSeek para la configuración B.</value></data>
   <data name="Luna.Error.SetupBProvider" xml:space="preserve"><value>La configuración A requiere el proveedor OpenRouter.</value></data>
   <data name="Luna.Error.ChatKeyMissing" xml:space="preserve"><value>Primero agrega la clave API del proveedor de chat.</value></data>
@@ -1169,7 +1169,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Luna.Error.ProviderDown" xml:space="preserve"><value>El proveedor no responde. Inténtalo más tarde.</value></data>
   <data name="Luna.Error.ModerationTimeout" xml:space="preserve"><value>La revisión de moderación tardó demasiado. Inténtalo más tarde.</value></data>
   <data name="Luna.Error.ZdrMissing" xml:space="preserve"><value>El modelo {0} no tiene un endpoint de retención cero de datos en OpenRouter.</value></data>
-  <data name="Luna.Error.UnderThirteenAck" xml:space="preserve"><value>Este perfil tiene menos de 13 años o no tiene fecha de nacimiento. La configuración B necesita la confirmación del padre o madre antes de activar Luna AI.</value></data>
+  <data name="Luna.Error.UnderThirteenAck" xml:space="preserve"><value>Este perfil tiene menos de 13 años o no tiene fecha de nacimiento. La configuración B necesita la confirmación del padre o madre antes de activar Luna IA.</value></data>
   <data name="Luna.Error.InvalidSubject" xml:space="preserve"><value>Elige una materia válida.</value></data>
   <data name="Luna.Error.InvalidTheme" xml:space="preserve"><value>Elige un tema válido.</value></data>
   <data name="Luna.Error.ChatNotFound" xml:space="preserve"><value>No se encontró ese chat.</value></data>
@@ -1178,30 +1178,30 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Luna.Error.EmptyMessage" xml:space="preserve"><value>Escribe un mensaje primero.</value></data>
   <data name="Luna.Error.MessageTooLong" xml:space="preserve"><value>Los mensajes pueden tener como máximo {0} caracteres.</value></data>
   <data name="Error.OwnerLunaSettings" xml:space="preserve"><value>Solo el dueño de la familia puede cambiar la configuración del proveedor de Luna.</value></data>
-  <data name="Alert.Luna.Flagged.Title" xml:space="preserve"><value>Alerta de seguridad de Luna AI</value></data>
-  <data name="Alert.Luna.Flagged.Detail" xml:space="preserve"><value>Luna AI bloqueó un mensaje de {0} en el chat {1}. Abre el panel para revisarlo.</value></data>
-  <data name="Alert.Luna.ReplyBlocked.Title" xml:space="preserve"><value>Alerta de seguridad de Luna AI</value></data>
-  <data name="Alert.Luna.ReplyBlocked.Detail" xml:space="preserve"><value>La respuesta de Luna AI se bloqueó para {0} en el chat {1}. Abre el panel para revisarla.</value></data>
-  <data name="Alert.Luna.Urgent.Title" xml:space="preserve"><value>Alerta urgente de Luna AI para {0}</value></data>
-  <data name="Alert.Luna.Urgent.Detail" xml:space="preserve"><value>Luna AI notó algo urgente en un chat con {0}. Abre el panel ahora.</value></data>
-  <data name="Alert.Luna.Cooldown.Title" xml:space="preserve"><value>Luna AI se pausó para un descanso</value></data>
-  <data name="Alert.Luna.Cooldown.Detail" xml:space="preserve"><value>{0} envió varios mensajes que Luna AI no pudo responder. Luna AI está en pausa durante 15 minutos.</value></data>
-  <data name="Alert.Luna.MoreRequest.Title" xml:space="preserve"><value>Mensajes de Luna AI solicitados</value></data>
-  <data name="Alert.Luna.MoreRequest.Detail" xml:space="preserve"><value>{0} pidió más mensajes de Luna AI</value></data>
-  <data name="Alert.Luna.MonthlyCap.Title" xml:space="preserve"><value>Límite mensual de Luna AI alcanzado</value></data>
-  <data name="Alert.Luna.MonthlyCap.Detail" xml:space="preserve"><value>La familia alcanzó el límite mensual de tokens de Luna AI. Luna AI está en pausa durante {0}.</value></data>
-  <data name="Push.Luna.Urgent.Title" xml:space="preserve"><value>Alerta urgente de Luna AI para {0}</value></data>
-  <data name="Push.Luna.Urgent.Body" xml:space="preserve"><value>Alerta urgente de Luna AI para {0}. Abre el panel.</value></data>
-  <data name="Push.Pref.Luna" xml:space="preserve"><value>Alertas de seguridad de Luna AI y solicitudes de mensajes</value></data>
+  <data name="Alert.Luna.Flagged.Title" xml:space="preserve"><value>Alerta de seguridad de Luna IA</value></data>
+  <data name="Alert.Luna.Flagged.Detail" xml:space="preserve"><value>Luna IA bloqueó un mensaje de {0} en el chat {1}. Abre el panel para revisarlo.</value></data>
+  <data name="Alert.Luna.ReplyBlocked.Title" xml:space="preserve"><value>Alerta de seguridad de Luna IA</value></data>
+  <data name="Alert.Luna.ReplyBlocked.Detail" xml:space="preserve"><value>La respuesta de Luna IA se bloqueó para {0} en el chat {1}. Abre el panel para revisarla.</value></data>
+  <data name="Alert.Luna.Urgent.Title" xml:space="preserve"><value>Alerta urgente de Luna IA para {0}</value></data>
+  <data name="Alert.Luna.Urgent.Detail" xml:space="preserve"><value>Luna IA notó algo urgente en un chat con {0}. Abre el panel ahora.</value></data>
+  <data name="Alert.Luna.Cooldown.Title" xml:space="preserve"><value>Luna IA se pausó para un descanso</value></data>
+  <data name="Alert.Luna.Cooldown.Detail" xml:space="preserve"><value>{0} envió varios mensajes que Luna IA no pudo responder. Luna IA está en pausa durante 15 minutos.</value></data>
+  <data name="Alert.Luna.MoreRequest.Title" xml:space="preserve"><value>Mensajes de Luna IA solicitados</value></data>
+  <data name="Alert.Luna.MoreRequest.Detail" xml:space="preserve"><value>{0} pidió más mensajes de Luna IA</value></data>
+  <data name="Alert.Luna.MonthlyCap.Title" xml:space="preserve"><value>Límite mensual de Luna IA alcanzado</value></data>
+  <data name="Alert.Luna.MonthlyCap.Detail" xml:space="preserve"><value>La familia alcanzó el límite mensual de tokens de Luna IA. Luna IA está en pausa durante {0}.</value></data>
+  <data name="Push.Luna.Urgent.Title" xml:space="preserve"><value>Alerta urgente de Luna IA para {0}</value></data>
+  <data name="Push.Luna.Urgent.Body" xml:space="preserve"><value>Alerta urgente de Luna IA para {0}. Abre el panel.</value></data>
+  <data name="Push.Pref.Luna" xml:space="preserve"><value>Alertas de seguridad de Luna IA y solicitudes de mensajes</value></data>
   <data name="Luna.SubjectTitle.Math" xml:space="preserve"><value>Chat de Matemáticas</value></data>
   <data name="Luna.SubjectTitle.Science" xml:space="preserve"><value>Chat de Ciencia</value></data>
   <data name="Luna.SubjectTitle.History" xml:space="preserve"><value>Chat de Historia</value></data>
   <data name="Luna.SubjectTitle.Dictionary" xml:space="preserve"><value>Chat de Diccionario</value></data>
   <data name="Luna.SubjectTitle.Languages" xml:space="preserve"><value>Chat de Idiomas</value></data>
   <data name="Luna.SubjectTitle.Curious" xml:space="preserve"><value>Chat de Curiosidades</value></data>
-  <data name="Nav.Luna" xml:space="preserve"><value>Luna AI</value></data>
-  <data name="Alert.Luna.SetupBroken.Title" xml:space="preserve"><value>La configuración de Luna AI necesita atención</value></data>
-  <data name="Alert.Luna.SetupBroken.Detail" xml:space="preserve"><value>Luna AI está en pausa porque falló la configuración del proveedor. Abre la configuración de Luna AI y ejecuta Probar conexión.</value></data>
+  <data name="Nav.Luna" xml:space="preserve"><value>Luna IA</value></data>
+  <data name="Alert.Luna.SetupBroken.Title" xml:space="preserve"><value>La configuración de Luna IA necesita atención</value></data>
+  <data name="Alert.Luna.SetupBroken.Detail" xml:space="preserve"><value>Luna IA está en pausa porque falló la configuración del proveedor. Abre la configuración de Luna IA y ejecuta Probar conexión.</value></data>
   <data name="Luna.Subject.Math" xml:space="preserve"><value>Matemáticas</value></data>
   <data name="Luna.Subject.Science" xml:space="preserve"><value>Ciencia</value></data>
   <data name="Luna.Subject.History" xml:space="preserve"><value>Historia</value></data>
@@ -1226,10 +1226,10 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Luna.Model.Estimate.Sonnet55" xml:space="preserve"><value>aprox. $11/mes</value></data>
   <data name="Luna.Model.Other" xml:space="preserve"><value>Otro…</value></data>
   <data name="Luna.Model.PriceNote" xml:space="preserve"><value>Las estimaciones suponen 60 mensajes al día. Todos los modelos de esta lista tienen retención cero de datos; la prueba lo comprueba de nuevo.</value></data>
-  <data name="Luna.Setup.PageTitle" xml:space="preserve"><value>Configuración de Luna AI</value></data>
-  <data name="Luna.Setup.Eyebrow" xml:space="preserve"><value>Luna AI · Configuración familiar</value></data>
-  <data name="Luna.Setup.Title" xml:space="preserve"><value>Configura Luna AI</value></data>
-  <data name="Luna.Setup.Subtitle" xml:space="preserve"><value>Luna AI es una compañera de estudio para tus hijos e hijas. Elige cómo se conecta Luna AI, agrega tu clave y pruébala antes de activarla para un hijo o hija.</value></data>
+  <data name="Luna.Setup.PageTitle" xml:space="preserve"><value>Configuración de Luna IA</value></data>
+  <data name="Luna.Setup.Eyebrow" xml:space="preserve"><value>Luna IA · Configuración familiar</value></data>
+  <data name="Luna.Setup.Title" xml:space="preserve"><value>Configura Luna IA</value></data>
+  <data name="Luna.Setup.Subtitle" xml:space="preserve"><value>Luna IA es una compañera de estudio para tus hijos. Elige cómo se conecta Luna IA, agrega tu clave y pruébala antes de activarla para un hijo.</value></data>
   <data name="Luna.Setup.Back" xml:space="preserve"><value>Volver a Luna</value></data>
   <data name="Luna.Setup.StatusTitle" xml:space="preserve"><value>Estado</value></data>
   <data name="Luna.Setup.StatusReady" xml:space="preserve"><value>Lista. Configuración {0} probada correctamente.</value></data>
@@ -1242,11 +1242,11 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Luna.Setup.Guide.Show" xml:space="preserve"><value>Mostrar</value></data>
   <data name="Luna.Setup.Guide.Hide" xml:space="preserve"><value>Ocultar</value></data>
   <data name="Luna.Guide.Checks.Title" xml:space="preserve"><value>Dos comprobaciones en cada mensaje</value></data>
-  <data name="Luna.Guide.Checks.Text" xml:space="preserve"><value>Cada mensaje que envía tu hijo o hija y cada respuesta de Luna AI pasan por un filtro de seguridad separado antes de que alguien los vea. El modelo de chat nunca ve un mensaje bloqueado. Si el filtro de seguridad falla, Luna AI no responde.</value></data>
+  <data name="Luna.Guide.Checks.Text" xml:space="preserve"><value>Cada mensaje que envían tus hijos y cada respuesta de Luna IA pasan por un filtro de seguridad separado antes de que alguien los vea. El modelo de chat nunca ve un mensaje bloqueado. Si el filtro de seguridad falla, Luna IA no responde.</value></data>
   <data name="Luna.Guide.Charge.Title" xml:space="preserve"><value>Tú tienes el control</value></data>
   <data name="Luna.Guide.Charge.Text" xml:space="preserve"><value>Puedes leer todos los chats, incluidos los ocultos. Los mensajes bloqueados te envían una alerta; los urgentes te llegan de inmediato por notificación y correo, incluso en horas de silencio.</value></data>
   <data name="Luna.Guide.TwoSetups.Title" xml:space="preserve"><value>Por qué dos configuraciones</value></data>
-  <data name="Luna.Guide.TwoSetups.Text" xml:space="preserve"><value>Luna AI necesita un modelo de chat y un filtro de seguridad. La configuración A usa una clave de OpenRouter para ambos y fuerza retención cero de datos, así que las empresas de IA no almacenan los mensajes de tu hijo o hija. La configuración B te permite usar otro proveedor con el filtro de seguridad de OpenAI y necesita dos claves.</value></data>
+  <data name="Luna.Guide.TwoSetups.Text" xml:space="preserve"><value>Luna IA necesita un modelo de chat y un filtro de seguridad. La configuración A usa una clave de OpenRouter para ambos y fuerza retención cero de datos, así que las empresas de IA no almacenan los mensajes de tus hijos. La configuración B te permite usar otro proveedor con el filtro de seguridad de OpenAI y necesita dos claves.</value></data>
   <data name="Luna.Guide.Under13.Title" xml:space="preserve"><value>Menores de 13 años</value></data>
   <data name="Luna.Guide.Under13.Text" xml:space="preserve"><value>OpenAI pide a las aplicaciones no enviar datos personales de menores de 13 años sin retención cero de datos, que las claves normales no tienen. La configuración A es la recomendada para los más pequeños y no pide confirmación adicional.</value></data>
   <data name="Luna.Guide.Cost.Title" xml:space="preserve"><value>Cuánto cuesta</value></data>
@@ -1255,16 +1255,14 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Luna.Guide.GetKey.Step1" xml:space="preserve"><value>Crea una cuenta en openrouter.ai y agrega unos dólares de saldo.</value></data>
   <data name="Luna.Guide.GetKey.Step2" xml:space="preserve"><value>Abre Claves, crea una clave llamada "Luna" y cópiala.</value></data>
   <data name="Luna.Guide.GetKey.Step3" xml:space="preserve"><value>Pégala abajo y pulsa Probar conexión.</value></data>
-  <data name="Luna.Guide.GetKey.SetupB" xml:space="preserve"><value>Instrucciones para la configuración B (OpenAI, Anthropic, Gemini, DeepSeek)</value></data>
-  <data name="Luna.Guide.GetKey.SetupBText" xml:space="preserve"><value>Crea una clave con tu proveedor de chat y una clave de OpenAI para el filtro de seguridad, luego elige la configuración B abajo y pega ambas claves.</value></data>
   <data name="Luna.Setup.Choose" xml:space="preserve"><value>1. Elige una configuración</value></data>
   <data name="Luna.Setup.SetupAName" xml:space="preserve"><value>Configuración A · OpenRouter</value></data>
   <data name="Luna.Setup.SetupBName" xml:space="preserve"><value>Configuración B · Tu proveedor + filtro de seguridad de OpenAI</value></data>
   <data name="Luna.Setup.Recommended" xml:space="preserve"><value>Recomendada</value></data>
   <data name="Luna.Setup.SetupADesc" xml:space="preserve"><value>Una clave para el modelo de chat y el filtro de seguridad (Llama Guard 4). Se fuerza retención cero de datos en cada solicitud. La mejor opción para menores de 13 años.</value></data>
   <data name="Luna.Setup.SetupBDesc" xml:space="preserve"><value>Chat con OpenAI, Anthropic, Google Gemini o DeepSeek. Necesita dos claves: la de tu proveedor de chat y una de OpenAI para el filtro de seguridad gratuito. Pide una confirmación extra para menores de 13 años.</value></data>
-  <data name="Luna.Setup.HardRule" xml:space="preserve"><value>Luna AI permanece apagada hasta que tu configuración esté completa.</value></data>
-  <data name="Luna.Setup.HardRuleText" xml:space="preserve"><value>No se puede activar para ningún hijo o hija hasta que todas las claves que necesita tu configuración estén guardadas y se supere Probar conexión. La configuración A necesita una clave de OpenRouter. La configuración B necesita ambas claves: la de tu proveedor de chat y una de OpenAI para el filtro de seguridad. Si una clave deja de funcionar después, Luna AI se pausa y recibes una alerta.</value></data>
+  <data name="Luna.Setup.HardRule" xml:space="preserve"><value>Luna IA permanece apagada hasta que tu configuración esté completa.</value></data>
+  <data name="Luna.Setup.HardRuleText" xml:space="preserve"><value>No se puede activar para ningún hijo hasta que todas las claves que necesita tu configuración estén guardadas y se supere Probar conexión. La configuración A necesita una clave de OpenRouter. La configuración B necesita ambas claves: la de tu proveedor de chat y una de OpenAI para el filtro de seguridad. Si una clave deja de funcionar después, Luna IA se pausa y recibes una alerta.</value></data>
   <data name="Luna.Setup.KeysModel" xml:space="preserve"><value>2. Claves y modelo</value></data>
   <data name="Luna.Setup.KeysNote" xml:space="preserve"><value>Las claves se cifran y nunca se vuelven a mostrar</value></data>
   <data name="Luna.Setup.OpenRouterKey" xml:space="preserve"><value>Clave de OpenRouter</value></data>
@@ -1290,30 +1288,30 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Luna.Setup.Limits" xml:space="preserve"><value>3. Límites y ayuda</value></data>
   <data name="Luna.Setup.MonthlyCap" xml:space="preserve"><value>Límite mensual de tokens (opcional)</value></data>
   <data name="Luna.Setup.MonthlyUsage" xml:space="preserve"><value>Este mes: {0} tokens · aprox. ${1}</value></data>
-  <data name="Luna.Setup.CapNote" xml:space="preserve"><value>Luna AI se pausa y te avisa si se alcanza el límite.</value></data>
+  <data name="Luna.Setup.CapNote" xml:space="preserve"><value>Luna IA se pausa y te avisa si se alcanza el límite.</value></data>
   <data name="Luna.Setup.Helpline" xml:space="preserve"><value>Línea de ayuda en momentos urgentes</value></data>
-  <data name="Luna.Setup.HelplineNote" xml:space="preserve"><value>Agrega un número de teléfono verificado de tu país si quieres que se le muestre a tu hijo o hija.</value></data>
+  <data name="Luna.Setup.HelplineNote" xml:space="preserve"><value>Agrega un número de teléfono verificado de tu país si quieres que se les muestre a tus hijos.</value></data>
   <data name="Luna.Setup.Save" xml:space="preserve"><value>Guardar</value></data>
-  <data name="Luna.Setup.Saved" xml:space="preserve"><value>Configuración de Luna AI guardada.</value></data>
-  <data name="Luna.Setup.OwnerOnly" xml:space="preserve"><value>Solo el propietario de la familia puede cambiar la configuración de Luna AI.</value></data>
-  <data name="Luna.Setup.TestPassed" xml:space="preserve"><value>Prueba superada. Luna AI está lista para activarse.</value></data>
+  <data name="Luna.Setup.Saved" xml:space="preserve"><value>Configuración de Luna IA guardada.</value></data>
+  <data name="Luna.Setup.OwnerOnly" xml:space="preserve"><value>Solo el propietario de la familia puede cambiar la configuración de Luna IA.</value></data>
+  <data name="Luna.Setup.TestPassed" xml:space="preserve"><value>Prueba superada. Luna IA está lista para activarse.</value></data>
   <data name="Luna.Setup.TestFailed" xml:space="preserve"><value>La prueba falló: {0}</value></data>
-  <data name="Luna.PageTitle" xml:space="preserve"><value>Luna AI</value></data>
+  <data name="Luna.PageTitle" xml:space="preserve"><value>Luna IA</value></data>
   <data name="Luna.Common.Loading" xml:space="preserve"><value>Cargando…</value></data>
   <data name="Luna.Common.Save" xml:space="preserve"><value>Guardar</value></data>
   <data name="Luna.Common.Delete" xml:space="preserve"><value>Eliminar</value></data>
   <data name="Luna.Common.Cancel" xml:space="preserve"><value>Cancelar</value></data>
-  <data name="Luna.Child.Eyebrow" xml:space="preserve"><value>Luna AI · Compañera de estudio</value></data>
-  <data name="Luna.Child.Title" xml:space="preserve"><value>Luna AI para {0}</value></data>
+  <data name="Luna.Child.Eyebrow" xml:space="preserve"><value>Luna IA · Compañera de estudio</value></data>
+  <data name="Luna.Child.Title" xml:space="preserve"><value>Luna IA para {0}</value></data>
   <data name="Luna.Child.Subtitle" xml:space="preserve"><value>Configuración {0} · {1} · {2} · {3}</value></data>
   <data name="Luna.Child.TestToday" xml:space="preserve"><value>probada hoy</value></data>
   <data name="Luna.Child.TestOn" xml:space="preserve"><value>probada {0}</value></data>
   <data name="Luna.Child.NotTested" xml:space="preserve"><value>aún no probada</value></data>
-  <data name="Luna.Child.SetupButton" xml:space="preserve"><value>Configuración de Luna AI</value></data>
+  <data name="Luna.Child.SetupButton" xml:space="preserve"><value>Configuración de Luna IA</value></data>
   <data name="Luna.Child.ReviewButton" xml:space="preserve"><value>Revisar chats</value></data>
   <data name="Luna.Child.Children" xml:space="preserve"><value>Hijos</value></data>
-  <data name="Luna.Child.NoChildren" xml:space="preserve"><value>Aún no hay hijos o hijas.</value></data>
-  <data name="Luna.Request.Title" xml:space="preserve"><value>{0} pidió más mensajes de Luna AI</value></data>
+  <data name="Luna.Child.NoChildren" xml:space="preserve"><value>Aún no hay hijos.</value></data>
+  <data name="Luna.Request.Title" xml:space="preserve"><value>{0} pidió más mensajes de Luna IA</value></data>
   <data name="Luna.Request.Detail" xml:space="preserve"><value>{0} · usó los {1} mensajes</value></data>
   <data name="Luna.Request.Custom" xml:space="preserve"><value>Personalizado</value></data>
   <data name="Luna.Request.Give" xml:space="preserve"><value>Dar</value></data>
@@ -1328,39 +1326,39 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Luna.Child.OpenReview" xml:space="preserve"><value>Abrir revisión</value></data>
   <data name="Luna.Child.ChatsWeek" xml:space="preserve"><value>Chats esta semana</value></data>
   <data name="Luna.Child.NoChatsWeek" xml:space="preserve"><value>Aún no hay chats</value></data>
-  <data name="Luna.Child.OnDevices" xml:space="preserve"><value>Luna AI en los dispositivos de {0}</value></data>
-  <data name="Luna.Child.On" xml:space="preserve"><value>Luna AI está activada</value></data>
-  <data name="Luna.Child.Off" xml:space="preserve"><value>Luna AI está desactivada</value></data>
+  <data name="Luna.Child.OnDevices" xml:space="preserve"><value>Luna IA en los dispositivos de {0}</value></data>
+  <data name="Luna.Child.On" xml:space="preserve"><value>Luna IA está activada</value></data>
+  <data name="Luna.Child.Off" xml:space="preserve"><value>Luna IA está desactivada</value></data>
   <data name="Luna.Child.OnDetail" xml:space="preserve"><value>La luna aparece en la esquina de la pantalla de {0} en sus portátiles.</value></data>
-  <data name="Luna.Child.SetupRequired" xml:space="preserve"><value>Luna AI permanece apagada hasta que todas las claves de tu configuración estén guardadas y se supere Probar conexión.</value></data>
+  <data name="Luna.Child.SetupRequired" xml:space="preserve"><value>Luna IA permanece apagada hasta que todas las claves de tu configuración estén guardadas y se supere Probar conexión.</value></data>
   <data name="Luna.Child.SetupAInfo" xml:space="preserve"><value>{0} tiene {1} años. Usas la configuración A (retención cero de datos), así que no hace falta una confirmación adicional.</value></data>
-  <data name="Luna.Child.SetupBInfo" xml:space="preserve"><value>{0} tiene {1} años. La configuración B te pide confirmar antes de activar Luna AI para un menor de 13 años.</value></data>
+  <data name="Luna.Child.SetupBInfo" xml:space="preserve"><value>{0} tiene {1} años. La configuración B te pide confirmar antes de activar Luna IA para un menor de 13 años.</value></data>
   <data name="Luna.Child.NoDobInfo" xml:space="preserve"><value>Este perfil no tiene fecha de nacimiento.</value></data>
-  <data name="Luna.Child.Under13Title" xml:space="preserve"><value>Confirma antes de activar Luna AI</value></data>
+  <data name="Luna.Child.Under13Title" xml:space="preserve"><value>Confirma antes de activar Luna IA</value></data>
   <data name="Luna.Child.Under13Body" xml:space="preserve"><value>La configuración B envía los mensajes de este perfil a tu proveedor de chat y al filtro de seguridad de OpenAI. {0} tiene menos de 13 años o no tiene fecha de nacimiento. Confirma que eres el padre, madre o tutor y que quieres continuar.</value></data>
-  <data name="Luna.Child.Under13Check" xml:space="preserve"><value>Soy el padre, madre o tutor y quiero activar Luna AI para este perfil.</value></data>
-  <data name="Luna.Child.Confirm" xml:space="preserve"><value>Activar Luna AI</value></data>
+  <data name="Luna.Child.Under13Check" xml:space="preserve"><value>Soy el padre, madre o tutor y quiero activar Luna IA para este perfil.</value></data>
+  <data name="Luna.Child.Confirm" xml:space="preserve"><value>Activar Luna IA</value></data>
   <data name="Luna.Child.DailyLimit" xml:space="preserve"><value>Límite diario</value></data>
   <data name="Luna.Child.MessagesPerDay" xml:space="preserve"><value>Mensajes por día</value></data>
-  <data name="Luna.Child.LimitNote" xml:space="preserve"><value>{0} ve "Quedan 5 mensajes hoy" cerca del final y puede pulsar "Pedir a mis papás" cuando se acaben. Luna AI también respeta los bloqueos y horarios.</value></data>
+  <data name="Luna.Child.LimitNote" xml:space="preserve"><value>{0} ve "Quedan 5 mensajes hoy" cerca del final y puede pulsar "Pedir a mis papás" cuando se acaben. Luna IA también respeta los bloqueos y horarios.</value></data>
   <data name="Luna.Child.DailySaved" xml:space="preserve"><value>Límite diario guardado.</value></data>
-  <data name="Luna.Child.ExtraInstructions" xml:space="preserve"><value>Instrucciones extra para Luna AI</value></data>
-  <data name="Luna.Child.ExtraNote" xml:space="preserve"><value>Se agregan después de las reglas de seguridad integradas de Luna AI. No pueden desactivar las reglas de seguridad.</value></data>
+  <data name="Luna.Child.ExtraInstructions" xml:space="preserve"><value>Instrucciones extra para Luna IA</value></data>
+  <data name="Luna.Child.ExtraNote" xml:space="preserve"><value>Se agregan después de las reglas de seguridad integradas de Luna IA. No pueden desactivar las reglas de seguridad.</value></data>
   <data name="Luna.Child.ExtraSaved" xml:space="preserve"><value>Instrucciones extra guardadas.</value></data>
   <data name="Luna.Child.SeeAll" xml:space="preserve"><value>Ver todo</value></data>
   <data name="Luna.Child.NothingToReview" xml:space="preserve"><value>Nada por revisar.</value></data>
-  <data name="Luna.Child.Profile" xml:space="preserve"><value>Lo que Luna AI sabe de {0}</value></data>
-  <data name="Luna.Child.ProfileLuna" xml:space="preserve"><value>Actualizado por Luna AI · {0}</value></data>
+  <data name="Luna.Child.Profile" xml:space="preserve"><value>Lo que Luna IA sabe de {0}</value></data>
+  <data name="Luna.Child.ProfileLuna" xml:space="preserve"><value>Actualizado por Luna IA · {0}</value></data>
   <data name="Luna.Child.ProfileParent" xml:space="preserve"><value>Actualizado por un padre o madre · {0}</value></data>
   <data name="Luna.Child.ProfileEmpty" xml:space="preserve"><value>Aún no definido.</value></data>
-  <data name="Luna.Child.ProfileNote" xml:space="preserve"><value>Luna AI usa esto para elegir el nivel adecuado. Puedes editarlo o borrarlo cuando quieras.</value></data>
+  <data name="Luna.Child.ProfileNote" xml:space="preserve"><value>Luna IA usa esto para elegir el nivel adecuado. Puedes editarlo o borrarlo cuando quieras.</value></data>
   <data name="Luna.Child.ProfileSaved" xml:space="preserve"><value>Perfil de aprendizaje guardado.</value></data>
   <data name="Luna.Child.ProfileCleared" xml:space="preserve"><value>Perfil de aprendizaje borrado.</value></data>
   <data name="Luna.Child.Clear" xml:space="preserve"><value>Borrar</value></data>
-  <data name="Luna.Child.ClearConfirm" xml:space="preserve"><value>¿Borrar lo que Luna AI sabe de {0}?</value></data>
-  <data name="Luna.Review.PageTitle" xml:space="preserve"><value>Luna AI · Revisión</value></data>
-  <data name="Luna.Review.Breadcrumb" xml:space="preserve"><value>Luna AI para {0} · Chats</value></data>
-  <data name="Luna.Review.Title" xml:space="preserve"><value>Los chats de {0} con Luna AI</value></data>
+  <data name="Luna.Child.ClearConfirm" xml:space="preserve"><value>¿Borrar lo que Luna IA sabe de {0}?</value></data>
+  <data name="Luna.Review.PageTitle" xml:space="preserve"><value>Luna IA · Revisión</value></data>
+  <data name="Luna.Review.Breadcrumb" xml:space="preserve"><value>Luna IA para {0} · Chats</value></data>
+  <data name="Luna.Review.Title" xml:space="preserve"><value>Los chats de {0} con Luna IA</value></data>
   <data name="Luna.Review.Subtitle" xml:space="preserve"><value>Ves todos los chats, incluidos los que {0} ocultó.</value></data>
   <data name="Luna.Review.DeleteAll" xml:space="preserve"><value>Eliminar todos los chats</value></data>
   <data name="Luna.Review.FilterAll" xml:space="preserve"><value>Todos</value></data>
@@ -1369,43 +1367,43 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Luna.Review.Empty" xml:space="preserve"><value>No hay chats aquí.</value></data>
   <data name="Luna.Review.DeleteChat" xml:space="preserve"><value>Eliminar chat</value></data>
   <data name="Luna.Review.ConfirmDeleteChat" xml:space="preserve"><value>¿Eliminar este chat y todos sus mensajes?</value></data>
-  <data name="Luna.Review.ConfirmDeleteAll" xml:space="preserve"><value>¿Eliminar todos los chats de Luna AI de {0}? Esto no se puede deshacer.</value></data>
+  <data name="Luna.Review.ConfirmDeleteAll" xml:space="preserve"><value>¿Eliminar todos los chats de Luna IA de {0}? Esto no se puede deshacer.</value></data>
   <data name="Luna.Review.Blocked" xml:space="preserve"><value>Bloqueado</value></data>
   <data name="Luna.Review.AnswerBlocked" xml:space="preserve"><value>Respuesta bloqueada</value></data>
   <data name="Luna.Review.Urgent" xml:space="preserve"><value>Urgente</value></data>
   <data name="Luna.Review.HiddenBy" xml:space="preserve"><value>Oculto por {0}</value></data>
   <data name="Luna.Review.Reviewed" xml:space="preserve"><value>Revisado</value></data>
   <data name="Luna.Review.MarkedFine" xml:space="preserve"><value>Estaba bien</value></data>
-  <data name="Luna.Review.BlockedBefore" xml:space="preserve"><value>Bloqueado antes de que Luna AI lo viera</value></data>
+  <data name="Luna.Review.BlockedBefore" xml:space="preserve"><value>Bloqueado antes de que Luna IA lo viera</value></data>
   <data name="Luna.Review.WhatSaw" xml:space="preserve"><value>Lo que {0} vio:</value></data>
   <data name="Luna.Review.MarkReviewed" xml:space="preserve"><value>Marcar como revisado</value></data>
   <data name="Luna.Review.ThisWasFine" xml:space="preserve"><value>Estaba bien</value></data>
   <data name="Luna.Review.DidNotSee" xml:space="preserve"><value>{0} no vio esto</value></data>
-  <data name="Luna.Review.OriginalAnswer" xml:space="preserve"><value>Respuesta original de Luna AI</value></data>
+  <data name="Luna.Review.OriginalAnswer" xml:space="preserve"><value>Respuesta original de Luna IA</value></data>
   <data name="Luna.Review.SafeReply" xml:space="preserve"><value>Respuesta segura</value></data>
-  <data name="Luna.Review.Note" xml:space="preserve"><value>Cuando se bloquea la respuesta de Luna AI, verás la respuesta original aquí en un cuadro contraído marcado "{0} no vio esto", junto a la respuesta segura que recibió tu hijo o hija.</value></data>
+  <data name="Luna.Review.Note" xml:space="preserve"><value>Cuando se bloquea la respuesta de Luna IA, verás la respuesta original aquí en un cuadro contraído marcado "{0} no vio esto", junto a la respuesta segura que recibió {0}.</value></data>
   <data name="Luna.Review.Messages" xml:space="preserve"><value>{0} mensajes</value></data>
-  <data name="Luna.Review.NoChild" xml:space="preserve"><value>Aún no hay ningún hijo o hija.</value></data>
+  <data name="Luna.Review.NoChild" xml:space="preserve"><value>Aún no hay hijos.</value></data>
   <data name="Luna.Review.ShowOriginal" xml:space="preserve"><value>Mostrar original</value></data>
   <data name="Luna.Review.HideOriginal" xml:space="preserve"><value>Ocultar original</value></data>
   <data name="Luna.Review.ReviewedOn" xml:space="preserve"><value>Revisado {0}</value></data>
   <data name="Luna.Error.DemoSeedFailed" xml:space="preserve"><value>No se pudo crear la cuenta de demostración: {0}</value></data>
-  <data name="Luna.Alias" xml:space="preserve"><value>Luna AI</value></data>
-  <data name="Luna.Child.Paused" xml:space="preserve"><value>Luna AI está en pausa hasta que la configuración supere Probar conexión.</value></data>
-  <data name="Luna.Moon.Awake" xml:space="preserve"><value>Luna AI está despierta</value></data>
-  <data name="Luna.Moon.Asleep" xml:space="preserve"><value>Luna AI está dormida</value></data>
-  <data name="Luna.Moon.Paused" xml:space="preserve"><value>Luna AI está en pausa</value></data>
-  <data name="Luna.Moon.Happy" xml:space="preserve"><value>Luna AI está contenta</value></data>
-  <data name="Luna.Moon.Looking" xml:space="preserve"><value>Luna AI está mirando</value></data>
-  <data name="Luna.Moon.Phase" xml:space="preserve"><value>Luna AI está pensando</value></data>
-  <data name="Luna.Why.Title" xml:space="preserve"><value>Por qué Luna en lugar de un sitio web de IA gratis</value></data>
-  <data name="Luna.Why.Text" xml:space="preserve"><value>Tarde o temprano, los niños y niñas de esta edad encuentran un chat de IA por su cuenta, en la escuela, en casa de un amigo o dentro de un buscador. Los chats públicos de IA están hechos para todos, no para niños y niñas, y no puedes ver qué le pregunta tu hijo o hija. Luna se encuentra a medio camino: una IA real que puede usar todos los días, contigo a cargo.</value></data>
-  <data name="Luna.Why.Bullet.Kids" xml:space="preserve"><value>Hecha para niños y niñas: Luna les ayuda a pensar y aprender en lugar de darles solo respuestas.</value></data>
+  <data name="Luna.Alias" xml:space="preserve"><value>Luna IA</value></data>
+  <data name="Luna.Child.Paused" xml:space="preserve"><value>Luna IA está en pausa hasta que la configuración supere Probar conexión.</value></data>
+  <data name="Luna.Moon.Awake" xml:space="preserve"><value>Luna IA está despierta</value></data>
+  <data name="Luna.Moon.Asleep" xml:space="preserve"><value>Luna IA está dormida</value></data>
+  <data name="Luna.Moon.Paused" xml:space="preserve"><value>Luna IA está en pausa</value></data>
+  <data name="Luna.Moon.Happy" xml:space="preserve"><value>Luna IA está contenta</value></data>
+  <data name="Luna.Moon.Looking" xml:space="preserve"><value>Luna IA está mirando</value></data>
+  <data name="Luna.Moon.Phase" xml:space="preserve"><value>Luna IA está pensando</value></data>
+  <data name="Luna.Why.Title" xml:space="preserve"><value>Por qué Luna en lugar de un chat de IA gratis</value></data>
+  <data name="Luna.Why.Text" xml:space="preserve"><value>Tarde o temprano, los niños de esta edad encuentran un chat de IA por su cuenta, en la escuela, en casa de un amigo o dentro de un buscador. Los chats públicos de IA están hechos para todos, no para niños, y no puedes ver qué le preguntan tus hijos. Luna se encuentra a medio camino: una IA real que pueden usar todos los días, contigo a cargo.</value></data>
+  <data name="Luna.Why.Bullet.Kids" xml:space="preserve"><value>Hecha para niños: Luna les ayuda a pensar y aprender en lugar de darles solo respuestas.</value></data>
   <data name="Luna.Why.Bullet.Filter" xml:space="preserve"><value>Cada mensaje y cada respuesta pasan primero por un filtro de seguridad.</value></data>
   <data name="Luna.Why.Bullet.Alerts" xml:space="preserve"><value>Puedes leer todos los chats y recibir alertas cuando algo necesite tu atención.</value></data>
-  <data name="Luna.Why.Bullet.NoAds" xml:space="preserve"><value>Sin anuncios, sin cuenta para tu hijo o hija y con retención cero de datos con la configuración A.</value></data>
+  <data name="Luna.Why.Bullet.NoAds" xml:space="preserve"><value>Sin anuncios, sin cuenta para tus hijos y con retención cero de datos con la configuración A.</value></data>
   <data name="Luna.Why.Bullet.Limits" xml:space="preserve"><value>Los límites diarios, los horarios y los bloqueos también se aplican a Luna.</value></data>
-  <data name="Luna.Why.Footer" xml:space="preserve"><value>Recomendado: activa Bloquear chats públicos de IA en Sitios web. Bloquea sitios como ChatGPT, Gemini y los chats de IA integrados en buscadores y navegadores, para que Luna sea la IA que usa tu hijo o hija.</value></data>
+  <data name="Luna.Why.Footer" xml:space="preserve"><value>Recomendado: activa Bloquear chats públicos de IA en Sitios web. Bloquea sitios como ChatGPT, Gemini y los chats de IA integrados en buscadores y navegadores, para que Luna sea la IA que usan tus hijos.</value></data>
   <data name="Luna.Child.AiBlockTip" xml:space="preserve"><value>Consejo: Bloquear chats públicos de IA está desactivado para {0}. Actívalo en Sitios web para que Luna sea la IA que usa {0}.</value></data>
   <data name="Luna.Child.OpenWebsites" xml:space="preserve"><value>Abrir Sitios web</value></data>
   <data name="Luna.Child.NoChats" xml:space="preserve"><value>Aún no hay chats</value></data>
@@ -1413,4 +1411,38 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Luna.Review.AllCaughtUp" xml:space="preserve"><value>Todo al día</value></data>
   <data name="Luna.Review.NothingToReview" xml:space="preserve"><value>Nada de {0} necesita tu revisión.</value></data>
   <data name="Luna.Child.TestFailed" xml:space="preserve"><value>la última prueba falló</value></data>
+  <data name="Luna.Common.Close" xml:space="preserve"><value>Cerrar</value></data>
+  <data name="Luna.Welcome.Link" xml:space="preserve"><value>¿Qué es Luna IA?</value></data>
+  <data name="Luna.Welcome.Title" xml:space="preserve"><value>Conoce a Luna IA</value></data>
+  <data name="Luna.Welcome.Intro" xml:space="preserve"><value>Luna es una compañera de estudio de IA para tus hijos. Ayuda con la tarea y con preguntas de matemáticas, ciencias, historia, significados de palabras, idiomas o cualquier cosa que les despierte curiosidad. Usa tu propia clave de IA, sigue las reglas de tu familia y puedes leer cada chat.</value></data>
+  <data name="Luna.Welcome.DontShow" xml:space="preserve"><value>No volver a mostrar</value></data>
+  <data name="Luna.Welcome.GetStarted" xml:space="preserve"><value>Comenzar</value></data>
+  <data name="Luna.SetupB.HowTo" xml:space="preserve"><value>Cómo obtener tus claves</value></data>
+  <data name="Luna.SetupB.ChatHeading" xml:space="preserve"><value>Clave del proveedor de chat</value></data>
+  <data name="Luna.SetupB.OpenAi.Step1" xml:space="preserve"><value>Regístrate o inicia sesión en platform.openai.com.</value></data>
+  <data name="Luna.SetupB.OpenAi.Step2" xml:space="preserve"><value>Abre Facturación en platform.openai.com/account/billing y agrega un método de pago y saldo.</value></data>
+  <data name="Luna.SetupB.OpenAi.Step3" xml:space="preserve"><value>Abre Claves de API en platform.openai.com/settings/organization/api-keys y elige Crear nueva clave secreta.</value></data>
+  <data name="Luna.SetupB.OpenAi.Step4" xml:space="preserve"><value>Ponle a la clave el nombre "Luna", créala y cópiala.</value></data>
+  <data name="Luna.SetupB.OpenAi.Step5" xml:space="preserve"><value>Pégala en el campo Clave del proveedor de chat de arriba.</value></data>
+  <data name="Luna.SetupB.Anthropic.Step1" xml:space="preserve"><value>Regístrate o inicia sesión en platform.claude.com.</value></data>
+  <data name="Luna.SetupB.Anthropic.Step2" xml:space="preserve"><value>Abre Configuración &gt; Facturación en platform.claude.com/settings/billing y compra créditos.</value></data>
+  <data name="Luna.SetupB.Anthropic.Step3" xml:space="preserve"><value>Abre Claves de API en platform.claude.com/settings/keys y elige Crear clave.</value></data>
+  <data name="Luna.SetupB.Anthropic.Step4" xml:space="preserve"><value>Ponle a la clave el nombre "Luna", elige una caducidad y cópiala (empieza con sk-ant-).</value></data>
+  <data name="Luna.SetupB.Anthropic.Step5" xml:space="preserve"><value>Pégala en el campo Clave del proveedor de chat de arriba.</value></data>
+  <data name="Luna.SetupB.Gemini.Step1" xml:space="preserve"><value>Inicia sesión en Google AI Studio en aistudio.google.com.</value></data>
+  <data name="Luna.SetupB.Gemini.Step2" xml:space="preserve"><value>Abre la página de claves de API en aistudio.google.com/apikey y elige Crear clave de API.</value></data>
+  <data name="Luna.SetupB.Gemini.Step3" xml:space="preserve"><value>Elige o crea un proyecto de Google Cloud para la clave.</value></data>
+  <data name="Luna.SetupB.Gemini.Step4" xml:space="preserve"><value>Para usar el nivel de pago, vincula una cuenta de Facturación de Cloud; consulta ai.google.dev/gemini-api/docs/billing. Ponle a la clave el nombre "Luna" si la página lo pide y cópiala.</value></data>
+  <data name="Luna.SetupB.Gemini.Step5" xml:space="preserve"><value>Pégala en el campo Clave del proveedor de chat de arriba.</value></data>
+  <data name="Luna.SetupB.DeepSeek.Step1" xml:space="preserve"><value>Regístrate o inicia sesión en platform.deepseek.com.</value></data>
+  <data name="Luna.SetupB.DeepSeek.Step2" xml:space="preserve"><value>Abre Recargar en platform.deepseek.com/top_up y agrega saldo.</value></data>
+  <data name="Luna.SetupB.DeepSeek.Step3" xml:space="preserve"><value>Abre Claves de API en platform.deepseek.com/api_keys y elige Crear nueva clave de API.</value></data>
+  <data name="Luna.SetupB.DeepSeek.Step4" xml:space="preserve"><value>Ponle a la clave el nombre "Luna" y cópiala.</value></data>
+  <data name="Luna.SetupB.DeepSeek.Step5" xml:space="preserve"><value>Pégala en el campo Clave del proveedor de chat de arriba.</value></data>
+  <data name="Luna.SetupB.ModerationHeading" xml:space="preserve"><value>Clave de moderación de OpenAI</value></data>
+  <data name="Luna.SetupB.ModerationNote" xml:space="preserve"><value>Luna necesita esta clave a menos que tu proveedor de chat sea OpenAI. La moderación es gratis, pero OpenAI puede pedir un método de pago en la cuenta.</value></data>
+  <data name="Luna.SetupB.Moderation.Step1" xml:space="preserve"><value>Crea una cuenta de API de OpenAI o inicia sesión en platform.openai.com.</value></data>
+  <data name="Luna.SetupB.Moderation.Step2" xml:space="preserve"><value>Abre Claves de API en platform.openai.com/settings/organization/api-keys, crea una clave llamada "Luna moderation" y cópiala.</value></data>
+  <data name="Luna.SetupB.Moderation.Step3" xml:space="preserve"><value>Pégala en el campo Clave de OpenAI para el filtro de seguridad de arriba.</value></data>
+  <data name="Luna.SetupB.Reminder" xml:space="preserve"><value>Luna IA permanece apagada hasta que ambas claves estén guardadas y se supere Probar conexión.</value></data>
 </root>

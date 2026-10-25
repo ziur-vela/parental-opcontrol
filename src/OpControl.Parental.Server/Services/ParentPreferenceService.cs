@@ -30,4 +30,22 @@ public sealed class ParentPreferenceService
         user.EnterToSend = enabled;
         await _db.SaveChangesAsync(ct);
     }
+
+    public async Task<bool> GetLunaWelcomeDismissedAsync(Guid familyId, Guid parentId, CancellationToken ct = default)
+    {
+        var value = await _db.Users.AsNoTracking()
+            .Where(u => u.Id == parentId && u.FamilyId == familyId)
+            .Select(u => (bool?)u.LunaWelcomeDismissed)
+            .FirstOrDefaultAsync(ct);
+        return value ?? false;
+    }
+
+    public async Task SaveLunaWelcomeDismissedAsync(Guid familyId, Guid parentId, bool dismissed, CancellationToken ct = default)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == parentId && u.FamilyId == familyId, ct);
+        if (user is null) return;
+        if (user.LunaWelcomeDismissed == dismissed) return;
+        user.LunaWelcomeDismissed = dismissed;
+        await _db.SaveChangesAsync(ct);
+    }
 }
