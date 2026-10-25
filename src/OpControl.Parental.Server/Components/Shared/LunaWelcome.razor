@@ -37,7 +37,7 @@
                 <a class="btn btn-ghost" href="/websites">@L["Luna.Child.OpenWebsites"]</a>
             </div>
             <label class="check-row">
-                <input type="checkbox" @bind="_dontShow" data-autofocus />
+                <input type="checkbox" @bind="_dontShow" @bind:after="SaveDontShowAsync" data-autofocus />
                 <span>@L["Luna.Welcome.DontShow"]</span>
             </label>
             <div class="button-row">
@@ -117,6 +117,8 @@
         var settings = scope.ServiceProvider.GetRequiredService<LunaSettingsService>();
         return await settings.IsReadyAsync(_familyId);
     }
+
+    private async Task SaveDontShowAsync() => await SavePreferenceAsync();
 
     private async Task SavePreferenceAsync()
     {
