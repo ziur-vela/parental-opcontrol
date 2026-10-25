@@ -18,34 +18,109 @@
     <div class="luna-welcome-backdrop" @onclick="CloseAsync">
         <div class="luna-welcome" role="dialog" aria-modal="true" aria-labelledby="luna-welcome-title"
              tabindex="-1" @onclick:stopPropagation @onkeydown="OnKeyDownAsync">
-            <div class="luna-welcome-head">
-                <LunaMoon State="LunaMoonState.Awake" Size="72" />
-                <h2 id="luna-welcome-title">@L["Luna.Welcome.Title"]</h2>
+            <div class="luna-welcome-demo">
+                <div class="luna-demo-scale">
+                    <div class="luna-demo-frame">
+                        <div class="luna-demo-screen" role="img" aria-label="@L["Luna.Welcome.Demo.Alt"]">
+                            <svg class="luna-demo-sleep" viewBox="0 0 172 172" aria-hidden="true">
+                                <circle cx="86" cy="86" r="84" fill="#f6dc7e"></circle>
+                                <path d="M104 118 q8 7 16 0" stroke="#2b2f3a" stroke-width="7" fill="none" stroke-linecap="round"></path>
+                                <path d="M128 98 q8 7 16 0" stroke="#2b2f3a" stroke-width="7" fill="none" stroke-linecap="round"></path>
+                            </svg>
+                            <span class="luna-demo-zzz" aria-hidden="true"><span>z</span><span>z</span><span>Z</span></span>
+                            <svg class="luna-demo-wake" viewBox="0 0 172 172" aria-hidden="true">
+                                <circle cx="86" cy="86" r="84" fill="#f6dc7e"></circle>
+                                <circle cx="52" cy="48" r="11" fill="#ecc964"></circle>
+                                <ellipse cx="64" cy="76" rx="10" ry="14" fill="#2b2f3a"></ellipse>
+                                <ellipse cx="108" cy="76" rx="10" ry="14" fill="#2b2f3a"></ellipse>
+                                <ellipse cx="86" cy="116" rx="12" ry="10" fill="#2b2f3a"></ellipse>
+                            </svg>
+
+                            <div class="luna-demo-chat" aria-hidden="true">
+                                <div class="luna-demo-chat-top">
+                                    <svg width="22" height="22" viewBox="0 0 172 172">
+                                        <circle cx="86" cy="86" r="84" fill="#f6dc7e"></circle>
+                                        <ellipse class="luna-demo-eye" cx="64" cy="78" rx="9" ry="12" fill="#2b2f3a"></ellipse>
+                                        <ellipse class="luna-demo-eye" cx="108" cy="78" rx="9" ry="12" fill="#2b2f3a"></ellipse>
+                                        <path d="M60 106 Q86 132 112 106" stroke="#2b2f3a" stroke-width="10" fill="none" stroke-linecap="round"></path>
+                                    </svg>
+                                    <span class="luna-demo-chat-title">@L["Luna.Welcome.Demo.Title"]</span>
+                                    <span class="luna-demo-chat-box"></span>
+                                </div>
+                                <div class="luna-demo-chat-body">
+                                    <div class="luna-demo-b1">@L["Luna.Welcome.Demo.Question"]</div>
+                                    <div class="luna-demo-th">
+                                        <span class="luna-demo-phase"><span></span></span>
+                                        <span class="luna-demo-thinking">@L["Luna.Welcome.Demo.Thinking"]</span>
+                                    </div>
+                                    <div class="luna-demo-b2">@L["Luna.Welcome.Demo.Answer"]</div>
+                                </div>
+                                <div class="luna-demo-input"></div>
+                                <div class="luna-demo-note">@L["Luna.Welcome.Demo.Disclaimer"]</div>
+                            </div>
+
+                            <svg class="luna-demo-cursor" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2l15 11-7 1-3 7z" fill="#ffffff" stroke="#111111" stroke-width="1.4" stroke-linejoin="round"></path></svg>
+                            <div class="luna-demo-task" aria-hidden="true">
+                                <i></i><i></i><i></i><span class="luna-demo-task-time">4:12 PM</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="luna-demo-captions" aria-hidden="true">
+                    <span class="luna-demo-c1">@L["Luna.Welcome.Demo.Caption1"]</span>
+                    <span class="luna-demo-c2">@L["Luna.Welcome.Demo.Caption2"]</span>
+                    <span class="luna-demo-c3">@L["Luna.Welcome.Demo.Caption3"]</span>
+                    <span class="luna-demo-c4">@L["Luna.Welcome.Demo.Caption4"]</span>
+                </div>
+                <div class="luna-demo-how">
+                    <span class="luna-demo-how-title">@L["Luna.Welcome.How.Title"]</span>
+                    <ul>
+                        <li>@L["Luna.Welcome.How.Point1"]</li>
+                        <li>@L["Luna.Welcome.How.Point2"]</li>
+                        <li>@L["Luna.Welcome.How.Point3"]</li>
+                    </ul>
+                    <div class="luna-demo-chips" role="group" aria-label="@L["Luna.Welcome.How.Platforms"]">
+                        <span class="luna-demo-chip luna-demo-chip-on">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3cc9a7" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>
+                            @L["Luna.Welcome.How.Windows"]
+                        </span>
+                        <span class="luna-demo-chip">@L["Luna.Welcome.How.Linux"]</span>
+                        <span class="luna-demo-chip">@L["Luna.Welcome.How.Android"]</span>
+                    </div>
+                </div>
             </div>
-            <p>@L["Luna.Welcome.Intro"]</p>
-            <h3>@L["Luna.Why.Title"]</h3>
-            <p>@L["Luna.Why.Text"]</p>
-            <ul class="luna-welcome-list">
-                <li>@L["Luna.Why.Bullet.Kids"]</li>
-                <li>@L["Luna.Why.Bullet.Filter"]</li>
-                <li>@L["Luna.Why.Bullet.Alerts"]</li>
-                <li>@L["Luna.Why.Bullet.NoAds"]</li>
-                <li>@L["Luna.Why.Bullet.Limits"]</li>
-            </ul>
-            <div class="luna-welcome-amber">
-                <span>@L["Luna.Why.Footer"]</span>
-                <a class="btn btn-ghost" href="/websites">@L["Luna.Child.OpenWebsites"]</a>
-            </div>
-            <label class="check-row">
-                <input type="checkbox" @bind="_dontShow" @bind:after="SaveDontShowAsync" data-autofocus />
-                <span>@L["Luna.Welcome.DontShow"]</span>
-            </label>
-            <div class="button-row">
-                <button type="button" class="btn btn-primary" @onclick="GetStartedAsync">@L["Luna.Welcome.GetStarted"]</button>
-                <button type="button" class="btn btn-ghost" @onclick="CloseAsync">@L["Luna.Common.Close"]</button>
+
+            <div class="luna-welcome-copy">
+                <div class="luna-welcome-head">
+                    <LunaMoon State="LunaMoonState.Awake" Size="72" />
+                    <h2 id="luna-welcome-title">@L["Luna.Welcome.Title"]</h2>
+                </div>
+                <p>@L["Luna.Welcome.Intro"]</p>
+                <h3>@L["Luna.Why.Title"]</h3>
+                <p>@L["Luna.Why.Text"]</p>
+                <ul class="luna-welcome-list">
+                    <li>@L["Luna.Why.Bullet.Kids"]</li>
+                    <li>@L["Luna.Why.Bullet.Filter"]</li>
+                    <li>@L["Luna.Why.Bullet.Alerts"]</li>
+                    <li>@L["Luna.Why.Bullet.NoAds"]</li>
+                    <li>@L["Luna.Why.Bullet.Limits"]</li>
+                </ul>
+                <div class="luna-welcome-amber">
+                    <span>@L["Luna.Why.Footer"]</span>
+                    <a class="btn btn-ghost" href="/websites">@L["Luna.Child.OpenWebsites"]</a>
+                </div>
+                <label class="check-row">
+                    <input type="checkbox" @bind="_dontShow" @bind:after="SaveDontShowAsync" data-autofocus />
+                    <span>@L["Luna.Welcome.DontShow"]</span>
+                </label>
+                <div class="button-row">
+                    <button type="button" class="btn btn-primary" @onclick="GetStartedAsync">@L["Luna.Welcome.GetStarted"]</button>
+                    <button type="button" class="btn btn-ghost" @onclick="CloseAsync">@L["Luna.Common.Close"]</button>
+                </div>
             </div>
         </div>
     </div>
+}
 }
 
 @code {

@@ -137,7 +137,8 @@ public class LocalizationTests
             "SiteReview.Service.Twitch", "Nav.Luna", "Luna.PageTitle",
             "Luna.Model.Name.Haiku55", "Luna.Model.Name.Gpt56Luna",
             "Luna.Model.Name.Gemini35FlashLite", "Luna.Model.Name.Sonnet55",
-            "Luna.Setup.Check.Chat", "Luna.Setup.Check.Ok", "Luna.Alias"
+            "Luna.Setup.Check.Chat", "Luna.Setup.Check.Ok", "Luna.Alias",
+            "Luna.Welcome.How.Windows"
         };
         Assert.All(identical, key => Assert.Contains(key, allowed));
     }
@@ -154,7 +155,15 @@ public class LocalizationTests
         // Only the singular gendered forms above are rejected.
         var spanishGenericPlurals = new Regex(@"\b(niños|hijos)\b", RegexOptions.IgnoreCase);
         // Luna's own gender is allowed. This one string is about Luna, not the child.
-        var allowedEnglishKeys = new HashSet<string>(StringComparer.Ordinal) { "Luna.Child.MonthlyCap" };
+        var allowedEnglishKeys = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "Luna.Child.MonthlyCap", "Luna.Welcome.Demo.Alt", "Luna.Welcome.Demo.Caption2"
+        };
+        // The same two demo strings talk about Luna, not the child.
+        var allowedSpanishKeys = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "Luna.Welcome.Demo.Alt", "Luna.Welcome.Demo.Caption2"
+        };
         var failures = new List<string>();
 
         foreach (var (key, value) in english)
@@ -164,7 +173,7 @@ public class LocalizationTests
         }
         foreach (var (key, value) in spanish)
         {
-            if (spanishGendered.IsMatch(spanishGenericPlurals.Replace(value, "")))
+            if (!allowedSpanishKeys.Contains(key) && spanishGendered.IsMatch(spanishGenericPlurals.Replace(value, "")))
                 failures.Add($"es-MX {key}: {value}");
         }
 

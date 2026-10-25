@@ -735,17 +735,19 @@ body:has(.legal-text) .auth-card { width: min(880px, 100%); }
     display: flex; align-items: center; justify-content: center; padding: 18px;
 }
 .luna-welcome {
-    width: min(640px, 100%); max-height: 88vh; overflow-y: auto;
-    background: var(--panel); border: 1px solid var(--line-2); padding: 22px;
-    display: flex; flex-direction: column; gap: 14px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, .45);
+    width: min(980px, 100%); max-height: 88vh; overflow-y: auto;
+    background: var(--panel); border: 1px solid var(--line-2); padding: 28px;
+    display: flex; flex-direction: row-reverse; flex-wrap: wrap; gap: 28px; align-items: flex-start;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .45); box-sizing: border-box;
 }
 .luna-welcome:focus { outline: none; }
+.luna-welcome-copy { flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.luna-welcome-demo { flex: 0 1 440px; min-width: 0; display: flex; flex-direction: column; align-items: center; }
 .luna-welcome-head { display: flex; align-items: center; gap: 14px; }
-.luna-welcome-head h2 { margin: 0; font-size: 24px; font-weight: 800; }
-.luna-welcome h3 { margin: 0; font-size: 16px; font-weight: 800; }
-.luna-welcome p { margin: 0; line-height: 1.55; }
-.luna-welcome-list { margin: 0; padding-left: 18px; line-height: 1.6; }
+.luna-welcome-head h2 { margin: 0; font-size: 26px; font-weight: 800; }
+.luna-welcome h3 { margin: 4px 0 0; font-size: 17px; font-weight: 800; }
+.luna-welcome p { margin: 0; line-height: 1.55; font-size: 13.5px; color: var(--muted); }
+.luna-welcome-list { margin: 0; padding-left: 18px; line-height: 1.55; font-size: 13.5px; }
 .luna-welcome-amber {
     border: 1px solid #e7b04a; background: color-mix(in srgb, #e7b04a 14%, var(--panel));
     padding: 12px 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
@@ -753,6 +755,79 @@ body:has(.legal-text) .auth-card { width: min(880px, 100%); }
 }
 .t-light .luna-welcome-amber { background: color-mix(in srgb, #e7b04a 22%, #ffffff); }
 .luna-welcome-amber .btn { margin-left: auto; }
+
+/* The demo: a 14 second CSS-only loop of Luna on a mini laptop screen. */
+.luna-demo-scale { display: flex; justify-content: center; width: 100%; }
+.luna-demo-frame { background: #1a2b33; padding: 10px 10px 14px; border-radius: 16px; box-shadow: inset 0 0 0 1px #2c4450; }
+.luna-demo-screen {
+    position: relative; width: 440px; height: 275px; border-radius: 10px; overflow: hidden;
+    background: linear-gradient(135deg, #1f4f6e 0%, #2c6e78 55%, #3f8a7a 100%);
+}
+.luna-demo-task { position: absolute; left: 0; right: 0; bottom: 0; height: 20px; background: rgba(8, 20, 30, .85); display: flex; align-items: center; gap: 6px; padding: 0 8px; z-index: 5; }
+.luna-demo-task i { width: 12px; height: 12px; border-radius: 3px; background: #5f7f8c; display: block; }
+.luna-demo-task-time { margin-left: auto; font: 600 8px var(--mono); color: #9fb4bd; }
+.luna-demo-sleep { position: absolute; left: -38px; top: -38px; width: 84px; height: 84px; z-index: 1; animation: lw-sleep 14s infinite; }
+.luna-demo-zzz { position: absolute; left: 44px; top: 30px; width: 20px; height: 20px; z-index: 2; animation: lw-sleep 14s infinite; }
+.luna-demo-zzz span { position: absolute; left: 0; top: 0; font-family: "Fredoka", sans-serif; font-weight: 600; color: #fff6c8; text-shadow: 0 0 4px rgba(0,0,0,.4); opacity: 0; animation: lw-zf 2.4s ease-out infinite; }
+.luna-demo-zzz span:nth-child(1) { font-size: 9px; }
+.luna-demo-zzz span:nth-child(2) { animation-delay: .8s; font-size: 11px; }
+.luna-demo-zzz span:nth-child(3) { animation-delay: 1.6s; font-size: 13px; }
+.luna-demo-wake { position: absolute; left: 8px; top: 8px; width: 54px; height: 54px; opacity: 0; z-index: 2; animation: lw-wake 14s infinite; }
+.luna-demo-chat {
+    position: absolute; left: 8px; top: 8px; width: 250px; height: 226px; border-radius: 14px; overflow: hidden;
+    transform-origin: 0 0; background-color: #1b1442; border: 2px solid #3a2f7a; box-shadow: 0 10px 24px rgba(0,0,0,.35);
+    display: flex; flex-direction: column; font-family: "Nunito", sans-serif; color: #f4f1ff; z-index: 3;
+    animation: lw-chat 14s infinite;
+}
+.luna-demo-chat-top { display: flex; align-items: center; gap: 7px; padding: 8px 10px 6px; }
+.luna-demo-chat-title { font-family: "Fredoka", sans-serif; font-weight: 600; font-size: 13px; color: #fff6c8; flex: 1; }
+.luna-demo-chat-box { width: 18px; height: 18px; border-radius: 6px; border: 1.5px solid #4a3d94; display: block; }
+.luna-demo-chat-body { flex: 1; display: flex; flex-direction: column; gap: 7px; padding: 4px 10px; font-size: 11px; font-weight: 700; line-height: 1.35; }
+.luna-demo-b1 { align-self: flex-end; max-width: 80%; background: #5b8cff; color: #15103a; border-radius: 12px 12px 4px 12px; padding: 6px 9px; animation: lw-b1 14s infinite; }
+.luna-demo-th { display: flex; align-items: center; gap: 6px; color: #c9c0f5; animation: lw-th 14s infinite; }
+.luna-demo-thinking { background: #2a2160; border: 1.5px solid #4a3d94; border-radius: 12px 12px 12px 4px; padding: 5px 9px; }
+.luna-demo-b2 { align-self: flex-start; max-width: 88%; background: #2a2160; border: 1.5px solid #4a3d94; border-radius: 12px 12px 12px 4px; padding: 6px 9px; animation: lw-b2 14s infinite; }
+.luna-demo-input { margin: 6px 10px; height: 22px; border-radius: 11px; background: #2a2160; border: 1.5px solid #4a3d94; }
+.luna-demo-note { text-align: center; font-size: 7.5px; color: #a79fdc; padding-bottom: 5px; }
+.luna-demo-phase { width: 16px; height: 16px; border-radius: 50%; background: #f6dc7e; overflow: hidden; position: relative; flex-shrink: 0; animation: lw-roll 6s linear infinite; }
+.luna-demo-phase span { position: absolute; inset: 0; border-radius: 50%; background: #3a2f7a; animation: lw-phase 1.6s linear infinite; }
+.luna-demo-cursor { position: absolute; left: 0; top: 0; width: 18px; height: 18px; z-index: 4; filter: drop-shadow(0 1px 1px rgba(0,0,0,.5)); animation: lw-cursor 14s infinite; }
+.luna-demo-eye { transform-box: fill-box; transform-origin: center; animation: lw-blink 3.5s infinite; }
+.luna-demo-captions { position: relative; width: 440px; max-width: 100%; height: 38px; margin-top: 10px; font-family: "Manrope", sans-serif; font-size: 13px; font-weight: 700; color: var(--muted); text-align: center; line-height: 1.35; }
+.luna-demo-captions span { position: absolute; left: 0; right: 0; top: 0; opacity: 0; }
+.luna-demo-c1 { animation: lw-c1 14s infinite; }
+.luna-demo-c2 { animation: lw-c2 14s infinite; }
+.luna-demo-c3 { animation: lw-c3 14s infinite; }
+.luna-demo-c4 { animation: lw-c4 14s infinite; }
+.luna-demo-how { width: 440px; max-width: 100%; margin-top: 8px; border: 1px solid #2a4a42; background: #112420; padding: 14px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; }
+.luna-demo-how-title { font-family: var(--mono); text-transform: uppercase; letter-spacing: .16em; font-size: 10.5px; color: #3cc9a7; }
+.luna-demo-how ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.55; color: #c9d8d3; }
+.luna-demo-chips { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.luna-demo-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px dashed #2a4a42; color: #a8bfb7; font-size: 12.5px; font-weight: 700; }
+.luna-demo-chip-on { border: 1px solid #00c853; color: #e3ece8; }
+@keyframes lw-sleep { 0%, 17% { opacity: 1; transform: scale(1); } 20%, 84% { opacity: 0; transform: scale(1.2); } 88%, 100% { opacity: 1; transform: scale(1); } }
+@keyframes lw-zf { 0% { opacity: 0; transform: translate(0, 0); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(14px, 14px); } }
+@keyframes lw-wake { 0%, 17% { opacity: 0; transform: scale(.4); } 20% { opacity: 1; transform: scale(1.08); } 22% { opacity: 1; transform: scale(1); } 25%, 100% { opacity: 0; transform: scale(1); } }
+@keyframes lw-chat { 0%, 22% { transform: scale(.18); opacity: 0; border-radius: 50%; } 27%, 76% { transform: scale(1); opacity: 1; border-radius: 14px; } 81%, 100% { transform: scale(.18); opacity: 0; border-radius: 50%; } }
+@keyframes lw-b1 { 0%, 31% { opacity: 0; transform: translateY(6px); } 34%, 76% { opacity: 1; transform: translateY(0); } 100% { opacity: 1; } }
+@keyframes lw-th { 0%, 37% { opacity: 0; } 39%, 53% { opacity: 1; } 55%, 100% { opacity: 0; } }
+@keyframes lw-b2 { 0%, 54% { opacity: 0; transform: translateY(6px); } 57%, 100% { opacity: 1; transform: translateY(0); } }
+@keyframes lw-phase { 0% { transform: translateX(0); } 50% { transform: translateX(100%); } 50.01% { transform: translateX(-100%); } 100% { transform: translateX(0); } }
+@keyframes lw-roll { to { transform: rotate(360deg); } }
+@keyframes lw-cursor { 0% { transform: translate(360px, 200px); } 14% { transform: translate(22px, 20px); } 22% { transform: translate(22px, 20px); } 30% { transform: translate(180px, 190px); } 76% { transform: translate(180px, 190px); } 80% { transform: translate(236px, 16px); } 86% { transform: translate(236px, 16px); } 100% { transform: translate(360px, 200px); } }
+@keyframes lw-c1 { 0%, 14% { opacity: 1; } 16%, 100% { opacity: 0; } }
+@keyframes lw-c2 { 0%, 15% { opacity: 0; } 17%, 27% { opacity: 1; } 29%, 100% { opacity: 0; } }
+@keyframes lw-c3 { 0%, 28% { opacity: 0; } 30%, 76% { opacity: 1; } 78%, 100% { opacity: 0; } }
+@keyframes lw-c4 { 0%, 77% { opacity: 0; } 79%, 98% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes lw-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+@media (prefers-reduced-motion: reduce) {
+    .luna-demo-sleep, .luna-demo-zzz, .luna-demo-wake, .luna-demo-cursor, .luna-demo-phase, .luna-demo-phase span,
+    .luna-demo-zzz span, .luna-demo-captions span, .luna-demo-eye { animation: none !important; }
+    .luna-demo-sleep, .luna-demo-zzz, .luna-demo-wake, .luna-demo-cursor, .luna-demo-th,
+    .luna-demo-c1, .luna-demo-c2, .luna-demo-c4 { opacity: 0 !important; }
+    .luna-demo-chat, .luna-demo-b1, .luna-demo-b2 { animation: none !important; opacity: 1 !important; transform: none !important; }
+    .luna-demo-c3 { opacity: 1 !important; }
+}
 .luna-setupb {
     border: 1px solid var(--line-2); background: var(--panel-2); padding: 14px;
 }
@@ -766,12 +841,21 @@ body:has(.legal-text) .auth-card { width: min(880px, 100%); }
 .luna-setupb-body ol { margin: 0; padding-left: 20px; line-height: 1.6; }
 .luna-setupb-provider { display: flex; flex-direction: column; gap: 2px; }
 .luna-setupb-reminder { margin: 0; border-top: 1px solid var(--line); padding-top: 10px; }
-@media (max-width: 620px) {
+@media (max-width: 760px) {
     .luna-welcome-backdrop { padding: 0; align-items: stretch; }
-    .luna-welcome { width: 100%; height: 100%; max-height: none; border: 0; padding: 20px; }
+    .luna-welcome { width: 100%; height: 100%; max-height: none; border: 0; padding: 20px; flex-direction: column; }
+    .luna-welcome-demo { width: 100%; flex-basis: auto; }
+    .luna-demo-scale { height: 225px; align-items: flex-start; overflow: hidden; }
+    .luna-demo-frame { transform: scale(.75); transform-origin: top center; }
+    .luna-demo-captions { width: 345px; }
     .luna-welcome-head h2 { font-size: 21px; }
     .luna-welcome-amber { align-items: flex-start; }
     .luna-welcome-amber .btn { margin-left: 0; }
+}
+@media (max-width: 380px) {
+    .luna-demo-scale { height: 208px; }
+    .luna-demo-frame { transform: scale(.69); }
+    .luna-demo-captions { width: 318px; }
 }
 .luna-empty-state {
     display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;

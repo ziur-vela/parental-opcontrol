@@ -1397,7 +1397,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Luna.Moon.Looking" xml:space="preserve"><value>Luna IA está mirando</value></data>
   <data name="Luna.Moon.Phase" xml:space="preserve"><value>Luna IA está pensando</value></data>
   <data name="Luna.Why.Title" xml:space="preserve"><value>Por qué Luna en lugar de un chat de IA gratis</value></data>
-  <data name="Luna.Why.Text" xml:space="preserve"><value>Tarde o temprano, los niños de esta edad encuentran un chat de IA por su cuenta, en la escuela, en casa de un amigo o dentro de un buscador. Los chats públicos de IA están hechos para todos, no para niños, y no puedes ver qué le preguntan tus hijos. Luna se encuentra a medio camino: una IA real que pueden usar todos los días, contigo a cargo.</value></data>
+  <data name="Luna.Why.Text" xml:space="preserve"><value>Tarde o temprano, los niños de esta edad que usan una computadora, tableta o celular encuentran un chat de IA por su cuenta. Los chats públicos de IA están hechos para todos, no para niños, y no puedes ver qué le preguntan los niños. Luna se encuentra a medio camino: una IA real que pueden usar todos los días, contigo a cargo.</value></data>
   <data name="Luna.Why.Bullet.Kids" xml:space="preserve"><value>Hecha para niños: Luna les ayuda a pensar y aprender en lugar de darles solo respuestas.</value></data>
   <data name="Luna.Why.Bullet.Filter" xml:space="preserve"><value>Cada mensaje y cada respuesta pasan primero por un filtro de seguridad.</value></data>
   <data name="Luna.Why.Bullet.Alerts" xml:space="preserve"><value>Puedes leer todos los chats y recibir alertas cuando algo necesite tu atención.</value></data>
@@ -1450,4 +1450,22 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Downloads.Luna.Open" xml:space="preserve"><value>También puedes abrirla desde el menú de OpControl en la bandeja: Abrir Luna IA.</value></data>
   <data name="Downloads.Luna.Theme" xml:space="preserve"><value>Usa el botón de luna o sol en Luna para cambiar entre Cielo nocturno y Luna gris. La elección del hijo se guarda.</value></data>
   <data name="Downloads.Luna.Hotkeys" xml:space="preserve"><value>Atajos para el tamaño dormido: Ctrl+Alt+Shift+Av Pág (más grande), Ctrl+Alt+Shift+Re Pág (más pequeño), Ctrl+Alt+Shift+Inicio (restablecer). El tamaño se guarda en este dispositivo.</value></data>
+  <data name="Luna.Welcome.Demo.Alt" xml:space="preserve"><value>Demostración: Luna duerme en la esquina de la pantalla, se despierta cuando el mouse pasa sobre ella, abre el chat, responde una pregunta de matemáticas y vuelve a dormir</value></data>
+  <data name="Luna.Welcome.Demo.Title" xml:space="preserve"><value>Matemáticas · Fracciones</value></data>
+  <data name="Luna.Welcome.Demo.Question" xml:space="preserve"><value>¿Cuánto es 3/4 + 1/8?</value></data>
+  <data name="Luna.Welcome.Demo.Thinking" xml:space="preserve"><value>Pensando…</value></data>
+  <data name="Luna.Welcome.Demo.Answer" xml:space="preserve"><value>Primero iguala los de abajo: 3/4 es lo mismo que 6/8. Ahora suma: 6/8 + 1/8 = 7/8. ¿Quieres intentar uno?</value></data>
+  <data name="Luna.Welcome.Demo.Disclaimer" xml:space="preserve"><value>Luna es una IA y está supervisada por tus papás.</value></data>
+  <data name="Luna.Welcome.Demo.Caption1" xml:space="preserve"><value>Luna duerme en la esquina de la pantalla</value></data>
+  <data name="Luna.Welcome.Demo.Caption2" xml:space="preserve"><value>Pasa el mouse sobre ella para despertarla</value></data>
+  <data name="Luna.Welcome.Demo.Caption3" xml:space="preserve"><value>Pregunta sobre la tarea y Luna te ayuda a pensarla</value></data>
+  <data name="Luna.Welcome.Demo.Caption4" xml:space="preserve"><value>Cierra el chat y Luna vuelve a dormir</value></data>
+  <data name="Luna.Welcome.How.Title" xml:space="preserve"><value>Cómo vive Luna en la computadora de tus niños</value></data>
+  <data name="Luna.Welcome.How.Point1" xml:space="preserve"><value>Una pequeña luna dormida en la esquina superior izquierda de la pantalla, siempre encima de las demás ventanas para que se pueda alcanzar en cualquier momento. Nunca aparece sola.</value></data>
+  <data name="Luna.Welcome.How.Point2" xml:space="preserve"><value>Mueve el mouse sobre Luna para despertar a Luna y abrir el chat; ciérralo para que Luna vuelva a dormir.</value></data>
+  <data name="Luna.Welcome.How.Point3" xml:space="preserve"><value>Luna solo aparece después de que la actives. Duerme durante los bloqueos y horarios, y sigue el límite diario.</value></data>
+  <data name="Luna.Welcome.How.Platforms" xml:space="preserve"><value>Plataformas</value></data>
+  <data name="Luna.Welcome.How.Windows" xml:space="preserve"><value>Windows</value></data>
+  <data name="Luna.Welcome.How.Linux" xml:space="preserve"><value>Linux · muy pronto</value></data>
+  <data name="Luna.Welcome.How.Android" xml:space="preserve"><value>Android · muy pronto</value></data>
 </root>

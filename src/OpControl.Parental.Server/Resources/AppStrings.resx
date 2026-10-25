@@ -1397,7 +1397,7 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Luna.Moon.Looking" xml:space="preserve"><value>Luna AI is looking around</value></data>
   <data name="Luna.Moon.Phase" xml:space="preserve"><value>Luna AI is thinking</value></data>
   <data name="Luna.Why.Title" xml:space="preserve"><value>Why Luna instead of a free AI chat</value></data>
-  <data name="Luna.Why.Text" xml:space="preserve"><value>Sooner or later, kids this age find an AI chat on their own, at school, at a friend's house, or built into a search engine. Public AI chats are made for everyone, not for kids, and you can't see what your child asks them. Luna meets your child halfway: a real AI they can use every day, with you in charge.</value></data>
+  <data name="Luna.Why.Text" xml:space="preserve"><value>Sooner or later, kids this age with access to a computer, tablet or phone find an AI chat on their own. Public AI chats are made for everyone, not for kids, and you can't see what your child asks them. Luna meets your child halfway: a real AI they can use every day, with you in charge.</value></data>
   <data name="Luna.Why.Bullet.Kids" xml:space="preserve"><value>Made for kids: Luna helps them think and learn instead of just giving answers.</value></data>
   <data name="Luna.Why.Bullet.Filter" xml:space="preserve"><value>Every message and every answer passes a safety filter first.</value></data>
   <data name="Luna.Why.Bullet.Alerts" xml:space="preserve"><value>You can read every chat and get alerts when something needs you.</value></data>
@@ -1450,4 +1450,22 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Downloads.Luna.Open" xml:space="preserve"><value>You can also open it from the OpControl tray menu: Open Luna Chat.</value></data>
   <data name="Downloads.Luna.Theme" xml:space="preserve"><value>Use the moon or sun button in Luna to switch between Night sky and Moon gray. The child's choice is saved.</value></data>
   <data name="Downloads.Luna.Hotkeys" xml:space="preserve"><value>Sleep-size hotkeys: Ctrl+Alt+Shift+Page Up (bigger), Ctrl+Alt+Shift+Page Down (smaller), Ctrl+Alt+Shift+Home (reset). The size is saved on this device.</value></data>
+  <data name="Luna.Welcome.Demo.Alt" xml:space="preserve"><value>Demo: Luna sleeps in the corner of the screen, wakes when the mouse moves over her, opens the chat, answers a math question, then goes back to sleep</value></data>
+  <data name="Luna.Welcome.Demo.Title" xml:space="preserve"><value>Math · Fractions</value></data>
+  <data name="Luna.Welcome.Demo.Question" xml:space="preserve"><value>What is 3/4 + 1/8?</value></data>
+  <data name="Luna.Welcome.Demo.Thinking" xml:space="preserve"><value>Thinking…</value></data>
+  <data name="Luna.Welcome.Demo.Answer" xml:space="preserve"><value>First make the bottoms match: 3/4 is the same as 6/8. Now add: 6/8 + 1/8 = 7/8. Want to try one?</value></data>
+  <data name="Luna.Welcome.Demo.Disclaimer" xml:space="preserve"><value>Luna is an AI and is supervised by your parents.</value></data>
+  <data name="Luna.Welcome.Demo.Caption1" xml:space="preserve"><value>Luna naps in the corner of the screen</value></data>
+  <data name="Luna.Welcome.Demo.Caption2" xml:space="preserve"><value>Move the mouse over her to wake her up</value></data>
+  <data name="Luna.Welcome.Demo.Caption3" xml:space="preserve"><value>Ask about homework, Luna helps you think it through</value></data>
+  <data name="Luna.Welcome.Demo.Caption4" xml:space="preserve"><value>Close the chat and Luna goes back to sleep</value></data>
+  <data name="Luna.Welcome.How.Title" xml:space="preserve"><value>How Luna lives on your child's computer</value></data>
+  <data name="Luna.Welcome.How.Point1" xml:space="preserve"><value>A small sleeping moon in the top-left corner of the screen, always on top of other windows so your child can reach it anytime. It never pops up on its own.</value></data>
+  <data name="Luna.Welcome.How.Point2" xml:space="preserve"><value>Your child moves the mouse over it to wake Luna and open the chat, then closes it to send Luna back to sleep.</value></data>
+  <data name="Luna.Welcome.How.Point3" xml:space="preserve"><value>Luna only appears after you turn it on for that child. It sleeps during locks and schedules and follows the daily limit.</value></data>
+  <data name="Luna.Welcome.How.Platforms" xml:space="preserve"><value>Platforms</value></data>
+  <data name="Luna.Welcome.How.Windows" xml:space="preserve"><value>Windows</value></data>
+  <data name="Luna.Welcome.How.Linux" xml:space="preserve"><value>Linux · coming soon</value></data>
+  <data name="Luna.Welcome.How.Android" xml:space="preserve"><value>Android · coming soon</value></data>
 </root>
