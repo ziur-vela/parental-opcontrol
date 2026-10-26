@@ -12,6 +12,8 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Avalonia.Platform;
+using OpControl.Parental.Contracts;
+using OpControl.Parental.Localization;
 
 namespace OpControl.Parental.Luna;
 
@@ -63,7 +65,7 @@ public partial class LunaWindow : Window
     private Grid _chatRoot = null!;
     private LunaAppView _chat = null!;
     private LunaApiClient? _api;
-    private Border _greeting = null!;
+    private LunaGreetingBubble _greeting = null!;
     private Canvas _zLayer = null!;
     private readonly TextBlock[] _zText = new TextBlock[3];
     private readonly TranslateTransform[] _zMove = new TranslateTransform[3];
@@ -78,6 +80,7 @@ public partial class LunaWindow : Window
     private readonly ScaleTransform _eyeRightScale = new();
     private readonly ScaleTransform _yawnScale = new();
     private readonly ScaleTransform _sleepTransform = new();
+    private readonly ScaleTransform _greetingScale = new(1, 1);
     private RectangleGeometry? _blobClip;
     private double _blobX = 12;
     private double _blobY = 12;
@@ -103,6 +106,12 @@ public partial class LunaWindow : Window
     private double _surpriseOpacity;
     private double _bubbleOpacity;
     private double _lastTick;
+    private bool _bubbleTargetOn;
+    private double _bubbleAnimStart;
+    private double _bubbleScale = 1;
+    private double _bubbleSuppressUntil = -1;
+    private string _greetingTheme = "night";
+    private double _greetingCheckAt = -1;
 
     private IntPtr _hwnd;
     private Win32.SubclassProc? _hotkeyProc;
@@ -114,6 +123,11 @@ public partial class LunaWindow : Window
     private int _lastRgnY2 = int.MinValue;
     private int _lastRgnRadius = -1;
     private string _lastRgnShape = string.Empty;
+    private bool _lastRgnBubbleVisible;
+    private int _lastRgnBubbleX1 = int.MinValue;
+    private int _lastRgnBubbleY1 = int.MinValue;
+    private int _lastRgnBubbleX2 = int.MinValue;
+    private int _lastRgnBubbleY2 = int.MinValue;
     private bool _hitProofSleepLogged;
     private bool _hitProofAwakeLogged;
     private string _lastLoggedRegion = string.Empty;
@@ -157,7 +171,9 @@ public partial class LunaWindow : Window
         _api = new LunaApiClient();
         _chat = new LunaAppView(_api, null);
         _chatRoot.Children.Add(_chat);
-        _greeting = this.FindControl<Border>("GreetingBubble")!;
+        _chat.ThemeChanged += (_, _) => UpdateGreetingContent();
+        _greeting = this.FindControl<LunaGreetingBubble>("GreetingBubble")!;
+        _greeting.RenderTransform = _greetingScale;
         _zLayer = this.FindControl<Canvas>("ZLayer")!;
 
         _zText[0] = this.FindControl<TextBlock>("Z0")!;
@@ -268,6 +284,7 @@ public partial class LunaWindow : Window
 
         var screen = Screens.Primary;
         InitializeChatSize(screen);
+        UpdateGreetingContent();
         LunaLog.Write(
             $"startup screen={screen?.Bounds.Width}x{screen?.Bounds.Height}@{screen?.Bounds.X},{screen?.Bounds.Y} " +
             $"work={screen?.WorkingArea.Width}x{screen?.WorkingArea.Height}@{screen?.WorkingArea.X},{screen?.WorkingArea.Y} " +
@@ -568,6 +585,16 @@ public partial class LunaWindow : Window
         var dt = Math.Max(0.001, Math.Min(0.1, now - _lastTick));
         _lastTick = now;
 
+        if (now - _greetingCheckAt >= 1.0)
+        {
+            _greetingCheckAt = now;
+            var local = KidThemeStore.ReadLocal();
+            if (local is not null && !string.Equals(local, _greetingTheme, StringComparison.Ordinal))
+            {
+                UpdateGreetingContent();
+            }
+        }
+
         var overMoon = IsCursorOverMoon();
         var overBubble = IsCursorOverBubble();
 
@@ -679,6 +706,8 @@ public partial class LunaWindow : Window
         _yawnOpacity = 0;
         _surpriseOpacity = 0;
         _bubbleOpacity = 0;
+        _bubbleTargetOn = false;
+        _bubbleScale = 1;
         _bob = 0;
         _blob.IsVisible = false;
         SetBlobChrome(true);
@@ -802,8 +831,6 @@ public partial class LunaWindow : Window
         _chatRoot.IsVisible = false;
         _blobYellow.Opacity = 1;
         SetBlob(12, 12, 96, 96, 48);
-        _greeting.Opacity = 0;
-        _bubbleOpacity = 0;
         EnsureTopmost();
         StartProbe(2.5);
         LunaLog.Write($"morph_open_begin from_mode slide={_slide:0.###}");
@@ -811,8 +838,18 @@ public partial class LunaWindow : Window
 
     internal bool ChatRootVisibleForTest => _chatRoot.IsVisible && _blob.IsVisible;
     internal string ModeForTest => _mode.ToString();
+    internal double BubbleOpacityForTest => _bubbleOpacity;
+    internal double BubbleScaleForTest => _bubbleScale;
+    internal LunaGreetingBubble GreetingForTest => _greeting;
 
     internal void OpenChatForTest() => OpenChat();
+
+    internal void WakeForTest() => StartWake(_clock.Elapsed.TotalSeconds);
+
+    internal void SetGreetingThemeForTest(string theme)
+    {
+        UpdateGreetingContent(theme);
+    }
 
     /// <summary>Headless tests drive the animation frame directly (no native timer).</summary>
     internal void TickForTest() => OnTick(null, EventArgs.Empty);
@@ -906,6 +943,10 @@ public partial class LunaWindow : Window
             _blob.IsVisible = false;
             SetBlobChrome(true);
             _greeting.Opacity = 0;
+            _bubbleOpacity = 0;
+            _bubbleTargetOn = false;
+            _bubbleScale = 1;
+            _bubbleSuppressUntil = now + 0.9;
             _mode = Mode.Awake;
             _slide = 1;
             _wakeStart = now - 2.5;
@@ -1083,11 +1124,52 @@ public partial class LunaWindow : Window
         _zLayer.Opacity = zTarget;
         UpdateZ(now);
 
-        var bubbleTarget = _mode is Mode.Awake && elapsed >= 1.9 && _slide >= 0.99 ? 1 : 0;
-        _bubbleOpacity = Approach(_bubbleOpacity, bubbleTarget, dt, 0.3);
+        var bubbleTargetOn = _mode is Mode.Awake && elapsed >= 1.9 && _slide >= 0.99 &&
+                             now >= _bubbleSuppressUntil;
+        if (bubbleTargetOn != _bubbleTargetOn)
+        {
+            _bubbleTargetOn = bubbleTargetOn;
+            _bubbleAnimStart = now;
+            if (bubbleTargetOn)
+            {
+                UpdateGreetingContent();
+            }
+        }
+
+        if (LunaMotion.ReducedMotion)
+        {
+            _bubbleOpacity = Approach(_bubbleOpacity, bubbleTargetOn ? 1 : 0, dt, bubbleTargetOn ? 0.15 : 0.08);
+            _bubbleScale = 1;
+        }
+        else if (bubbleTargetOn)
+        {
+            var p = Math.Clamp((now - _bubbleAnimStart) / 0.3, 0, 1);
+            _bubbleOpacity = Math.Clamp(p * 3, 0, 1);
+            _bubbleScale = PopScale(p);
+        }
+        else
+        {
+            _bubbleOpacity = Approach(_bubbleOpacity, 0, dt, 0.07);
+            _bubbleScale = Lerp(0.3, 1, _bubbleOpacity);
+            if (_bubbleOpacity < 0.01)
+            {
+                _bubbleOpacity = 0;
+                _bubbleScale = 1;
+            }
+        }
+
         _greeting.Opacity = _bubbleOpacity;
+        _greetingScale.ScaleX = _bubbleScale;
+        _greetingScale.ScaleY = _bubbleScale;
         _greeting.IsHitTestVisible = false;
     }
+
+    private static double PopScale(double p) => p switch
+    {
+        < 0.5 => Lerp(0.3, 1.08, EaseOutCubic(p / 0.5)),
+        < 0.75 => Lerp(1.08, 0.97, (p - 0.5) / 0.25),
+        _ => Lerp(0.97, 1, (p - 0.75) / 0.25)
+    };
 
     private void UpdateZ(double now)
     {
@@ -1146,6 +1228,66 @@ public partial class LunaWindow : Window
         return dx * dx + dy * dy <= 58 * 58;
     }
 
+    private void UpdateGreetingContent(string? themeOverride = null)
+    {
+        var local = KidThemeStore.ReadLocal();
+        _greetingTheme = themeOverride ?? local ?? _greetingTheme;
+        var first = Loc.T("Luna.Greeting.Line1");
+        if (string.Equals(first, "Luna.Greeting.Line1", StringComparison.Ordinal))
+        {
+            first = Loc.Language == Loc.Spanish ? "¡Hola, soy Luna!" : "Hi, I'm Luna!";
+        }
+
+        var second = Loc.T("Luna.Greeting.Line2");
+        if (string.Equals(second, "Luna.Greeting.Line2", StringComparison.Ordinal))
+        {
+            second = Loc.Language == Loc.Spanish
+                ? "¿Tienes una pregunta? ¡Te escucho!"
+                : "Got a question? I'm all ears!";
+        }
+
+        _greeting.Configure(_greetingTheme, first, second);
+        PlaceGreeting();
+        UpdateRegion();
+    }
+
+    private void PlaceGreeting()
+    {
+        var screen = Screens.Primary;
+        if (screen is null)
+        {
+            return;
+        }
+
+        var scale = RenderScaling > 0 ? RenderScaling : 1.0;
+        var viewWidth = screen.WorkingArea.Width / scale;
+        var viewHeight = screen.WorkingArea.Height / scale;
+        var placement = LunaGreetingLayout.Compute(
+            60, 56,
+            _greeting.TotalWidth, _greeting.TotalHeight, _greeting.BodyHeight,
+            viewWidth, viewHeight);
+        _greeting.SetTailSide(placement.TailSide);
+        Canvas.SetLeft(_greeting, placement.Left);
+        Canvas.SetTop(_greeting, placement.Top);
+    }
+
+    private Rect GreetingBounds()
+    {
+        var left = Canvas.GetLeft(_greeting);
+        var top = Canvas.GetTop(_greeting);
+        if (double.IsNaN(left))
+        {
+            left = 0;
+        }
+
+        if (double.IsNaN(top))
+        {
+            top = 0;
+        }
+
+        return new Rect(left, top, _greeting.TotalWidth, _greeting.TotalHeight);
+    }
+
     private bool IsCursorOverBubble()
     {
         if (_bubbleOpacity < 0.2 || !OperatingSystem.IsWindows() || _hwnd == IntPtr.Zero)
@@ -1162,7 +1304,8 @@ public partial class LunaWindow : Window
         var pos = Position;
         var x = (p.X - pos.X) / s;
         var y = (p.Y - pos.Y) / s;
-        return x >= 134 && x <= 326 && y >= 54 && y <= 144;
+        var bubble = GreetingBounds().Inflate(3);
+        return bubble.Contains(new Point(x, y));
     }
 
     private void UpdateRegion()
@@ -1238,8 +1381,24 @@ public partial class LunaWindow : Window
         }
 
         var radiusPx = (int)Math.Ceiling(radius * 2 * s);
+        var bubbleVisible = shape == "moon" && _bubbleOpacity > 0.1;
+        var bx1 = 0;
+        var by1 = 0;
+        var bx2 = 0;
+        var by2 = 0;
+        if (bubbleVisible)
+        {
+            var bubble = GreetingBounds().Inflate(2);
+            bx1 = (int)Math.Floor(bubble.Left * s);
+            by1 = (int)Math.Floor(bubble.Top * s);
+            bx2 = (int)Math.Ceiling(bubble.Right * s);
+            by2 = (int)Math.Ceiling(bubble.Bottom * s);
+        }
+
         if (shape == _lastRgnShape && x1 == _lastRgnX1 && y1 == _lastRgnY1 && x2 == _lastRgnX2 &&
-            y2 == _lastRgnY2 && radiusPx == _lastRgnRadius)
+            y2 == _lastRgnY2 && radiusPx == _lastRgnRadius && bubbleVisible == _lastRgnBubbleVisible &&
+            bx1 == _lastRgnBubbleX1 && by1 == _lastRgnBubbleY1 && bx2 == _lastRgnBubbleX2 &&
+            by2 == _lastRgnBubbleY2)
         {
             return;
         }
@@ -1250,16 +1409,19 @@ public partial class LunaWindow : Window
         _lastRgnX2 = x2;
         _lastRgnY2 = y2;
         _lastRgnRadius = radiusPx;
+        _lastRgnBubbleVisible = bubbleVisible;
+        _lastRgnBubbleX1 = bx1;
+        _lastRgnBubbleY1 = by1;
+        _lastRgnBubbleX2 = bx2;
+        _lastRgnBubbleY2 = by2;
 
         IntPtr region;
         if (shape == "moon")
         {
             region = Win32.CreateEllipticRgn(x1, y1, x2, y2);
-            if (_bubbleOpacity > 0.1)
+            if (bubbleVisible)
             {
-                var bubble = Win32.CreateRectRgn(
-                    (int)(134 * s), (int)(54 * s),
-                    (int)(326 * s), (int)(144 * s));
+                var bubble = Win32.CreateRectRgn(bx1, by1, bx2, by2);
                 if (bubble != IntPtr.Zero)
                 {
                     Win32.CombineRgn(region, region, bubble, Win32.RgnOr);

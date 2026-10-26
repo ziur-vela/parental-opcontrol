@@ -141,22 +141,10 @@
       </Canvas>
       </Canvas>
 
-      <Border x:Name="GreetingBubble"
-              Canvas.Left="134" Canvas.Top="58"
-              Width="190"
-              Background="#0e1d19"
-              BorderBrush="#2a4a42"
-              BorderThickness="1"
-              Padding="10,8"
-              Opacity="0"
-              IsHitTestVisible="False">
-        <StackPanel Spacing="2">
-          <TextBlock Text="LUNA" FontFamily="Consolas" FontSize="10" Foreground="#e2856b" />
-          <TextBlock Text="Hi there!" FontSize="14" FontWeight="Bold" Foreground="#e3ece8" />
-          <TextBlock Text="Need help with homework? Click me." FontSize="12" Foreground="#7f9a92"
-                     TextWrapping="Wrap" />
-        </StackPanel>
-      </Border>
+      <local:LunaGreetingBubble x:Name="GreetingBubble"
+                                Canvas.Left="110" Canvas.Top="10"
+                                Opacity="0"
+                                IsHitTestVisible="False" />
 
     </Canvas>
   </Grid>

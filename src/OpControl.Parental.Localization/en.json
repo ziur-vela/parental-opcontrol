@@ -261,6 +261,8 @@
   "Luna.Disclaimer": "Luna is an AI (Artificial Intelligence) and is supervised by your parents.",
   "Luna.Subject.WithLuna": "{0} with Luna",
   "Luna.Theme.Pick": "Pick a theme",
+  "Luna.Greeting.Line1": "Hi, I'm Luna!",
+  "Luna.Greeting.Line2": "Got a question? I'm all ears!",
   "Luna.Common.Close": "Close Luna",
   "Luna.Common.Back": "Back",
   "Luna.Common.Rename": "Rename",

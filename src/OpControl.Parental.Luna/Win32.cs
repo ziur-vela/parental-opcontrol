@@ -16,6 +16,10 @@ internal static class Win32
     public const uint ModControl = 0x0002;
     public const uint ModShift = 0x0004;
     public const uint ModNoRepeat = 0x4000;
+    public const uint SpiGetClientAreaAnimation = 0x1042;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool SystemParametersInfo(uint uiAction, uint uiParam, ref int pvParam, uint fWinIni);
 
     public delegate IntPtr SubclassProc(
         IntPtr hWnd, uint uMsg, IntPtr wParam, IntPtr lParam, UIntPtr uIdSubclass, IntPtr dwRefData);

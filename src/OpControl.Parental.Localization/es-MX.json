@@ -261,6 +261,8 @@
   "Luna.Disclaimer": "Luna es una IA (Inteligencia Artificial) supervisada por tus papás.",
   "Luna.Subject.WithLuna": "{0} con Luna",
   "Luna.Theme.Pick": "Elegir tema",
+  "Luna.Greeting.Line1": "¡Hola, soy Luna!",
+  "Luna.Greeting.Line2": "¿Tienes una pregunta? ¡Te escucho!",
   "Luna.Common.Close": "Cerrar Luna",
   "Luna.Common.Back": "Atrás",
   "Luna.Common.Rename": "Cambiar nombre",

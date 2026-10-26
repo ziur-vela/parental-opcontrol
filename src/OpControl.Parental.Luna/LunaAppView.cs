@@ -75,6 +75,7 @@ public sealed class LunaAppView : UserControl
 
     public event EventHandler? CloseRequested;
     public event Action<double, double>? ResizeRequested;
+    public event EventHandler? ThemeChanged;
 
     public LunaAppView(LunaApiClient api, string? theme)
     {
@@ -127,6 +128,7 @@ public sealed class LunaAppView : UserControl
             ApplyMarkdownResources(_palette);
             _root.Background = LunaBrushes.B(_palette.Bg);
             _root.BorderBrush = LunaBrushes.B(_palette.Border);
+            ThemeChanged?.Invoke(this, EventArgs.Empty);
             _themeWatch = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _themeWatch.Tick += (_, _) =>
             {
@@ -1327,6 +1329,7 @@ public sealed class LunaAppView : UserControl
         catch (Exception ex) { LunaLog.Exception("theme", ex); }
         _root.Background = LunaBrushes.B(_palette.Bg);
         _root.BorderBrush = LunaBrushes.B(_palette.Border);
+        ThemeChanged?.Invoke(this, EventArgs.Empty);
         RenderCurrent();
     }
 
@@ -1529,6 +1532,8 @@ public sealed class LunaAppView : UserControl
         try { await _api.SetThemeAsync(_palette.Key); } catch (Exception ex) { LunaLog.Exception("theme", ex); }
         _root.Background = LunaBrushes.B(_palette.Bg);
         _root.BorderBrush = LunaBrushes.B(_palette.Border);
+        ApplyMarkdownResources(_palette);
+        ThemeChanged?.Invoke(this, EventArgs.Empty);
         RenderCurrent();
     }
 
