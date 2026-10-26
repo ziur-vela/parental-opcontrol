@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Job 19b — Public AI chats category</title>
+<style>
+  body { margin: 0; padding: 28px; font: 15px/1.5 system-ui, sans-serif; background: #0b1714; color: #e3ece8; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 34px 0 10px; color: #3cc9a7; }
+  p { color: #a9bdb6; max-width: 1100px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+  .four { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+  figure { margin: 0; background: #112420; border: 1px solid #21443b; border-radius: 10px; padding: 10px; }
+  figure img { width: 100%; display: block; border-radius: 6px; }
+  figcaption { margin-top: 8px; font-weight: 700; }
+  code { background: #18352e; padding: 2px 5px; border-radius: 4px; }
+  .note { background: #112420; border-left: 4px solid #3cc9a7; padding: 10px 14px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<h1>Job 19b — Public AI chats category (v0.17.9)</h1>
+<p class="note">Real headless Chromium screenshots of the staging dashboard (v0.17.9). The temporary staging parent
+was deleted after capture. The category was turned on for the staging test child; the explanation is open in
+the desktop captures. The popup and child-tip captures use the same staging family.</p>
+
+<h2>Websites — category with explanation open</h2>
+<div class="four">
+  <figure><img src="websites-en-dark.png" alt="Websites EN dark"><figcaption>English · dark · 1440 px</figcaption></figure>
+  <figure><img src="websites-en-light.png" alt="Websites EN light"><figcaption>English · light · 1440 px</figcaption></figure>
+  <figure><img src="websites-es-dark.png" alt="Websites ES dark"><figcaption>es-MX · dark · 1440 px</figcaption></figure>
+  <figure><img src="websites-es-light.png" alt="Websites ES light"><figcaption>es-MX · light · 1440 px</figcaption></figure>
+</div>
+
+<div class="pair" style="margin-top:18px">
+  <figure><img src="websites-en-phone.png" alt="Websites EN phone"><figcaption>English · dark · 390 px width</figcaption></figure>
+  <figure><img src="websites-es-phone.png" alt="Websites ES phone"><figcaption>es-MX · light · 390 px width</figcaption></figure>
+</div>
+
+<h2>Luna welcome popup — Open Websites button</h2>
+<div class="pair">
+  <figure><img src="popup-en-dark.png" alt="Popup EN dark"><figcaption>English · dark · popup with OPEN WEBSITES</figcaption></figure>
+  <figure><img src="popup-es-light.png" alt="Popup ES light"><figcaption>es-MX · light · popup with ABRIR SITIOS WEB</figcaption></figure>
+</div>
+<p>The button points to <code>/websites#category-ai</code>. Captures <code>popup-en-dark-opened.png</code> and
+<code>popup-es-light-opened.png</code> show the destination after the click.</p>
+
+<h2>Child page tip — on while the category is off, hidden when it is on</h2>
+<div class="four">
+  <figure><img src="child-en-dark-tip-on.png" alt="Child tip on EN"><figcaption>English · dark · AI category OFF, tip visible</figcaption></figure>
+  <figure><img src="child-en-dark-tip-off.png" alt="Child tip off EN"><figcaption>English · dark · AI category ON, tip hidden</figcaption></figure>
+  <figure><img src="child-es-light-tip-on.png" alt="Child tip on ES"><figcaption>es-MX · light · AI category OFF, tip visible</figcaption></figure>
+  <figure><img src="child-es-light-tip-off.png" alt="Child tip off ES"><figcaption>es-MX · light · AI category ON, tip hidden</figcaption></figure>
+</div>
+
+<p>Limit: desktop screenshots are 1440 px; phone captures are 390 px viewport, not a physical phone. The staging
+Luna settings were temporarily made test-ready only to exercise the tip, then restored; the temporary parent was
+deleted. The screenshots contain the temporary parent name, but that account no longer exists.</p>
+</body>
+</html>
