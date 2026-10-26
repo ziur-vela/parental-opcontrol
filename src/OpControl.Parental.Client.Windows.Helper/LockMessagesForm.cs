@@ -25,18 +25,22 @@ public sealed class LockMessagesForm : Form
     private static readonly Color OwnText = Color.FromArgb(0x15, 0x10, 0x3a);
 
     private readonly Panel _threadHost;
-    private readonly FlowLayoutPanel _thread;
+    private readonly TableLayoutPanel _thread;
     private readonly TextBox _input;
     private readonly Label _status;
     private readonly Button _send;
     private readonly System.Windows.Forms.Timer _poll;
+    private readonly IReadOnlyList<ChildMessageDto>? _demo;
     private List<ChildMessageDto> _messages = [];
     private bool _sending;
     private bool _loading;
     private bool _firstLoad = true;
 
-    public LockMessagesForm()
+    public LockMessagesForm() : this(null) { }
+
+    internal LockMessagesForm(IReadOnlyList<ChildMessageDto>? demo)
     {
+        _demo = demo;
         AutoScaleMode = AutoScaleMode.None;
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.CenterParent;
@@ -96,17 +100,17 @@ public sealed class LockMessagesForm : Form
         header.Controls.Add(close, 1, 0);
         root.Controls.Add(header, 0, 0);
 
-        _thread = new FlowLayoutPanel
+        _thread = new TableLayoutPanel
         {
-            FlowDirection = FlowDirection.TopDown,
-            WrapContents = false,
-            AutoScroll = false,
+            ColumnCount = 1,
+            RowCount = 0,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Dock = DockStyle.Top,
             BackColor = Color.Transparent,
             Margin = new Padding(0)
         };
+        _thread.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
         _threadHost = new Panel
         {
             Dock = DockStyle.Fill,
@@ -247,6 +251,12 @@ public sealed class LockMessagesForm : Form
 
     private void LoadCache()
     {
+        if (_demo is not null)
+        {
+            _messages = _demo.Where(m => !m.Deleted).OrderBy(m => m.CreatedUtc).ToList();
+            RebuildThread(scrollToEnd: true);
+            return;
+        }
         var cached = MessageThreadCache.Read();
         if (cached is null) return;
         _messages = cached.Where(m => !m.Deleted).OrderBy(m => m.CreatedUtc).ToList();
@@ -255,6 +265,7 @@ public sealed class LockMessagesForm : Form
 
     private async Task RefreshAsync(bool markSeen, bool quiet)
     {
+        if (_demo is not null) return;
         if (_loading) return;
         _loading = true;
         if (!quiet) _status.Text = Loc.T("Client.Messages.Loading");
@@ -291,23 +302,33 @@ public sealed class LockMessagesForm : Form
     {
         _thread.SuspendLayout();
         _thread.Controls.Clear();
+        _thread.RowStyles.Clear();
+        _thread.RowCount = 0;
         if (_messages.Count == 0)
         {
-            _thread.Controls.Add(new Label
+            var empty = new Label
             {
                 Text = Loc.T("Client.Messages.Empty"),
                 AutoSize = true,
                 ForeColor = Pale,
                 Font = Theme.Body(12f),
                 Margin = new Padding(4, 8, 4, 8)
-            });
+            };
+            AddThreadRow(empty);
         }
         foreach (var message in _messages)
-            _thread.Controls.Add(BuildRow(message));
+            AddThreadRow(BuildRow(message));
         _thread.Width = Math.Max(200, _threadHost.ClientSize.Width - 24);
         _thread.ResumeLayout(true);
         if (scrollToEnd)
             _threadHost.ScrollControlIntoView(_thread.Controls.Count > 0 ? _thread.Controls[^1] : _thread);
+    }
+
+    private void AddThreadRow(Control row)
+    {
+        _thread.RowCount++;
+        _thread.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        _thread.Controls.Add(row, 0, _thread.RowCount - 1);
     }
 
     private Control BuildRow(ChildMessageDto message)
@@ -319,6 +340,7 @@ public sealed class LockMessagesForm : Form
             WrapContents = false,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
             BackColor = Color.Transparent,
             Margin = new Padding(0, 0, 0, 8),
             Padding = new Padding(0)
@@ -344,7 +366,11 @@ public sealed class LockMessagesForm : Form
             BackColor = Color.Transparent,
             Margin = new Padding(0, 0, 0, 3)
         };
-        if (own) head.Text = $"{Loc.T("Client.Messages.SentByYou")} · {MessageDisplay.Time(message)}";
+        if (own)
+        {
+            head.Text = $"{Loc.T("Client.Messages.SentByYou")} · {MessageDisplay.Time(message)}";
+            head.Anchor = AnchorStyles.Right;
+        }
         var bubble = new Label
         {
             Text = MessageDisplay.Body(message),
@@ -367,6 +393,7 @@ public sealed class LockMessagesForm : Form
         if (own)
         {
             var ui = MessageStatusRules.ForDisplay(message);
+            status.Anchor = AnchorStyles.Right;
             status.Controls.Add(new Label
             {
                 Text = $"{MessageStatusRules.Icon(ui)} {Loc.T("Client." + MessageStatusRules.LabelKey(ui))}",

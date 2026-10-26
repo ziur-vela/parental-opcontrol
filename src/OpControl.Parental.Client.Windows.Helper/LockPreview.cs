@@ -35,6 +35,29 @@ internal static class LockPreview
         form.UpdateState(state);
 
         var capture = Arg(args, "--capture");
+        if (args.Any(a => string.Equals(a, "--messages-preview", StringComparison.OrdinalIgnoreCase)))
+        {
+            var messages = DemoMessages(es);
+            using var panel = new LockMessagesForm(messages)
+            {
+                StartPosition = FormStartPosition.Manual,
+                Location = new Point(0, 0)
+            };
+            if (!string.IsNullOrWhiteSpace(capture))
+            {
+                panel.Show();
+                Application.DoEvents();
+                Thread.Sleep(250);
+                using var bitmap = new Bitmap(panel.ClientSize.Width, panel.ClientSize.Height);
+                panel.DrawToBitmap(bitmap, new Rectangle(0, 0, bitmap.Width, bitmap.Height));
+                bitmap.Save(capture, ImageFormat.Png);
+                panel.Close();
+                return;
+            }
+            panel.Show();
+            Application.Run(panel);
+            return;
+        }
         if (!string.IsNullOrWhiteSpace(capture))
         {
             LockPreviewRenderer.Render(capture, width, height, state);
@@ -56,6 +79,27 @@ internal static class LockPreview
 
         form.Show();
         Application.Run(form);
+    }
+
+    private static List<ChildMessageDto> DemoMessages(bool es)
+    {
+        var child = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        return
+        [
+            new(child, child, null, MessageDirection.ParentToChild, null, es ? "Mamá" : "Mom",
+                es ? "¡Hola! ¿Cómo estuvo la escuela?" : "Hello! How was school?", null, false, false,
+                now.AddMinutes(-35), now.AddMinutes(-35), now.AddMinutes(-30), null, null,
+                MessageStatus.Seen, false),
+            new(child, child, null, MessageDirection.ChildToParent, null, string.Empty,
+                es ? "¡Bien! Hicimos fracciones." : "It was good! We did fractions.", null, false, false,
+                now.AddMinutes(-30), now.AddMinutes(-29), null, null, now.AddMinutes(-28),
+                MessageStatus.Seen, false),
+            new(child, child, null, MessageDirection.ParentToChild, null, es ? "Mamá" : "Mom",
+                es ? "Sí, después de terminar la tarea. Te agregué 15 minutos extra." : "Yes, after you finish homework. I added 15 minutes of bonus time.",
+                null, false, true, now.AddMinutes(-10), now.AddMinutes(-10), null, null, null,
+                MessageStatus.Delivered, false)
+        ];
     }
 
     private static string MapReason(string reason) => reason switch
