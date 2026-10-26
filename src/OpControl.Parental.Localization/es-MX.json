@@ -303,6 +303,7 @@
   "Luna.Chat.Paused": "Luna no puede responder ahora",
   "Luna.Chat.Offline": "Luna no puede conectarse ahora",
   "Luna.Chat.Retry": "Reintentar",
+  "Luna.Chat.Removed": "Este chat fue eliminado",
   "Luna.Chat.Empty": "Elige un tema para empezar un chat.",
   "Luna.Chat.SendError": "No se envió. Inténtalo de nuevo.",
   "Luna.Chat.NoMessages": "Aún no hay mensajes.",

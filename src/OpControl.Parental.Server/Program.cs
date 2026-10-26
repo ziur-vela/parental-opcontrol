@@ -1233,16 +1233,16 @@ app.MapPost("/api/children/{childId:guid}/luna/chats/{chatId:guid}/delete", asyn
 {
     await antiforgery.ValidateRequestAsync(context);
     await family.RequireAsync(ParentPermissions.Luna, ct);
-    await luna.DeleteChatAsync(family.FamilyId, childId, chatId, ct);
-    return Results.Ok(new { ok = true });
+    var deleted = await luna.DeleteChatAsync(family.FamilyId, childId, chatId, ct);
+    return Results.Ok(new { ok = true, chats = deleted.Chats, messages = deleted.Messages });
 }).RequireAuthorization();
 
 app.MapPost("/api/children/{childId:guid}/luna/clear", async (Guid childId, HttpContext context, IAntiforgery antiforgery, FamilyScope family, LunaParentService luna, CancellationToken ct) =>
 {
     await antiforgery.ValidateRequestAsync(context);
     await family.RequireAsync(ParentPermissions.Luna, ct);
-    await luna.ClearAsync(family.FamilyId, childId, ct);
-    return Results.Ok(new { ok = true });
+    var deleted = await luna.ClearAsync(family.FamilyId, childId, ct);
+    return Results.Ok(new { ok = true, chats = deleted.Chats, messages = deleted.Messages });
 }).RequireAuthorization();
 
 app.MapPost("/api/children/{childId:guid}/luna/messages/{messageId:guid}/review", async (Guid childId, Guid messageId, LunaReviewRequest request, HttpContext context, IAntiforgery antiforgery, FamilyScope family, LunaParentService luna, CancellationToken ct) =>

@@ -27,7 +27,7 @@ public sealed class LunaAppView : UserControl
 
     internal const double BubbleWidthFraction = 0.88;
 
-    private readonly LunaApiClient _api;
+    private readonly ILunaApiClient _api;
     private readonly Grid _host = new();
     private readonly Border _root;
     private LunaPalette _palette;
@@ -42,6 +42,8 @@ public sealed class LunaAppView : UserControl
     private TextBox? _input;
     private Control? _limitPanel;
     private string? _notice;
+    private string? _homeNotice;
+    private bool _refreshingHome;
     private bool _limitReached;
     private bool _cooldown;
     private bool _requestSent;
@@ -77,7 +79,11 @@ public sealed class LunaAppView : UserControl
     public event Action<double, double>? ResizeRequested;
     public event EventHandler? ThemeChanged;
 
-    public LunaAppView(LunaApiClient api, string? theme)
+    public LunaAppView(LunaApiClient api, string? theme) : this((ILunaApiClient)api, theme)
+    {
+    }
+
+    internal LunaAppView(ILunaApiClient api, string? theme)
     {
         _api = api;
         _palette = LunaThemes.From(theme);
@@ -144,9 +150,8 @@ public sealed class LunaAppView : UserControl
                 return;
             }
             var all = await _api.GetChatsAsync(includeHidden: true);
-            _chats = all.Where(c => !c.HiddenByChild).ToList();
-            _hiddenChats = all.Where(c => c.HiddenByChild).ToList();
-            ShowHome();
+            ApplyChats(all);
+            ShowHome(refresh: false);
         }
         catch (LunaApiException ex) when (ex.Status is System.Net.HttpStatusCode.Forbidden or System.Net.HttpStatusCode.Unauthorized)
         {
@@ -230,7 +235,16 @@ public sealed class LunaAppView : UserControl
         return new Grid { Children = { stack } };
     }
 
-    private void ShowHome()
+    private void ShowHome(bool refresh = true)
+    {
+        RenderHome();
+        if (refresh)
+        {
+            _ = RefreshHomeAsync();
+        }
+    }
+
+    private void RenderHome()
     {
         SetScreen(Screen.Home);
         _host.Children.Clear();
@@ -261,8 +275,16 @@ public sealed class LunaAppView : UserControl
         close.Margin = new Thickness(8, 0, 0, 0);
         Grid.SetColumn(close, 3);
         header.Children.Add(close);
-        Grid.SetRow(header, 0);
-        root.Children.Add(header);
+        var top = new StackPanel();
+        top.Children.Add(header);
+        if (!string.IsNullOrWhiteSpace(_homeNotice))
+        {
+            var notice = NoticeBanner(_homeNotice);
+            notice.Margin = new Thickness(18, 4, 18, 0);
+            top.Children.Add(notice);
+        }
+        Grid.SetRow(top, 0);
+        root.Children.Add(top);
 
         var tiles = new Grid
         {
@@ -377,7 +399,9 @@ public sealed class LunaAppView : UserControl
         try
         {
             var chat = await _api.CreateChatAsync(subject);
-            _chats = await _api.GetChatsAsync();
+            var all = await _api.GetChatsAsync(includeHidden: true);
+            ApplyChats(all);
+            _homeNotice = null;
             await OpenChatAsync(chat);
         }
         catch (Exception ex)
@@ -397,6 +421,16 @@ public sealed class LunaAppView : UserControl
         try
         {
             _messages = await _api.GetMessagesAsync(chat.Id);
+            _homeNotice = null;
+        }
+        catch (LunaApiException ex) when (ex.Status is System.Net.HttpStatusCode.BadRequest or System.Net.HttpStatusCode.NotFound)
+        {
+            LunaLog.Write($"chat_removed id={chat.Id} status={(int)ex.Status}");
+            RemoveChatLocally(chat.Id);
+            _chat = null;
+            _homeNotice = Loc.T("Luna.Chat.Removed");
+            ShowHome(refresh: false);
+            return;
         }
         catch (Exception ex)
         {
@@ -1368,16 +1402,74 @@ public sealed class LunaAppView : UserControl
         }
     }
 
-    private async Task RefreshChatsQuietAsync()
+    public async Task RefreshForOpenAsync()
+    {
+        if (_status?.Enabled != true) return;
+        if (!await RefreshChatsQuietAsync()) return;
+        if (_screen == Screen.Chat && _chat is not null && !ChatExists(_chat.Id))
+        {
+            RemoveChatLocally(_chat.Id);
+            _chat = null;
+            _homeNotice = Loc.T("Luna.Chat.Removed");
+            ShowHome(refresh: false);
+            return;
+        }
+
+        if (_screen == Screen.Home) ShowHome(refresh: false);
+        else if (_screen == Screen.Chats) ShowChats();
+    }
+
+    private async Task RefreshHomeAsync()
+    {
+        if (_status?.Enabled != true || _refreshingHome) return;
+        _refreshingHome = true;
+        try
+        {
+            var before = ChatFingerprint();
+            var all = await _api.GetChatsAsync(includeHidden: true);
+            ApplyChats(all);
+            if (_screen == Screen.Home && before != ChatFingerprint()) RenderHome();
+        }
+        catch (Exception ex) { LunaLog.Exception("refresh-home", ex); }
+        finally { _refreshingHome = false; }
+    }
+
+    private async Task<bool> RefreshChatsQuietAsync()
     {
         try
         {
-            _chats = await _api.GetChatsAsync();
+            var all = await _api.GetChatsAsync(includeHidden: true);
+            ApplyChats(all);
             if (_chat is not null)
-                _chat = _chats.FirstOrDefault(c => c.Id == _chat.Id) ?? _chat;
+                _chat = all.FirstOrDefault(c => c.Id == _chat.Id) ?? _chat;
+            return true;
         }
-        catch (Exception ex) { LunaLog.Exception("refresh-chats", ex); }
+        catch (Exception ex)
+        {
+            LunaLog.Exception("refresh-chats", ex);
+            return false;
+        }
     }
+
+    private void ApplyChats(IReadOnlyList<LunaChatDto> all)
+    {
+        _chats = all.Where(c => !c.HiddenByChild).ToList();
+        _hiddenChats = all.Where(c => c.HiddenByChild).ToList();
+    }
+
+    private bool ChatExists(Guid chatId) =>
+        _chats.Any(c => c.Id == chatId) || _hiddenChats.Any(c => c.Id == chatId);
+
+    private void RemoveChatLocally(Guid chatId)
+    {
+        _chats.RemoveAll(c => c.Id == chatId);
+        _hiddenChats.RemoveAll(c => c.Id == chatId);
+        if (_chat?.Id == chatId) _chat = null;
+    }
+
+    private string ChatFingerprint() => string.Join("|",
+        _chats.Concat(_hiddenChats).OrderBy(c => c.Id)
+            .Select(c => $"{c.Id}:{c.Title}:{c.HiddenByChild}:{c.LastMessageUtc.Ticks}"));
 
     private void ShowRenameDialog(LunaChatDto chat)
     {
@@ -1883,6 +1975,20 @@ public sealed class LunaAppView : UserControl
         ? _messagesPanel.Children[^1] as Control : null;
 
     internal void MarkInitializedForTest() => _initialized = true;
+
+    internal async Task InitializeForTestAsync() => await InitAsync();
+
+    internal void ShowHomeForTest() => ShowHome();
+
+    internal void ShowHomeWithoutRefreshForTest() => ShowHome(refresh: false);
+
+    internal Task OpenChatFromListForTest(LunaChatDto chat) => OpenChatAsync(chat);
+
+    internal string ScreenForTest => _screen.ToString();
+
+    internal string? HomeNoticeForTest => _homeNotice;
+
+    internal IReadOnlyList<LunaChatDto> ChatsForTest => _chats;
 
     internal void SetAvatarForTest(string key) => _avatarKey = LunaAvatarKeys.Normalize(key);
 

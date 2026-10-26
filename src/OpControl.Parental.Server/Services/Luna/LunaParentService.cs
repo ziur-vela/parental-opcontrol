@@ -95,7 +95,7 @@ public sealed class LunaParentService
         return new LunaParentChatDto(ToDto(chat), messages.Select(ToParentDto).ToList());
     }
 
-    public async Task DeleteChatAsync(Guid familyId, Guid childId, Guid chatId, CancellationToken ct = default)
+    public async Task<(int Chats, int Messages)> DeleteChatAsync(Guid familyId, Guid childId, Guid chatId, CancellationToken ct = default)
     {
         await ChildAsync(familyId, childId, ct);
         var chat = await _db.LunaChats.FirstOrDefaultAsync(c => c.Id == chatId && c.FamilyId == familyId && c.ChildId == childId, ct)
@@ -104,9 +104,10 @@ public sealed class LunaParentService
         _db.LunaMessages.RemoveRange(messages);
         _db.LunaChats.Remove(chat);
         await _db.SaveChangesAsync(ct);
+        return (1, messages.Count);
     }
 
-    public async Task ClearAsync(Guid familyId, Guid childId, CancellationToken ct = default)
+    public async Task<(int Chats, int Messages)> ClearAsync(Guid familyId, Guid childId, CancellationToken ct = default)
     {
         await ChildAsync(familyId, childId, ct);
         var messages = await _db.LunaMessages.Where(m => m.FamilyId == familyId && m.ChildId == childId).ToListAsync(ct);
@@ -114,6 +115,7 @@ public sealed class LunaParentService
         _db.LunaMessages.RemoveRange(messages);
         _db.LunaChats.RemoveRange(chats);
         await _db.SaveChangesAsync(ct);
+        return (chats.Count, messages.Count);
     }
 
     public async Task<LunaParentMessageDto> ReviewAsync(Guid familyId, Guid childId, Guid messageId, Guid parentId,

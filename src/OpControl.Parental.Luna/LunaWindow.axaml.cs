@@ -816,6 +816,7 @@ public partial class LunaWindow : Window
             return;
         }
 
+        _ = _chat.RefreshForOpenAsync();
         _mode = Mode.MorphOpen;
         _morphStart = _clock.Elapsed.TotalSeconds;
         _morphLogStart = _morphStart;

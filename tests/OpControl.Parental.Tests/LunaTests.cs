@@ -1119,6 +1119,78 @@ public class LunaTests
         }
     }
 
+    private static async Task AddMessagesAsync(Harness h, Guid chatId, int count)
+    {
+        for (var i = 0; i < count; i++)
+        {
+            h.Db.LunaMessages.Add(new LunaMessage
+            {
+                FamilyId = h.Family.Id,
+                ChildId = h.Child.Id,
+                ChatId = chatId,
+                Role = LunaChatRoles.Child,
+                Text = $"message {i}",
+                ShownText = $"message {i}",
+                CreatedUtc = DateTime.UtcNow.AddMinutes(i)
+            });
+        }
+        await h.Db.SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task Delete_one_chat_removes_its_messages_and_keeps_the_profile_and_other_chats()
+    {
+        await using var h = await NewHarnessAsync();
+        var first = await h.Chat.CreateChatAsync(Context(h), LunaSubjects.Math);
+        var second = await h.Chat.CreateChatAsync(Context(h), LunaSubjects.Science);
+        await AddMessagesAsync(h, first.Id, 2);
+        await AddMessagesAsync(h, second.Id, 1);
+        h.Db.LunaLearnerProfiles.Add(new LunaLearnerProfile
+        {
+            FamilyId = h.Family.Id,
+            ChildId = h.Child.Id,
+            Text = "Likes fractions",
+            UpdatedUtc = DateTime.UtcNow
+        });
+        await h.Db.SaveChangesAsync();
+
+        var deleted = await h.ParentSvc.DeleteChatAsync(h.Family.Id, h.Child.Id, first.Id);
+
+        Assert.Equal((1, 2), deleted);
+        Assert.Equal([second.Id], await h.Db.LunaChats.Select(c => c.Id).ToListAsync());
+        Assert.Equal(1, await h.Db.LunaMessages.CountAsync());
+        Assert.Equal(second.Id, (await h.Db.LunaMessages.SingleAsync()).ChatId);
+        Assert.True(await h.Db.LunaLearnerProfiles.AnyAsync(p => p.ChildId == h.Child.Id));
+        var listed = await h.Chat.ListChatsAsync(Context(h), includeHidden: true);
+        Assert.Equal([second.Id], listed.Select(c => c.Id).ToList());
+    }
+
+    [Fact]
+    public async Task Delete_all_chats_removes_every_chat_and_message_and_keeps_the_profile()
+    {
+        await using var h = await NewHarnessAsync();
+        var first = await h.Chat.CreateChatAsync(Context(h), LunaSubjects.Math);
+        var second = await h.Chat.CreateChatAsync(Context(h), LunaSubjects.History);
+        await AddMessagesAsync(h, first.Id, 2);
+        await AddMessagesAsync(h, second.Id, 1);
+        h.Db.LunaLearnerProfiles.Add(new LunaLearnerProfile
+        {
+            FamilyId = h.Family.Id,
+            ChildId = h.Child.Id,
+            Text = "Likes history",
+            UpdatedUtc = DateTime.UtcNow
+        });
+        await h.Db.SaveChangesAsync();
+
+        var deleted = await h.ParentSvc.ClearAsync(h.Family.Id, h.Child.Id);
+
+        Assert.Equal((2, 3), deleted);
+        Assert.Empty(await h.Db.LunaChats.ToListAsync());
+        Assert.Empty(await h.Db.LunaMessages.ToListAsync());
+        Assert.True(await h.Db.LunaLearnerProfiles.AnyAsync(p => p.ChildId == h.Child.Id));
+        Assert.Empty(await h.Chat.ListChatsAsync(Context(h), includeHidden: true));
+    }
+
     private sealed class NullHubContext : IHubContext<ParentalHub>
     {
         public IHubClients Clients { get; } = new NullClients();

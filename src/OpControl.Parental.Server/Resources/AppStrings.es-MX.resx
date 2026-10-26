@@ -1392,6 +1392,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Luna.Review.Breadcrumb" xml:space="preserve"><value>Luna IA para {0} · Chats</value></data>
   <data name="Luna.Review.Title" xml:space="preserve"><value>Los chats de {0} con Luna IA</value></data>
   <data name="Luna.Review.Subtitle" xml:space="preserve"><value>Ves todos los chats, incluidos los que {0} ocultó.</value></data>
+  <data name="Luna.Review.DeletedCounts" xml:space="preserve"><value>Chats eliminados: {0} · Mensajes eliminados: {1}</value></data>
   <data name="Luna.Review.DeleteAll" xml:space="preserve"><value>Eliminar todos los chats</value></data>
   <data name="Luna.Review.FilterAll" xml:space="preserve"><value>Todos</value></data>
   <data name="Luna.Review.FilterNeeds" xml:space="preserve"><value>Por revisar ({0})</value></data>

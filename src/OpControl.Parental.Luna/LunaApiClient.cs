@@ -18,7 +18,20 @@ public sealed class LunaApiException : Exception
     public LunaApiException(HttpStatusCode status, string message) : base(message) => Status = status;
 }
 
-public sealed class LunaApiClient : IDisposable
+public interface ILunaApiClient
+{
+    Task ConnectAsync(bool dev, CancellationToken ct = default);
+    Task<LunaStatusDto> GetStatusAsync(CancellationToken ct = default);
+    Task<List<LunaChatDto>> GetChatsAsync(bool includeHidden = false, CancellationToken ct = default);
+    Task<LunaChatDto> CreateChatAsync(string subject, CancellationToken ct = default);
+    Task<LunaChatDto> UpdateChatAsync(Guid chatId, LunaUpdateChatRequest request, CancellationToken ct = default);
+    Task<List<LunaChildMessageDto>> GetMessagesAsync(Guid chatId, CancellationToken ct = default);
+    Task<LunaMessageResponse> SendMessageAsync(Guid chatId, string text, CancellationToken ct = default);
+    Task<LunaMoreRequestDto> RequestMoreAsync(CancellationToken ct = default);
+    Task SetThemeAsync(string theme, CancellationToken ct = default);
+}
+
+public sealed class LunaApiClient : ILunaApiClient, IDisposable
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
