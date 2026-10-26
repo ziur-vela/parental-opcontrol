@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Job 19d — small safety-test fixes</title>
+<style>
+  body { margin: 0; padding: 28px; font: 15px/1.5 system-ui, sans-serif; background: #0b1714; color: #e3ece8; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 34px 0 10px; color: #3cc9a7; }
+  p { color: #a9bdb6; max-width: 1100px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+  figure { margin: 0; background: #112420; border: 1px solid #21443b; border-radius: 10px; padding: 10px; }
+  figure img { width: 100%; display: block; border-radius: 6px; }
+  figcaption { margin-top: 8px; font-weight: 700; }
+  code { background: #18352e; padding: 2px 5px; border-radius: 4px; }
+  .note { background: #112420; border-left: 4px solid #3cc9a7; padding: 10px 14px; border-radius: 6px; }
+  .stack { display: grid; gap: 18px; }
+</style>
+</head>
+<body>
+<h1>Job 19d — small fixes from the safety test (v0.17.10)</h1>
+<p class="note">The Luna-app images are headless Skia renders of the real Avalonia view at 683×600.
+The dashboard images are headless Chromium captures of the staging dashboard (v0.17.9 before,
+v0.17.10 after). The staging test parent, chat, usage and profile were deleted after capture.</p>
+
+<h2>1. Duplicate blocked notice above the input</h2>
+<div class="pair">
+  <figure><img src="luna-blocked-notice-before.png" alt="Before duplicate notice"><figcaption>Before — the blocked reply appears in the chat <b>and</b> in the yellow box above the input</figcaption></figure>
+  <figure><img src="luna-blocked-notice-after.png" alt="After duplicate notice removed"><figcaption>After — the fixed reply appears only in the chat</figcaption></figure>
+</div>
+
+<h2>2. Dashboard times — UTC → family time zone</h2>
+<p>Before <code>26 Oct, 20:43</code> / after <code>26 Oct, 13:43</code> for the same 20:43 UTC
+message (Pacific daylight, matching Hermosillo in October).</p>
+<div class="stack">
+  <div class="pair">
+    <figure><img src="before-luna-child.png" alt="Before Luna child"><figcaption>Before — tile, needs-review and profile times in UTC</figcaption></figure>
+    <figure><img src="after-luna-child.png" alt="After Luna child"><figcaption>After — 13:43 times, “55 left today”, helpful DOB text and Children link</figcaption></figure>
+  </div>
+  <div class="pair">
+    <figure><img src="before-luna-review.png" alt="Before review"><figcaption>Before — review chat/message times in UTC</figcaption></figure>
+    <figure><img src="after-luna-review.png" alt="After review"><figcaption>After — review times in the family zone</figcaption></figure>
+  </div>
+  <div class="pair">
+    <figure><img src="before-luna-setup.png" alt="Before setup"><figcaption>Before — “Last test: 24 Oct, 20:43”</figcaption></figure>
+    <figure><img src="after-luna-setup.png" alt="After setup"><figcaption>After — “Last test: 24 Oct, 13:43”</figcaption></figure>
+  </div>
+</div>
+
+<h2>3. Messages today tile</h2>
+<p>Before the tile showed <code>5 / 60</code> with a bare <code>55</code>. After it shows
+<code>55 left today</code> (EN) / <code>Quedan 55 hoy</code> (es-MX).</p>
+<div class="pair">
+  <figure><img src="after-luna-child.png" alt="English tile"><figcaption>English — 55 left today</figcaption></figure>
+  <figure><img src="after-luna-child-es.png" alt="Spanish tile and DOB"><figcaption>es-MX / light — Quedan 55 hoy, Niños link</figcaption></figure>
+</div>
+
+<h2>4. Missing date of birth → Children page</h2>
+<div class="stack">
+  <div class="pair">
+    <figure><img src="after-luna-child.png" alt="DOB help"><figcaption>Luna page — “Add Staging Child's date of birth in Children…” with OPEN CHILDREN</figcaption></figure>
+    <figure><img src="after-children.png" alt="Children page"><figcaption>New Children page — date-of-birth field for the child</figcaption></figure>
+  </div>
+  <div class="pair">
+    <figure><img src="after-children-es.png" alt="Children ES"><figcaption>es-MX / light — Niños and Fecha de nacimiento</figcaption></figure>
+  </div>
+</div>
+
+<p class="note">No date of birth was entered or changed by this job. The new page is for the parent to use.
+Limitation: the dashboard has no per-parent time zone, so it uses the family's device time zone (the same
+source the rest of the dashboard already uses).</p>
+</body>
+</html>
