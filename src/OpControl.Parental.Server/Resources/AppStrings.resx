@@ -1405,6 +1405,7 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Luna.Why.Bullet.Limits" xml:space="preserve"><value>Daily limits, schedules and locks apply to Luna too.</value></data>
   <data name="Luna.Why.Footer" xml:space="preserve"><value>Recommended: turn on Block public AI chats in Websites. It blocks sites like ChatGPT, Gemini and the AI chats built into search engines and browsers, so Luna becomes the AI your child uses.</value></data>
   <data name="Luna.Child.AiBlockTip" xml:space="preserve"><value>Tip: Block public AI chats is off for {0}. Turn it on in Websites so Luna is the AI {0} uses.</value></data>
+  <data name="Luna.Common.ComingSoon" xml:space="preserve"><value>Coming soon</value></data>
   <data name="Luna.Child.OpenWebsites" xml:space="preserve"><value>Open Websites</value></data>
   <data name="Luna.Child.NoChats" xml:space="preserve"><value>No chats yet</value></data>
   <data name="Luna.Child.NoChatsText" xml:space="preserve"><value>{0} hasn't talked to Luna yet. {0}'s chats will show up here.</value></data>

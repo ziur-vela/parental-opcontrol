@@ -1405,6 +1405,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Luna.Why.Bullet.Limits" xml:space="preserve"><value>Los límites diarios, los horarios y los bloqueos también se aplican a Luna.</value></data>
   <data name="Luna.Why.Footer" xml:space="preserve"><value>Recomendado: activa Bloquear chats públicos de IA en Sitios web. Bloquea sitios como ChatGPT, Gemini y los chats de IA integrados en buscadores y navegadores, para que Luna sea la IA que usan tus hijos.</value></data>
   <data name="Luna.Child.AiBlockTip" xml:space="preserve"><value>Consejo: Bloquear chats públicos de IA está desactivado para {0}. Actívalo en Sitios web para que Luna sea la IA que usa {0}.</value></data>
+  <data name="Luna.Common.ComingSoon" xml:space="preserve"><value>Próximamente</value></data>
   <data name="Luna.Child.OpenWebsites" xml:space="preserve"><value>Abrir Sitios web</value></data>
   <data name="Luna.Child.NoChats" xml:space="preserve"><value>Aún no hay chats</value></data>
   <data name="Luna.Child.NoChatsText" xml:space="preserve"><value>{0} todavía no ha hablado con Luna. Los chats de {0} aparecerán aquí.</value></data>

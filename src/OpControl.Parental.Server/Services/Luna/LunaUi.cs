@@ -60,9 +60,12 @@ public static class LunaUi
             : lastTestOk && childOn ? LunaMoonState.Awake : LunaMoonState.Asleep;
 
     /// <summary>
-    /// One place for the public-AI-block tip condition. The setting does not exist yet;
-    /// pass null for now. A later job passes the real setting so the tip hides when it is on.
+    /// Job 19 will turn this on when the public-AI-chat block exists. Until then the
+    /// recommendation text stays, the button says "Coming soon" and the child tip is hidden.
     /// </summary>
+    public static bool PublicAiBlockAvailable => false;
+
+    /// <summary>One place for the public-AI-block tip condition.</summary>
     public static bool ShowPublicAiBlockTip(bool lunaOn, bool? publicAiChatsBlocked) =>
-        lunaOn && publicAiChatsBlocked != true;
+        PublicAiBlockAvailable && lunaOn && publicAiChatsBlocked != true;
 }
