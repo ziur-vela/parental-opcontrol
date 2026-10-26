@@ -129,7 +129,7 @@ public class Job185HotfixTests
         // Both modes running at the same time: the moon is running, the kid
         // window is untouched, and only the moon is a stop target.
         var both = new[] { moon, kid, other };
-        Assert.True(both.Any(p => LunaProcessPolicy.CountsAsRunningMoon(p, 1)));
+        Assert.Contains(both, p => LunaProcessPolicy.CountsAsRunningMoon(p, 1));
         var targets = both.Where(p => LunaProcessPolicy.ShouldStop(p, 1)).ToList();
         Assert.Single(targets);
         Assert.Equal(moon, targets[0]);
