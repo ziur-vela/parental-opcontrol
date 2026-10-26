@@ -85,12 +85,13 @@ public class Job184KidViewTests
         var root = FindRoot();
         var session = File.ReadAllText(Path.Combine(root, "src", "OpControl.Parental.Client.Windows", "WindowsSession.cs"));
         Assert.Contains("IsKidWindow", session, StringComparison.Ordinal);
-        Assert.Contains("MainWindowTitle", session, StringComparison.Ordinal);
-        Assert.Contains("!IsKidWindow(p)", session, StringComparison.Ordinal);
+        Assert.Contains("ManagementObjectSearcher", session, StringComparison.Ordinal);
+        Assert.Contains("CommandLine", session, StringComparison.Ordinal);
+        Assert.Contains("--kid-window", session, StringComparison.Ordinal);
         Assert.Contains("|| IsKidWindow(process)", session, StringComparison.Ordinal);
         var helper = File.ReadAllText(Path.Combine(root, "src", "OpControl.Parental.Client.Windows.Helper", "HelperContext.cs"));
         Assert.Contains("private static bool IsKidWindow", helper, StringComparison.Ordinal);
-        Assert.Contains("!IsKidWindow(p)", helper, StringComparison.Ordinal);
+        Assert.Contains("--kid-window", helper, StringComparison.Ordinal);
     }
 
     private static string FindRoot()

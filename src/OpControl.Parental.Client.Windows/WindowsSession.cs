@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Win32.SafeHandles;
+using System.Management;
 using OpControl.Parental.Contracts;
 using OpControl.Parental.Localization;
 
@@ -251,11 +252,16 @@ public static class WindowsSession
     {
         try
         {
-            return Process.GetProcessesByName("OpControl.Parental.Luna").Any(p =>
+            using var searcher = new ManagementObjectSearcher(
+                "SELECT ProcessId, SessionId, CommandLine FROM Win32_Process WHERE Name = 'OpControl.Parental.Luna.exe'");
+            foreach (ManagementBaseObject item in searcher.Get())
             {
-                try { return p.SessionId == sessionId && !IsKidWindow(p); }
-                catch { return false; }
-            });
+                var processSession = Convert.ToInt32(item["SessionId"]);
+                var commandLine = item["CommandLine"]?.ToString() ?? "";
+                item.Dispose();
+                if (processSession == sessionId && !IsKidCommandLine(commandLine)) return true;
+            }
+            return false;
         }
         catch { return false; }
     }
@@ -263,9 +269,23 @@ public static class WindowsSession
     /// <summary>The same Avalonia exe also hosts the My OpControl window with --kid-window.</summary>
     public static bool IsKidWindow(Process process)
     {
-        try { return process.MainWindowTitle.StartsWith("My OpControl", StringComparison.OrdinalIgnoreCase); }
+        try
+        {
+            using var searcher = new ManagementObjectSearcher(
+                $"SELECT CommandLine FROM Win32_Process WHERE ProcessId = {process.Id}");
+            foreach (ManagementBaseObject item in searcher.Get())
+            {
+                var commandLine = item["CommandLine"]?.ToString() ?? "";
+                item.Dispose();
+                if (IsKidCommandLine(commandLine)) return true;
+            }
+            return false;
+        }
         catch { return false; }
     }
+
+    private static bool IsKidCommandLine(string commandLine) =>
+        commandLine.Contains("--kid-window", StringComparison.OrdinalIgnoreCase);
 
     public static void StopLuna(int sessionId, ILogger logger)
     {

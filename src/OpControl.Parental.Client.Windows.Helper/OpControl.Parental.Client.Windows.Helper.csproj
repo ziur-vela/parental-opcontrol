@@ -22,6 +22,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\OpControl.Parental.Contracts\OpControl.Parental.Contracts.csproj" />
+    <PackageReference Include="System.Management" Version="10.0.0" />
     <Compile Include="..\OpControl.Parental.Client.Windows\AppIdentity.cs" Link="AppIdentity.cs" />
     <EmbeddedResource Include="brand\lockup-ondark-300h.png" />
     <EmbeddedResource Include="brand\icon-color-128.png" />

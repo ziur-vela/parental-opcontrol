@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 using System.Diagnostics;
+using System.Management;
 using System.Reflection;
 using OpControl.Parental.Contracts;
 using OpControl.Parental.Localization;
@@ -304,7 +305,18 @@ public sealed class HelperContext : ApplicationContext
 
     private static bool IsKidWindow(Process process)
     {
-        try { return process.MainWindowTitle.StartsWith("My OpControl", StringComparison.OrdinalIgnoreCase); }
+        try
+        {
+            using var searcher = new ManagementObjectSearcher(
+                $"SELECT CommandLine FROM Win32_Process WHERE ProcessId = {process.Id}");
+            foreach (ManagementBaseObject item in searcher.Get())
+            {
+                var commandLine = item["CommandLine"]?.ToString() ?? "";
+                item.Dispose();
+                if (commandLine.Contains("--kid-window", StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            return false;
+        }
         catch { return false; }
     }
 

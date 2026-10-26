@@ -11,6 +11,8 @@ public partial class App : Application
     public static KidWindowOptions? KidOptions { get; set; }
 #if LUNA_DEV
     public static ContentPreviewOptions? ContentPreview { get; set; }
+    public static bool LunaOpenChatPreview { get; set; }
+    public static string? LunaScreenshotPath { get; set; }
 #endif
 
     public override void Initialize()

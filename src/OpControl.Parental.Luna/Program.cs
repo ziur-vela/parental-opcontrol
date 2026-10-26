@@ -24,6 +24,8 @@ internal static class Program
                     Arg(args, "--theme") ?? "night",
                     Arg(args, "--sample") ?? "math");
             }
+            App.LunaOpenChatPreview = args.Any(a => string.Equals(a, "--open-chat-preview", StringComparison.OrdinalIgnoreCase));
+            App.LunaScreenshotPath = Arg(args, "--luna-screenshot");
 #endif
             if (kidMode)
             {

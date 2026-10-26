@@ -213,6 +213,24 @@ public partial class LunaWindow : Window
             _hasProcessStart = false;
         }
 
+#if LUNA_DEV
+        if (App.LunaOpenChatPreview)
+        {
+            Opened += async (_, _) =>
+            {
+                await Task.Delay(900);
+                OpenChat();
+            };
+        }
+        if (!string.IsNullOrWhiteSpace(App.LunaScreenshotPath))
+        {
+            Opened += async (_, _) =>
+            {
+                await Task.Delay(2800);
+                CapturePreview(App.LunaScreenshotPath);
+            };
+        }
+#endif
         Opened += OnOpened;
         Closed += (_, _) =>
         {
@@ -401,6 +419,35 @@ public partial class LunaWindow : Window
             Exit();
         }
     }
+
+#if LUNA_DEV
+    private void CapturePreview(string path)
+    {
+        try
+        {
+            var content = _scene;
+            var scale = 1.5;
+            var width = Math.Max(1, (int)Math.Round(content.Bounds.Width * scale));
+            var height = Math.Max(1, (int)Math.Round(content.Bounds.Height * scale));
+            var pixel = new PixelSize(width, height);
+            var dpi = new Vector(96 * scale, 96 * scale);
+            var contentBitmap = new RenderTargetBitmap(pixel, dpi);
+            contentBitmap.Render(content);
+            var output = new RenderTargetBitmap(pixel, dpi);
+            using (var context = output.CreateDrawingContext())
+            {
+                context.FillRectangle(Brushes.Magenta, new Rect(0, 0, width, height));
+                context.DrawImage(contentBitmap, new Rect(0, 0, width, height));
+            }
+            output.Save(path);
+            LunaLog.Write($"luna_screenshot saved={path} size={width}x{height}");
+        }
+        catch (Exception ex)
+        {
+            LunaLog.Write("luna_screenshot_failed " + ex);
+        }
+    }
+#endif
 
     private static string? ArgValue(string name)
     {
