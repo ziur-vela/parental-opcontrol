@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job 18.5 screens — hotfix, kid view and lock screen</title>
+<style>
+  body { margin: 0; background: #0b1714; color: #e3ece8; font: 15px/1.5 system-ui, sans-serif; }
+  main { max-width: 1500px; margin: 0 auto; padding: 24px; }
+  h1, h2, h3 { color: #fff6c8; }
+  a { color: #7ee8c4; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 18px; }
+  figure { margin: 0; background: #112420; border: 1px solid #2a4a42; border-radius: 14px; padding: 10px; }
+  figure img { width: 100%; height: auto; display: block; border-radius: 8px; }
+  figcaption { color: #a8bfb7; font-size: 12px; margin-top: 6px; }
+  .note { color: #a8bfb7; max-width: 980px; }
+  .wide { grid-column: 1 / -1; }
+  ul { color: #c8eadf; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Job 18.5 screens</h1>
+  <p class="note">The lock-screen comparison is the approved HTML reference (rendered in Chromium with the
+  bundled Fredoka/Nunito fonts and the real <code>lockup-ondark</code> asset) next to the <strong>real
+  GDI+ overlay renderer</strong> used by the Windows Helper, at 1600×900 and 1620×1080 in English and
+  es-MX. The kid view is the Avalonia My OpControl window with demo data at 1040×700, both themes,
+  plus a 1.5× layout render. The lock messaging panel is the real WinForms panel with demo data.</p>
+
+  <h2>Lock screen: ref vs real overlay</h2>
+  <div class="grid">
+    <figure class="wide"><img src="compare-en-1600x900.png" alt="Ref vs overlay, en, 1600x900"><figcaption>English · 1600×900</figcaption></figure>
+    <figure class="wide"><img src="compare-en-1620x1080.png" alt="Ref vs overlay, en, 1620x1080"><figcaption>English · 1620×1080</figcaption></figure>
+    <figure class="wide"><img src="compare-es-MX-1600x900.png" alt="Ref vs overlay, es-MX, 1600x900"><figcaption>es-MX · 1600×900</figcaption></figure>
+    <figure class="wide"><img src="compare-es-MX-1620x1080.png" alt="Ref vs overlay, es-MX, 1620x1080"><figcaption>es-MX · 1620×1080</figcaption></figure>
+  </div>
+
+  <h2>Lock screen overlay (real renderer)</h2>
+  <div class="grid">
+    <figure><img src="overlay-en-1600x900.png" alt="Overlay en 1600x900"><figcaption>en · 1600×900</figcaption></figure>
+    <figure><img src="overlay-en-1620x1080.png" alt="Overlay en 1620x1080"><figcaption>en · 1620×1080</figcaption></figure>
+    <figure><img src="overlay-es-MX-1600x900.png" alt="Overlay es-MX 1600x900"><figcaption>es-MX · 1600×900</figcaption></figure>
+    <figure><img src="overlay-es-MX-1620x1080.png" alt="Overlay es-MX 1620x1080"><figcaption>es-MX · 1620×1080</figcaption></figure>
+  </div>
+
+  <h2>Lock screen messaging panel (owned by the overlay)</h2>
+  <div class="grid">
+    <figure><img src="lock-messages-en.png" alt="Lock messages panel, English"><figcaption>English</figcaption></figure>
+    <figure><img src="lock-messages-es-MX.png" alt="Lock messages panel, Spanish"><figcaption>es-MX</figcaption></figure>
+  </div>
+
+  <h2>My OpControl at 1040×700 (demo data)</h2>
+  <div class="grid">
+    <figure><img src="kid-1040-home-night.png" alt="Home, night"><figcaption>Home · night</figcaption></figure>
+    <figure><img src="kid-1040-home-gray.png" alt="Home, gray"><figcaption>Home · gray</figcaption></figure>
+    <figure><img src="kid-1040-schedule-night.png" alt="Schedule, night"><figcaption>Schedule · night</figcaption></figure>
+    <figure><img src="kid-1040-schedule-gray.png" alt="Schedule, gray"><figcaption>Schedule · gray</figcaption></figure>
+    <figure><img src="kid-1040-rules-night.png" alt="Rules, night"><figcaption>Rules · night</figcaption></figure>
+    <figure><img src="kid-1040-rules-gray.png" alt="Rules, gray"><figcaption>Rules · gray</figcaption></figure>
+    <figure><img src="kid-1040-activity-night.png" alt="Activity, night"><figcaption>Activity · night</figcaption></figure>
+    <figure><img src="kid-1040-activity-gray.png" alt="Activity, gray"><figcaption>Activity · gray</figcaption></figure>
+    <figure><img src="kid-1040-messages-night.png" alt="Messages with pill quick replies, night"><figcaption>Messages · night · quick replies are pills</figcaption></figure>
+    <figure><img src="kid-1040-messages-gray.png" alt="Messages with pill quick replies, gray"><figcaption>Messages · gray · quick replies are pills</figcaption></figure>
+  </div>
+
+  <h2>My OpControl at 1.5× layout</h2>
+  <div class="grid">
+    <figure><img src="kid-1560-home-night.png" alt="Home at 1.5x"><figcaption>Home · 1560×1050</figcaption></figure>
+    <figure><img src="kid-1560-messages-night.png" alt="Messages at 1.5x"><figcaption>Messages · 1560×1050</figcaption></figure>
+  </div>
+
+  <h2>Remaining visual differences (listed, not blocking)</h2>
+  <ul>
+    <li>The curtain, lamp arm/shade, chair and plaid blanket are simplified GDI+ shapes; the reference has softer, layered vector shapes.</li>
+    <li>The overlay draws Fredoka through GDI+ from the bundled static font. The web reference uses 500/600/700/800 web-font weights, so letter shapes and weights differ by a pixel or two.</li>
+    <li>The Z's use a GDI+ outline approximation and are slightly smaller than the reference's outlined letters; the moon position and size match the approved upper-left pane.</li>
+    <li>The reference has six twinkling stars at fixed points; the overlay animates the same six points but with a slightly different twinkle curve.</li>
+    <li>The lock messages panel is a WinForms panel styled to match the lock screen, not the Avalonia kid window. It follows the same conversation and status, but its rounded corners and type are OS-drawn.</li>
+    <li>My OpControl Home still uses the existing two-card layout and progress bar rather than the reference's three-column ring card. Job 18.5 fixed the requested spacing, card corners, title-bar theme button and subtitle; a full Home redesign was out of scope.</li>
+  </ul>
+</main>
+</body>
+</html>
