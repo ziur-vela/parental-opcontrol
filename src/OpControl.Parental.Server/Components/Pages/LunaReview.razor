@@ -243,6 +243,7 @@ else
     private string _filter = "all";
     private LunaSettingsDto? _familySettings;
     private ChildLunaDto? _childDto;
+    private TimeZoneInfo _timeZone = TimeZoneInfo.Utc;
 
     private List<ChatRow> FilteredChats => _filter switch
     {
@@ -298,8 +299,10 @@ else
             var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
             var parent = scope.ServiceProvider.GetRequiredService<LunaParentService>();
             var settingsService = scope.ServiceProvider.GetRequiredService<LunaSettingsService>();
+            var usage = scope.ServiceProvider.GetRequiredService<LunaUsageStore>();
             _childName = _children.FirstOrDefault(c => c.Id == _childId)?.Name ?? "";
             _familySettings = await settingsService.GetAsync(_familyId);
+            _timeZone = DashboardTime.Resolve(await usage.FamilyTimeZoneIdAsync(_familyId, _childId));
             _childDto = await parent.GetChildAsync(_familyId, _childId);
             var chats = await parent.ListChatsAsync(_familyId, _childId);
             var flags = await db.LunaMessages.AsNoTracking()
@@ -436,7 +439,5 @@ else
         catch { return ""; }
     }
 
-    private static string FormatLocal(DateTime utc) =>
-        TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), TimeZoneInfo.Utc)
-            .ToString("d MMM, HH:mm", System.Globalization.CultureInfo.CurrentCulture);
+    private string FormatLocal(DateTime utc) => DashboardTime.Format(utc, _timeZone);
 }

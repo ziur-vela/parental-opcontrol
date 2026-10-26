@@ -4,9 +4,13 @@
 @page "/downloads"
 @attribute [Authorize(Policy = ParentalPolicies.ManageDevices)]
 @rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
 @using OpControl.Parental.Server.Auth
 @using OpControl.Parental.Contracts
+@using OpControl.Parental.Server.Data
 @using OpControl.Parental.Server.Services
+@inject AuthenticationStateProvider AuthState
+@inject IServiceScopeFactory Scopes
 @inject ReleaseCatalog Releases
 @inject IStringLocalizer<AppStrings> L
 
@@ -39,7 +43,7 @@ else
             <a class="ghost-btn" href="/downloads/msi">@L["Downloads.DownloadMsi"]</a>
         </div>
         <p class="muted tiny">@L["Downloads.Sha", _current.Sha256]</p>
-        <p class="muted tiny">@L["Downloads.Published", Formats.DateTimeLocal(_current.PublishedUtc.ToLocalTime())]</p>
+        <p class="muted tiny">@L["Downloads.Published", Formats.DateTimeLocal(DashboardTime.Convert(_current.PublishedUtc, _timeZone))]</p>
     </div>
 }
 
@@ -60,6 +64,15 @@ else
 
 @code {
     private ReleaseInfoDto? _current;
+    private TimeZoneInfo _timeZone = TimeZoneInfo.Utc;
 
-    protected override void OnInitialized() => _current = Releases.CurrentInfo();
+    protected override async Task OnInitializedAsync()
+    {
+        _current = Releases.CurrentInfo();
+        var auth = await AuthState.GetAuthenticationStateAsync();
+        if (!Guid.TryParse(auth.User.FindFirst("family_id")?.Value, out var familyId)) return;
+        using var scope = Scopes.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
+        _timeZone = await DashboardTime.FamilyZoneAsync(db, familyId);
+    }
 }

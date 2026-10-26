@@ -162,6 +162,18 @@
   <data name="Category.FakeNews" xml:space="preserve"><value>Fake news</value></data>
   <data name="Category.Gambling" xml:space="preserve"><value>Gambling</value></data>
   <data name="Category.Social" xml:space="preserve"><value>Social media</value></data>
+  <data name="Children.PageTitle" xml:space="preserve"><value>Children</value></data>
+  <data name="Children.Title" xml:space="preserve"><value>Children</value></data>
+  <data name="Children.Subtitle" xml:space="preserve"><value>Dates of birth help Luna match answers and activities to each child's age.</value></data>
+  <data name="Children.Empty" xml:space="preserve"><value>No children yet.</value></data>
+  <data name="Children.DateHelp" xml:space="preserve"><value>Date of birth for {0}</value></data>
+  <data name="Children.DateOfBirth" xml:space="preserve"><value>Date of birth</value></data>
+  <data name="Children.Save" xml:space="preserve"><value>Save date of birth</value></data>
+  <data name="Children.Note" xml:space="preserve"><value>Used only to choose the right age level for Luna. You can clear it again at any time.</value></data>
+  <data name="Children.InvalidDate" xml:space="preserve"><value>Enter a valid date of birth.</value></data>
+  <data name="Children.FutureDate" xml:space="preserve"><value>Date of birth cannot be in the future.</value></data>
+  <data name="Children.NotFound" xml:space="preserve"><value>Child not found.</value></data>
+  <data name="Children.Saved" xml:space="preserve"><value>Date of birth saved for {0}.</value></data>
   <data name="Common.AccountNotReported" xml:space="preserve"><value>account not reported</value></data>
   <data name="Common.AlertCount" xml:space="preserve"><value>{0} alert</value></data>
   <data name="Common.AlertCountPlural" xml:space="preserve"><value>{0} alerts</value></data>
@@ -508,6 +520,7 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Nav.Activity" xml:space="preserve"><value>Activity</value></data>
   <data name="Nav.AddDevice" xml:space="preserve"><value>Add device</value></data>
   <data name="Nav.Alerts" xml:space="preserve"><value>Alerts</value></data>
+  <data name="Nav.Children" xml:space="preserve"><value>Children</value></data>
   <data name="Nav.Apps" xml:space="preserve"><value>Apps</value></data>
   <data name="Nav.Devices" xml:space="preserve"><value>Devices</value></data>
   <data name="Nav.Downloads" xml:space="preserve"><value>Downloads</value></data>
@@ -1350,7 +1363,9 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Luna.Child.SetupRequired" xml:space="preserve"><value>Luna AI stays off until every key for your setup is saved and Test connection passes.</value></data>
   <data name="Luna.Child.SetupAInfo" xml:space="preserve"><value>{0} is {1}. You're using Setup A (zero data retention), so no extra confirmation is needed.</value></data>
   <data name="Luna.Child.SetupBInfo" xml:space="preserve"><value>{0} is {1}. Setup B asks you to confirm before turning Luna AI on for a child under 13.</value></data>
-  <data name="Luna.Child.NoDobInfo" xml:space="preserve"><value>This child has no date of birth.</value></data>
+  <data name="Luna.Child.NoDobInfo" xml:space="preserve"><value>Add {0}'s date of birth in Children so Luna can match answers to {0}'s age.</value></data>
+  <data name="Luna.Child.OpenChildren" xml:space="preserve"><value>Open Children</value></data>
+  <data name="Luna.Child.MessagesLeftToday" xml:space="preserve"><value>{0} left today</value></data>
   <data name="Luna.Child.Under13Title" xml:space="preserve"><value>Confirm before turning on Luna AI</value></data>
   <data name="Luna.Child.Under13Body" xml:space="preserve"><value>Setup B sends this child's messages to your chat provider and OpenAI's safety filter. {0} is under 13 or has no date of birth. Confirm that you are the parent or guardian and want to continue.</value></data>
   <data name="Luna.Child.Under13Check" xml:space="preserve"><value>I'm the parent or guardian and I want to turn on Luna AI for this child.</value></data>

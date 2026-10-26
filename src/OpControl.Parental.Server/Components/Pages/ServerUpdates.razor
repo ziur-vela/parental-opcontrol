@@ -42,7 +42,7 @@
     @if (_info is not null)
     {
         <div class="muted tiny" style="margin-top:10px;">
-            @L["Updates.LastChecked", _info.LastCheckedUtc is { } last ? Formats.CompactDateTime(last.ToLocalTime()) : L["Common.Never"].Value]
+            @L["Updates.LastChecked", _info.LastCheckedUtc is { } last ? Formats.CompactDateTime(DashboardTime.Convert(last, _timeZone)) : L["Common.Never"].Value]
         </div>
         @if (_info.UpdateAvailable)
         {
@@ -132,7 +132,7 @@ docker compose up -d --no-deps web</pre>
                             <div class="muted tiny">@attempt.Backup</div>
                         }
                     </div>
-                    <div class="muted tiny">@Formats.CompactDateTime(attempt.StartedUtc.ToLocalTime())</div>
+                    <div class="muted tiny">@Formats.CompactDateTime(DashboardTime.Convert(attempt.StartedUtc, _timeZone))</div>
                 </div>
             }
         </div>
@@ -152,6 +152,8 @@ docker compose up -d --no-deps web</pre>
 
 @code {
     private ServerUpdateInfo? _info;
+    private Guid _familyId;
+    private TimeZoneInfo _timeZone = TimeZoneInfo.Utc;
     private bool _updaterAvailable;
     private bool _busy;
     private bool _twoFactorEnabled;
@@ -175,6 +177,13 @@ docker compose up -d --no-deps web</pre>
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthState.GetAuthenticationStateAsync();
+        Guid.TryParse(auth.User.FindFirst("family_id")?.Value, out _familyId);
+        if (_familyId != Guid.Empty)
+        {
+            using var scope = Scopes.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
+            _timeZone = await DashboardTime.FamilyZoneAsync(db, _familyId);
+        }
         var user = await Users.GetUserAsync(auth.User);
         _twoFactorEnabled = user is not null && await Users.GetTwoFactorEnabledAsync(user);
         await LoadAsync(refresh: false);

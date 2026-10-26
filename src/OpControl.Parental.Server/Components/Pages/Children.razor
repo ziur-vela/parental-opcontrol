@@ -1,0 +1,155 @@
+@* Copyright (c) 2026 Ziur / OpControl IT Solutions
+   SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 *@
+
+@page "/children"
+@attribute [Authorize(Policy = ParentalPolicies.Luna)]
+@rendermode InteractiveServer
+@using System.Globalization
+@using Microsoft.EntityFrameworkCore
+@using OpControl.Parental.Server.Auth
+@using OpControl.Parental.Server.Data
+@using OpControl.Parental.Server.Services
+@inject AuthenticationStateProvider AuthState
+@inject IServiceScopeFactory Scopes
+@inject IStringLocalizer<AppStrings> L
+
+<PageTitle>@L["Children.PageTitle"]</PageTitle>
+
+<div class="page-head">
+    <div>
+        <div class="eyebrow">@L["Settings.FamilyEyebrow"]</div>
+        <h1>@L["Children.Title"]</h1>
+        <p class="muted">@L["Children.Subtitle"]</p>
+    </div>
+</div>
+
+@if (_error is not null) { <div class="alert danger">@_error</div> }
+@if (_notice is not null) { <div class="alert ok">@_notice</div> }
+
+@if (_loading)
+{
+    <div class="card"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
+}
+else if (_children.Count == 0)
+{
+    <div class="card"><p class="muted">@L["Children.Empty"]</p></div>
+}
+else
+{
+    @foreach (var child in _children)
+    {
+        <section class="card" id="@($"child-{child.Id}")" style="scroll-margin-top: 20px">
+            <div class="card-title-row">
+                <h2>@child.Name</h2>
+            </div>
+            <p class="muted small">@L["Children.DateHelp", child.Name]</p>
+            <div class="inline-add">
+                <label class="field" style="flex: 1 1 220px">
+                    <span>@L["Children.DateOfBirth"]</span>
+                    <input type="date" value="@child.DateOfBirthText"
+                           min="1900-01-01" max="@TodayText"
+                           @onchange="e => SetDate(child, e.Value?.ToString())" />
+                </label>
+                <button type="button" class="btn btn-primary" @onclick="() => SaveAsync(child)">@L["Children.Save"]</button>
+            </div>
+            <p class="muted tiny">@L["Children.Note"]</p>
+        </section>
+    }
+}
+
+@code {
+    private sealed class ChildRow
+    {
+        public Guid Id { get; init; }
+        public string Name { get; init; } = "";
+        public DateOnly? DateOfBirth { get; set; }
+        public string DateOfBirthText { get; set; } = "";
+    }
+
+    private Guid _familyId;
+    private bool _loading = true;
+    private string? _error;
+    private string? _notice;
+    private List<ChildRow> _children = [];
+
+    private static string TodayText => DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthState.GetAuthenticationStateAsync();
+        if (!Guid.TryParse(auth.User.FindFirst("family_id")?.Value, out _familyId))
+        {
+            _error = L["Home.MissingFamilyScope"];
+            _loading = false;
+            return;
+        }
+
+        using var scope = Scopes.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
+        _children = await db.Children.AsNoTracking()
+            .Where(c => c.FamilyId == _familyId)
+            .OrderBy(c => c.CreatedUtc)
+            .Select(c => new ChildRow
+            {
+                Id = c.Id,
+                Name = c.Name,
+                DateOfBirth = c.DateOfBirth,
+                DateOfBirthText = c.DateOfBirth == null ? "" : c.DateOfBirth.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            })
+            .ToListAsync();
+        _loading = false;
+    }
+
+    private void SetDate(ChildRow child, string? value)
+    {
+        _error = null;
+        _notice = null;
+        child.DateOfBirthText = value ?? "";
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            child.DateOfBirth = null;
+            return;
+        }
+        if (!DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                DateTimeStyles.None, out var date))
+        {
+            _error = L["Children.InvalidDate"];
+            return;
+        }
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        if (date > today)
+        {
+            _error = L["Children.FutureDate"];
+            return;
+        }
+        if (date < new DateOnly(1900, 1, 1))
+        {
+            _error = L["Children.InvalidDate"];
+            return;
+        }
+        child.DateOfBirth = date;
+    }
+
+    private async Task SaveAsync(ChildRow child)
+    {
+        _error = null;
+        _notice = null;
+        if (!string.IsNullOrWhiteSpace(child.DateOfBirthText) && child.DateOfBirth is null)
+        {
+            _error = L["Children.InvalidDate"].Value;
+            return;
+        }
+
+        using var scope = Scopes.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
+        var row = await db.Children.FirstOrDefaultAsync(c => c.Id == child.Id && c.FamilyId == _familyId);
+        if (row is null)
+        {
+            _error = L["Children.NotFound"].Value;
+            return;
+        }
+        row.DateOfBirth = child.DateOfBirth;
+        await db.SaveChangesAsync();
+        _notice = L["Children.Saved", child.Name].Value;
+    }
+}

@@ -95,7 +95,7 @@
                     </div>
                     <div class="device-meta">
                         <div class="small">@(device.Online ? L["Common.Online"] : L["Common.Offline"])</div>
-                        <div class="muted tiny">@(device.LastSeenUtc is { } seen ? Formats.CompactDateTime(seen.ToLocalTime()) : L["Common.Never"])</div>
+                        <div class="muted tiny">@(device.LastSeenUtc is { } seen ? Formats.CompactDateTime(DashboardTime.Convert(seen, device.TimeZoneId)) : L["Common.Never"])</div>
                         @if (device.Platform == DevicePlatform.Windows && _currentRelease is not null && IsOutdatedCurrent(device))
                         {
                             <button type="button" class="ghost-btn" onclick="ocpRequestUpdate(this, '@device.DeviceId')">@L["Devices.UpdateNow"]</button>

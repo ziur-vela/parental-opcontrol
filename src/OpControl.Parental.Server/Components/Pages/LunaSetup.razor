@@ -376,6 +376,7 @@ else
     private int _monthUsage;
     private decimal _monthCost;
     private bool _ready;
+    private TimeZoneInfo _timeZone = TimeZoneInfo.Utc;
 
     private LunaMoonState MoonState => LunaUi.HeaderMoon(_lastTestOk == true, _lastTestError, _ready);
     private string TestingText => L["Luna.Setup.Testing"].Value;
@@ -421,6 +422,7 @@ else
         if (firstChild is not null)
         {
             var tz = LunaUsageStore.ResolveZone(await usage.FamilyTimeZoneIdAsync(_familyId, firstChild.Id));
+            _timeZone = tz;
             var today = LunaUsageStore.LocalDate(DateTime.UtcNow, tz);
             var (prompt, completion) = await usage.MonthlyTokensAsync(_familyId, today);
             _monthUsage = prompt + completion;
@@ -546,9 +548,7 @@ else
         catch { }
     }
 
-    private string FormatDateTime(DateTime utc) =>
-        TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), TimeZoneInfo.Utc)
-            .ToString("d MMM, HH:mm", System.Globalization.CultureInfo.CurrentCulture);
+    private string FormatDateTime(DateTime utc) => DashboardTime.Format(utc, _timeZone);
 
     private string ModelLabel(LunaModelOption model) =>
         $"{L[model.TierKey]} · {L[model.NameKey]} · {L[model.EstimateKey]}";

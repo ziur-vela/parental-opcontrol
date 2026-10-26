@@ -1057,6 +1057,14 @@ public sealed class LunaAppView : UserControl
         return (bubble, thinking, statusText);
     }
 
+    /// <summary>
+    /// A blocked or reply-blocked result already has its fixed reply in the chat.
+    /// Keep the above-input notice only for responses with no Luna bubble (real
+    /// errors), so the same text is not shown twice.
+    /// </summary>
+    internal static string? NoticeAfterSend(LunaMessageResponse response) =>
+        response.LunaMessage is null ? response.Notice : null;
+
     private async Task SendFromInputAsync()
     {
         if (_sending || _chat is null || _input is null) return;
@@ -1089,7 +1097,7 @@ public sealed class LunaAppView : UserControl
             }
             _limitReached = response.LimitReached;
             _cooldown = response.Cooldown;
-            _notice = response.Notice;
+            _notice = NoticeAfterSend(response);
             if (response.LunaMessage is null && !response.LimitReached && !response.Cooldown
                 && !string.IsNullOrWhiteSpace(response.Notice))
             {
@@ -1885,6 +1893,12 @@ public sealed class LunaAppView : UserControl
         _replyRow = null;
         _replyFollowMode = ReplyFollowMode.None;
         ShowChat();
+    }
+
+    internal void SetNoticeForTest(string? notice)
+    {
+        _notice = notice;
+        if (_screen == Screen.Chat) ShowChat();
     }
 
     internal (Control Bubble, ThinkingView Thinking, TextBlock Status)? AddPendingChildForTest(string text) => AddPendingChild(text);

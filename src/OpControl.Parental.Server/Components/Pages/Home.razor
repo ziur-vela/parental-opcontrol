@@ -540,7 +540,7 @@ else
 
     private static string FormatDuration(int seconds) => Formats.Duration(seconds);
 
-    private string LastSeen(DateTime? utc) => utc is null ? L["Common.Never"] : Formats.CompactDateTime(utc.Value.ToLocalTime());
+    private string LastSeen(DateTime? utc) => utc is null ? L["Common.Never"] : Formats.CompactDateTime(DashboardTime.Convert(utc.Value, _timeZoneId));
 
     private string TickLabel(int hour) => DateTime.Today.AddHours(hour).ToString("h tt", System.Globalization.CultureInfo.CurrentCulture);
 

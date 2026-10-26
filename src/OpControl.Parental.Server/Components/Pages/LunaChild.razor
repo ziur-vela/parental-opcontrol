@@ -88,7 +88,7 @@ else
             }
             else
             {
-                <span class="muted tiny">@_messagesLeft</span>
+                <span class="muted tiny">@L["Luna.Child.MessagesLeftToday", _messagesLeft]</span>
             }
         </div>
         <div class="card stat-card luna-tile">
@@ -150,7 +150,10 @@ else
                 }
                 else
                 {
-                    <div class="luna-reason">@L["Luna.Child.NoDobInfo"]</div>
+                    <div class="luna-reason">
+                        <span>@L["Luna.Child.NoDobInfo", _childName]</span>
+                        <a class="ghost-btn" href="@($"/children#child-{_childId}")">@L["Luna.Child.OpenChildren"]</a>
+                    </div>
                 }
                 @if (ShowAiBlockTip)
                 {
@@ -310,6 +313,7 @@ else
     private bool _showAck;
     private bool _ackChecked;
     private bool _publicAiChatsBlocked;
+    private TimeZoneInfo _timeZone = TimeZoneInfo.Utc;
 
     protected override async Task OnInitializedAsync()
     {
@@ -377,6 +381,7 @@ else
             _profileUpdatedBy = profile.UpdatedBy;
 
             var tz = LunaUsageStore.ResolveZone(await usage.FamilyTimeZoneIdAsync(_familyId, _childId));
+            _timeZone = tz;
             var today = LunaUsageStore.LocalDate(DateTime.UtcNow, tz);
             var day = await db.LunaUsageDays.AsNoTracking()
                 .FirstOrDefaultAsync(u => u.ChildId == _childId && u.Date == today);
@@ -553,7 +558,8 @@ else
                 ? "OpenRouter"
                 : _familySettings.ChatProvider;
             var tested = _familySettings.LastTestOk == true
-                ? (_familySettings.LastTestUtc is { } at && at.Date == DateTime.UtcNow.Date
+                ? (_familySettings.LastTestUtc is { } at
+                    && DashboardTime.Convert(at, _timeZone).Date == DashboardTime.Convert(DateTime.UtcNow, _timeZone).Date
                     ? L["Luna.Child.TestToday"].Value
                     : L["Luna.Child.TestOn", _familySettings.LastTestUtc is { } d ? FormatLocal(d) : ""].Value)
                 : !string.IsNullOrWhiteSpace(_familySettings.LastTestError)
@@ -582,7 +588,5 @@ else
     private string ReviewUrl(Guid? chatId = null) =>
         "/luna/review?child=" + _childId + (chatId is { } id ? "&chat=" + id : "");
 
-    private static string FormatLocal(DateTime utc) =>
-        TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), TimeZoneInfo.Utc)
-            .ToString("d MMM, HH:mm", System.Globalization.CultureInfo.CurrentCulture);
+    private string FormatLocal(DateTime utc) => DashboardTime.Format(utc, _timeZone);
 }

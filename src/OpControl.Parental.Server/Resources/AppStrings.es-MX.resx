@@ -162,6 +162,18 @@
   <data name="Category.FakeNews" xml:space="preserve"><value>Noticias falsas</value></data>
   <data name="Category.Gambling" xml:space="preserve"><value>Apuestas</value></data>
   <data name="Category.Social" xml:space="preserve"><value>Redes sociales</value></data>
+  <data name="Children.PageTitle" xml:space="preserve"><value>Niños</value></data>
+  <data name="Children.Title" xml:space="preserve"><value>Niños</value></data>
+  <data name="Children.Subtitle" xml:space="preserve"><value>La fecha de nacimiento ayuda a Luna a adaptar las respuestas y actividades a la edad de los niños.</value></data>
+  <data name="Children.Empty" xml:space="preserve"><value>Aún no hay niños.</value></data>
+  <data name="Children.DateHelp" xml:space="preserve"><value>Fecha de nacimiento de {0}</value></data>
+  <data name="Children.DateOfBirth" xml:space="preserve"><value>Fecha de nacimiento</value></data>
+  <data name="Children.Save" xml:space="preserve"><value>Guardar fecha de nacimiento</value></data>
+  <data name="Children.Note" xml:space="preserve"><value>Solo se usa para elegir el nivel de edad correcto para Luna. Puedes borrarla cuando quieras.</value></data>
+  <data name="Children.InvalidDate" xml:space="preserve"><value>Escribe una fecha de nacimiento válida.</value></data>
+  <data name="Children.FutureDate" xml:space="preserve"><value>La fecha de nacimiento no puede ser futura.</value></data>
+  <data name="Children.NotFound" xml:space="preserve"><value>No se encontró el perfil.</value></data>
+  <data name="Children.Saved" xml:space="preserve"><value>Fecha de nacimiento guardada para {0}.</value></data>
   <data name="Common.AccountNotReported" xml:space="preserve"><value>cuenta no informada</value></data>
   <data name="Common.AlertCount" xml:space="preserve"><value>{0} alerta</value></data>
   <data name="Common.AlertCountPlural" xml:space="preserve"><value>{0} alertas</value></data>
@@ -508,6 +520,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Nav.Activity" xml:space="preserve"><value>Actividad</value></data>
   <data name="Nav.AddDevice" xml:space="preserve"><value>Agregar dispositivo</value></data>
   <data name="Nav.Alerts" xml:space="preserve"><value>Alertas</value></data>
+  <data name="Nav.Children" xml:space="preserve"><value>Niños</value></data>
   <data name="Nav.Apps" xml:space="preserve"><value>Aplicaciones</value></data>
   <data name="Nav.Devices" xml:space="preserve"><value>Dispositivos</value></data>
   <data name="Nav.Downloads" xml:space="preserve"><value>Descargas</value></data>
@@ -1350,7 +1363,9 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Luna.Child.SetupRequired" xml:space="preserve"><value>Luna IA permanece apagada hasta que todas las claves de tu configuración estén guardadas y se supere Probar conexión.</value></data>
   <data name="Luna.Child.SetupAInfo" xml:space="preserve"><value>{0} tiene {1} años. Usas la configuración A (retención cero de datos), así que no hace falta una confirmación adicional.</value></data>
   <data name="Luna.Child.SetupBInfo" xml:space="preserve"><value>{0} tiene {1} años. La configuración B te pide confirmar antes de activar Luna IA para un menor de 13 años.</value></data>
-  <data name="Luna.Child.NoDobInfo" xml:space="preserve"><value>Este perfil no tiene fecha de nacimiento.</value></data>
+  <data name="Luna.Child.NoDobInfo" xml:space="preserve"><value>Agrega la fecha de nacimiento de {0} en Niños para que Luna adapte las respuestas a la edad de {0}.</value></data>
+  <data name="Luna.Child.OpenChildren" xml:space="preserve"><value>Abrir Niños</value></data>
+  <data name="Luna.Child.MessagesLeftToday" xml:space="preserve"><value>Quedan {0} hoy</value></data>
   <data name="Luna.Child.Under13Title" xml:space="preserve"><value>Confirma antes de activar Luna IA</value></data>
   <data name="Luna.Child.Under13Body" xml:space="preserve"><value>La configuración B envía los mensajes de este perfil a tu proveedor de chat y al filtro de seguridad de OpenAI. {0} tiene menos de 13 años o no tiene fecha de nacimiento. Confirma que eres el padre, madre o tutor y que quieres continuar.</value></data>
   <data name="Luna.Child.Under13Check" xml:space="preserve"><value>Soy el padre, madre o tutor y quiero activar Luna IA para este perfil.</value></data>

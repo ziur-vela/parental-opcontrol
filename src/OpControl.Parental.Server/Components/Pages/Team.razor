@@ -112,7 +112,7 @@ else
                     <div class="device-row">
                         <div class="device-main">
                             <div class="device-name">@(invite.Email ?? L["Team.LinkOnly"])</div>
-                            <div class="muted tiny">@L["Team.Expires", Formats.CompactDateTime(invite.ExpiresUtc.ToLocalTime())] · @PermissionsText(invite.Permissions)</div>
+                            <div class="muted tiny">@L["Team.Expires", Formats.CompactDateTime(DashboardTime.Convert(invite.ExpiresUtc, _timeZone))] · @PermissionsText(invite.Permissions)</div>
                         </div>
                         <div class="device-meta">
                             <button class="ghost-btn" @onclick="() => ResendAsync(invite)">@L["Team.Resend"]</button>
@@ -152,6 +152,7 @@ else
     private bool _emailSent;
     private string? _error;
     private string? _notice;
+    private TimeZoneInfo _timeZone = TimeZoneInfo.Utc;
 
     protected override async Task OnInitializedAsync()
     {
@@ -166,6 +167,8 @@ else
         using var scope = Scopes.CreateScope();
         var team = scope.ServiceProvider.GetRequiredService<TeamService>();
         var invites = scope.ServiceProvider.GetRequiredService<InvitationService>();
+        var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
+        _timeZone = await DashboardTime.FamilyZoneAsync(db, _familyId);
         _parents = await team.ListAsync(_familyId);
         _invitations = await invites.ListForFamilyAsync(_familyId);
     }

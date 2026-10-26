@@ -84,7 +84,7 @@ else
                     <div class="device-row">
                         <div class="device-main">
                             <div class="device-name">@(invite.Email ?? L["Team.LinkOnly"])</div>
-                            <div class="muted tiny">@(invite.FamilyName ?? L["ServerAdmin.FamilyNameChosen"]) · @L["Team.Expires", Formats.CompactDateTime(invite.ExpiresUtc.ToLocalTime())]</div>
+                            <div class="muted tiny">@(invite.FamilyName ?? L["ServerAdmin.FamilyNameChosen"]) · @L["Team.Expires", Formats.CompactDateTime(DashboardTime.Convert(invite.ExpiresUtc, _timeZone))]</div>
                         </div>
                         <div class="device-meta">
                             <button class="ghost-btn" @onclick="() => ResendAsync(invite)">@L["Team.Resend"]</button>
@@ -104,8 +104,8 @@ else
                 <div class="device-row">
                     <div class="device-main">
                         <div class="device-name">@family.Name @(family.Status == FamilyStatus.Suspended ? L["ServerAdmin.Suspended"] : "")</div>
-                        <div class="muted tiny">@family.OwnerName · @family.OwnerEmail · @L["ServerAdmin.Created", family.CreatedUtc.ToLocalTime().ToString("d MMM yyyy", System.Globalization.CultureInfo.CurrentCulture)]</div>
-                        <div class="muted tiny">@L["ServerAdmin.FamilyCounts", family.Children, family.Devices] · @L["ServerAdmin.LastActivity", family.LastActivityUtc is { } last ? Formats.CompactDateTime(last.ToLocalTime()) : L["Common.Never"]]</div>
+                        <div class="muted tiny">@family.OwnerName · @family.OwnerEmail · @L["ServerAdmin.Created", DashboardTime.Convert(family.CreatedUtc, _timeZone).ToString("d MMM yyyy", System.Globalization.CultureInfo.CurrentCulture)]</div>
+                        <div class="muted tiny">@L["ServerAdmin.FamilyCounts", family.Children, family.Devices] · @L["ServerAdmin.LastActivity", family.LastActivityUtc is { } last ? Formats.CompactDateTime(DashboardTime.Convert(last, _timeZone)) : L["Common.Never"]]</div>
                     </div>
                     <div class="device-meta">
                         @if (family.Status == FamilyStatus.Active)
@@ -169,7 +169,7 @@ else
                             <div class="timeline-title">@entry.Action</div>
                             <div class="muted tiny">@entry.ActorEmail · @(entry.Detail ?? "")</div>
                         </div>
-                        <div class="muted tiny">@Formats.CompactDateTime(entry.CreatedUtc.ToLocalTime())</div>
+                        <div class="muted tiny">@Formats.CompactDateTime(DashboardTime.Convert(entry.CreatedUtc, _timeZone))</div>
                     </div>
                 }
             </div>
@@ -179,6 +179,7 @@ else
 
 @code {
     private Guid _familyId;
+    private TimeZoneInfo _timeZone = TimeZoneInfo.Utc;
     private bool _isServerAdmin;
     private List<FamilyAdminDto> _families = [];
     private List<InvitationDto> _invitations = [];
@@ -205,6 +206,12 @@ else
     {
         var auth = await AuthState.GetAuthenticationStateAsync();
         Guid.TryParse(auth.User.FindFirst("family_id")?.Value, out _familyId);
+        if (_familyId != Guid.Empty)
+        {
+            using var scope = Scopes.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
+            _timeZone = await DashboardTime.FamilyZoneAsync(db, _familyId);
+        }
         _isServerAdmin = string.Equals(auth.User.FindFirst("server_admin")?.Value, "true", StringComparison.OrdinalIgnoreCase);
         if (_isServerAdmin) await RefreshAsync();
     }
