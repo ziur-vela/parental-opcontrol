@@ -12,15 +12,31 @@ public static class LunaLaunchPolicy
 public static class LunaPipePolicy
 {
     public const string TokenRequest = "luna-token";
+    public const string KidSummaryRequest = "kid-summary";
+
+    private static readonly HashSet<string> LunaRequests = new(StringComparer.Ordinal)
+    {
+        TokenRequest,
+        KidSummaryRequest,
+        "messages-thread",
+        "message-send",
+        "message-seen",
+        "message-ack",
+        "set-theme",
+        "state"
+    };
 
     public static bool IsImage(string? imagePath, string expectedPath) =>
         !string.IsNullOrWhiteSpace(imagePath)
         && string.Equals(Path.GetFileName(imagePath), Path.GetFileName(expectedPath), StringComparison.OrdinalIgnoreCase)
         && string.Equals(Path.GetFullPath(imagePath), Path.GetFullPath(expectedPath), StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>The Luna executable may only request a token; the Helper keeps all other pipe rights.</summary>
+    /// <summary>
+    /// The Luna executable may request the read-only kid summary, messages and its theme.
+    /// PIN/override and window-launch requests stay Helper-only.
+    /// </summary>
     public static bool IsRequestAllowed(bool isLunaImage, string? requestType) =>
-        !isLunaImage || string.Equals(requestType, TokenRequest, StringComparison.Ordinal);
+        !isLunaImage || LunaRequests.Contains(requestType ?? "");
 
     public static bool IsAllowed(bool isHelperImage, bool isLunaImage, string? requestType) =>
         (isHelperImage || isLunaImage) && IsRequestAllowed(isLunaImage, requestType);

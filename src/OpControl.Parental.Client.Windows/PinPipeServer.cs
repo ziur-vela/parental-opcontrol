@@ -151,6 +151,10 @@ public sealed class PinPipeServer : BackgroundService
                 return new PinPipeResponse(true, State: _runtime.Current);
             case "messages-thread":
                 return new PinPipeResponse(true, Messages: await _messages.GetThreadAsync(ct));
+            case "kid-summary":
+                return new PinPipeResponse(true, State: _runtime.Current,
+                    Summary: ChildSummaryCache.Read(ClientPaths.SummaryFile),
+                    Messages: await _messages.GetThreadAsync(ct), Online: ReadOnline());
             case "message-send":
                 _logger.LogInformation("message-send received length={Length}", request.Text?.Length ?? 0);
                 if (string.IsNullOrWhiteSpace(request.Text))
@@ -199,6 +203,20 @@ public sealed class PinPipeServer : BackgroundService
             default:
                 return new PinPipeResponse(false, Loc.T("Client.Pipe.UnknownRequest"));
         }
+    }
+
+    private static bool ReadOnline()
+    {
+        try
+        {
+            if (!File.Exists(ClientPaths.OnlineFile)) return false;
+            using var document = JsonDocument.Parse(File.ReadAllText(ClientPaths.OnlineFile));
+            var root = document.RootElement;
+            if (!root.TryGetProperty("online", out var online) || !online.GetBoolean()) return false;
+            if (!root.TryGetProperty("utc", out var utc) || !utc.TryGetDateTime(out var when)) return false;
+            return DateTime.UtcNow - when.ToUniversalTime() < TimeSpan.FromMinutes(2);
+        }
+        catch { return false; }
     }
 
     private PinPipeResponse VerifyPin(string pin)

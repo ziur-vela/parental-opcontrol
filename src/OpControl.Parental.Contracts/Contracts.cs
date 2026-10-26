@@ -569,7 +569,9 @@ public sealed record PinPipeResponse(
     bool Queued = false,
     string? Token = null,
     DateTime? ExpiresUtc = null,
-    string? ServerUrl = null);
+    string? ServerUrl = null,
+    ChildSummaryDto? Summary = null,
+    bool? Online = null);
 
 public sealed record InvitationCreatedDto(
     Guid Id,

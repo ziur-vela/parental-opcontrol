@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Ziur / OpControl IT Solutions
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
+using System.Diagnostics;
 using System.Reflection;
 using OpControl.Parental.Contracts;
 using OpControl.Parental.Localization;
@@ -21,7 +22,7 @@ public sealed class HelperContext : ApplicationContext
     private PinDialog? _pinDialog;
     private NotificationForm? _notification;
     private MessagePopupForm? _messagePopup;
-    private MyOpControlForm? _myOpControl;
+    private Process? _kidProcess;
     private NotifyIcon? _tray;
     private ToolStripControlHost? _trayHeaderHost;
     private KidTrayHeader? _trayHeader;
@@ -46,7 +47,7 @@ public sealed class HelperContext : ApplicationContext
         _monitored = monitored;
         _overlays = new LockOverlayManager();
         _overlays.OverrideClicked += ShowPinDialog;
-        _overlays.MessageClicked += () => ShowMyOpControl(MyOpControlTab.Messages);
+        _overlays.MessageClicked += () => ShowMyOpControl("messages", aboveLock: true, messagesOnly: true);
         _countdown = new CountdownForm();
         _ = _marshal.Handle;
         _remote = new RemoteCaptureHost(monitored);
@@ -86,10 +87,10 @@ public sealed class HelperContext : ApplicationContext
             _countdown.HideBanner();
             if (!_wasLocked)
             {
-                if (_myOpControl is { IsDisposed: false } open)
+                if (_kidProcess is { HasExited: false } kid)
                 {
-                    open.Close();
-                    _myOpControl = null;
+                    try { kid.Kill(); } catch { }
+                    _kidProcess = null;
                 }
                 if (state.Reason == "daily-limit")
                     HelperPaths.LogEvent("daily-limit-lock");
@@ -106,10 +107,9 @@ public sealed class HelperContext : ApplicationContext
             return;
         }
 
-        if (_wasLocked && _myOpControl is { IsDisposed: false } restart)
+        if (_wasLocked)
         {
-            restart.SetMessagesOnly(false);
-            restart.TopMost = false;
+            _kidProcess = null;
         }
         _wasLocked = false;
         _overlays.Hide();
@@ -207,9 +207,9 @@ public sealed class HelperContext : ApplicationContext
                 Margin = new Padding(2, 2, 2, 4)
             };
             _trayOpenItem = new ToolStripMenuItem(Loc.T("Client.Kid.Open")) { Padding = new Padding(6, 6, 6, 6) };
-            _trayOpenItem.Click += (_, _) => ShowMyOpControl(MyOpControlTab.Home);
+            _trayOpenItem.Click += (_, _) => ShowMyOpControl("home");
             _trayMessageItem = new ToolStripMenuItem(Loc.T("Client.Messages.Open")) { Padding = new Padding(6, 6, 6, 6) };
-            _trayMessageItem.Click += (_, _) => ShowMyOpControl(MyOpControlTab.Messages);
+            _trayMessageItem.Click += (_, _) => ShowMyOpControl("messages");
             _trayLunaItem = new ToolStripMenuItem(Loc.T("Client.Kid.LunaOpen")) { Padding = new Padding(6, 6, 6, 6) };
             _trayLunaItem.Click += (_, _) => OpenLuna();
 
@@ -237,9 +237,9 @@ public sealed class HelperContext : ApplicationContext
             };
             _tray.MouseClick += (_, e) =>
             {
-                if (e.Button == MouseButtons.Left) ShowMyOpControl(MyOpControlTab.Home);
+                if (e.Button == MouseButtons.Left) ShowMyOpControl("home");
             };
-            _tray.DoubleClick += (_, _) => ShowMyOpControl(MyOpControlTab.Home);
+            _tray.DoubleClick += (_, _) => ShowMyOpControl("home");
             UpdateTrayMenu();
         }
         catch (Exception ex)
@@ -278,9 +278,6 @@ public sealed class HelperContext : ApplicationContext
             _trayMenu.Renderer = new KidMenuRenderer();
         }
         _trayHeader?.ApplyTheme(KidTheme.IsGray);
-        if (updateWindow && _myOpControl is { IsDisposed: false } form
-            && !string.Equals(form.ThemeKey, _trayTheme, StringComparison.Ordinal))
-            form.ApplyTheme(_trayTheme);
     }
 
     private void OpenLuna()
@@ -288,7 +285,7 @@ public sealed class HelperContext : ApplicationContext
         try
         {
             if (System.Diagnostics.Process.GetProcessesByName("OpControl.Parental.Luna")
-                .Any(p => { try { return p.SessionId == System.Diagnostics.Process.GetCurrentProcess().SessionId; } catch { return false; } }))
+                .Any(p => { try { return p.SessionId == System.Diagnostics.Process.GetCurrentProcess().SessionId && !IsKidWindow(p); } catch { return false; } }))
                 return;
             var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "Luna", "OpControl.Parental.Luna.exe"));
             if (!File.Exists(path))
@@ -303,6 +300,12 @@ public sealed class HelperContext : ApplicationContext
         {
             HelperPaths.LogEvent($"luna-open-failed {ex.Message}");
         }
+    }
+
+    private static bool IsKidWindow(Process process)
+    {
+        try { return process.MainWindowTitle.StartsWith("My OpControl", StringComparison.OrdinalIgnoreCase); }
+        catch { return false; }
     }
 
     private void UpdateTrayLanguage()
@@ -338,7 +341,7 @@ public sealed class HelperContext : ApplicationContext
 
     private static int UnreadCount()
     {
-        var thread = ChildMessagingPanel.ReadCache() ?? [];
+        var thread = MessageThreadCache.Read() ?? [];
         return thread.Count(m => m.Direction == MessageDirection.ParentToChild && m.SeenUtc is null && !m.Deleted);
     }
 
@@ -378,16 +381,8 @@ public sealed class HelperContext : ApplicationContext
                 pending.Add((message, file));
             }
 
-            var windowPresent = _myOpControl is { IsDisposed: false } form
-                && form.Visible && form.WindowState != FormWindowState.Minimized;
             foreach (var (message, path) in pending.OrderBy(p => p.Message.CreatedUtc))
             {
-                if (windowPresent && _myOpControl is { IsDisposed: false } window && window.IsOpenVisible)
-                {
-                    try { File.Delete(path); } catch { }
-                    window.NotifyNewMessage(message);
-                    continue;
-                }
                 try { File.Delete(path); } catch { }
                 ShowMessagePopup(message);
                 break;
@@ -426,7 +421,7 @@ public sealed class HelperContext : ApplicationContext
     private void OpenChildMessagesFromPopup()
     {
         _messagePopup = null;
-        ShowMyOpControl(MyOpControlTab.Messages);
+        ShowMyOpControl("messages");
     }
 
     private void CheckUiCommand()
@@ -438,16 +433,14 @@ public sealed class HelperContext : ApplicationContext
             try { File.Delete(HelperPaths.UiCommandFile); } catch { }
             using var document = System.Text.Json.JsonDocument.Parse(json);
             var root = document.RootElement;
-            var tab = root.TryGetProperty("tab", out var tabValue)
-                ? tabValue.GetString() switch
-                {
-                    "schedule" => MyOpControlTab.Schedule,
-                    "rules" => MyOpControlTab.Rules,
-                    "activity" => MyOpControlTab.Activity,
-                    "messages" => MyOpControlTab.Messages,
-                    _ => MyOpControlTab.Home
-                }
-                : MyOpControlTab.Home;
+            var tab = (root.TryGetProperty("tab", out var tabValue) ? tabValue.GetString() : null) switch
+            {
+                "schedule" => "schedule",
+                "rules" => "rules",
+                "activity" => "activity",
+                "messages" => "messages",
+                _ => "home"
+            };
             var theme = root.TryGetProperty("theme", out var themeValue) ? themeValue.GetString() : null;
             var language = root.TryGetProperty("language", out var langValue) ? langValue.GetString() : null;
             var messagesOnly = root.TryGetProperty("messagesOnly", out var onlyValue) && onlyValue.ValueKind == System.Text.Json.JsonValueKind.True;
@@ -459,35 +452,49 @@ public sealed class HelperContext : ApplicationContext
         }
     }
 
-    private void ShowMyOpControl(MyOpControlTab tab, string? theme = null, string? language = null, bool? messagesOnly = null)
+    private void ShowMyOpControl(string tab, string? theme = null, string? language = null,
+        bool? messagesOnly = null, bool? aboveLock = null)
     {
         try
         {
-            var aboveLock = _overlays.Visible;
-            var onlyMessages = messagesOnly ?? aboveLock;
-            if (_myOpControl is { IsDisposed: false } existing)
+            var isAboveLock = aboveLock ?? _overlays.Visible;
+            var onlyMessages = messagesOnly ?? isAboveLock;
+            var lunaPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "Luna",
+                "OpControl.Parental.Luna.exe"));
+            if (!File.Exists(lunaPath))
             {
-                if ((aboveLock && !existing.TopMost) || theme is not null || language is not null)
-                {
-                    existing.Close();
-                    _myOpControl = null;
-                }
-                else
-                {
-                    existing.RestoreAndShow();
-                    existing.ShowTab(tab);
-                    return;
-                }
+                HelperPaths.LogEvent($"my-opcontrol-missing-exe {lunaPath}");
+                return;
             }
 
-            var form = new MyOpControlForm(aboveLock, tab, messagesOnly: onlyMessages, themeOverride: theme, languageOverride: language);
-            form.FormClosed += (_, _) => _myOpControl = null;
-            form.UnreadChanged += _ => UpdateTrayMenu();
-            _myOpControl = form;
-            var owner = aboveLock ? _overlays.Owner : null;
-            form.RestoreAndShow(owner is { IsDisposed: false } ? owner : null);
-            ApplyTrayTheme(form.ThemeKey, updateWindow: false);
-            HelperPaths.LogEvent("my-opcontrol-opened");
+            if (_kidProcess is { HasExited: false } running)
+            {
+                try { running.Kill(); } catch { }
+            }
+
+            var start = new ProcessStartInfo(lunaPath)
+            {
+                UseShellExecute = false,
+                WorkingDirectory = Path.GetDirectoryName(lunaPath)
+            };
+            start.ArgumentList.Add("--kid-window");
+            start.ArgumentList.Add("--tab");
+            start.ArgumentList.Add(string.IsNullOrWhiteSpace(tab) ? "home" : tab);
+            if (onlyMessages) start.ArgumentList.Add("--messages-only");
+            if (isAboveLock) start.ArgumentList.Add("--above-lock");
+            if (!string.IsNullOrWhiteSpace(theme))
+            {
+                start.ArgumentList.Add("--theme");
+                start.ArgumentList.Add(theme);
+            }
+            if (!string.IsNullOrWhiteSpace(language))
+            {
+                start.ArgumentList.Add("--language");
+                start.ArgumentList.Add(language);
+            }
+            _kidProcess = Process.Start(start);
+            ApplyTrayTheme(ResolveStoredTheme(), updateWindow: false);
+            HelperPaths.LogEvent($"my-opcontrol-opened tab={tab} above_lock={isAboveLock} only_messages={onlyMessages}");
         }
         catch (Exception ex)
         {
@@ -669,7 +676,6 @@ public sealed class HelperContext : ApplicationContext
             _pinDialog?.Dispose();
             _notification?.Dispose();
             _messagePopup?.Dispose();
-            _myOpControl?.Dispose();
             if (_tray is not null) { _tray.Visible = false; _tray.Dispose(); }
             _trayIcon?.Dispose();
             _trayBitmap?.Dispose();

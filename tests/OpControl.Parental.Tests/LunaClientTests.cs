@@ -39,8 +39,15 @@ public class LunaClientTests
         Assert.True(LunaPipePolicy.IsAllowed(isHelperImage: true, isLunaImage: false, "verify-pin"));
         Assert.True(LunaPipePolicy.IsAllowed(isHelperImage: true, isLunaImage: false, "messages-thread"));
         Assert.True(LunaPipePolicy.IsAllowed(isHelperImage: true, isLunaImage: false, "set-theme"));
-        Assert.False(LunaPipePolicy.IsAllowed(isHelperImage: false, isLunaImage: true, "set-theme"));
+        Assert.True(LunaPipePolicy.IsAllowed(isHelperImage: false, isLunaImage: true, "set-theme"));
+        Assert.True(LunaPipePolicy.IsAllowed(isHelperImage: false, isLunaImage: true, LunaPipePolicy.KidSummaryRequest));
+        Assert.True(LunaPipePolicy.IsAllowed(isHelperImage: false, isLunaImage: true, "messages-thread"));
+        Assert.True(LunaPipePolicy.IsAllowed(isHelperImage: false, isLunaImage: true, "message-send"));
+        Assert.True(LunaPipePolicy.IsAllowed(isHelperImage: false, isLunaImage: true, "message-seen"));
+        Assert.True(LunaPipePolicy.IsAllowed(isHelperImage: false, isLunaImage: true, "message-ack"));
+        Assert.True(LunaPipePolicy.IsAllowed(isHelperImage: false, isLunaImage: true, "state"));
         Assert.False(LunaPipePolicy.IsAllowed(isHelperImage: false, isLunaImage: true, "verify-pin"));
+        Assert.False(LunaPipePolicy.IsAllowed(isHelperImage: false, isLunaImage: true, "override"));
         Assert.False(LunaPipePolicy.IsAllowed(isHelperImage: false, isLunaImage: true, "open-kid"));
         Assert.True(LunaPipePolicy.IsAllowed(isHelperImage: false, isLunaImage: true, LunaPipePolicy.TokenRequest));
         Assert.False(LunaPipePolicy.IsAllowed(isHelperImage: false, isLunaImage: false, LunaPipePolicy.TokenRequest));
@@ -115,10 +122,11 @@ public class LunaClientTests
         Assert.True(helperProgram.LastIndexOf("#if DEBUG", previewIndex, StringComparison.Ordinal) >= 0);
         Assert.True(helperProgram.IndexOf("#endif", previewIndex, StringComparison.Ordinal) > previewIndex);
 
-        var kidPreviewIndex = helperProgram.IndexOf("--kid-preview", StringComparison.Ordinal);
+        var lunaProgram = File.ReadAllText(Path.Combine(root, "src", "OpControl.Parental.Luna", "Program.cs"));
+        var kidPreviewIndex = lunaProgram.IndexOf("--kid-preview", StringComparison.Ordinal);
         Assert.True(kidPreviewIndex > 0);
-        Assert.True(helperProgram.LastIndexOf("#if DEBUG", kidPreviewIndex, StringComparison.Ordinal) >= 0);
-        Assert.True(helperProgram.IndexOf("#endif", kidPreviewIndex, StringComparison.Ordinal) > kidPreviewIndex);
+        Assert.True(lunaProgram.LastIndexOf("#if LUNA_DEV", kidPreviewIndex, StringComparison.Ordinal) >= 0);
+        Assert.True(lunaProgram.IndexOf("#endif", kidPreviewIndex, StringComparison.Ordinal) > kidPreviewIndex);
     }
 
     [Fact]

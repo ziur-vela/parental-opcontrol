@@ -253,10 +253,17 @@ public static class WindowsSession
         {
             return Process.GetProcessesByName("OpControl.Parental.Luna").Any(p =>
             {
-                try { return p.SessionId == sessionId; }
+                try { return p.SessionId == sessionId && !IsKidWindow(p); }
                 catch { return false; }
             });
         }
+        catch { return false; }
+    }
+
+    /// <summary>The same Avalonia exe also hosts the My OpControl window with --kid-window.</summary>
+    public static bool IsKidWindow(Process process)
+    {
+        try { return process.MainWindowTitle.StartsWith("My OpControl", StringComparison.OrdinalIgnoreCase); }
         catch { return false; }
     }
 
@@ -266,7 +273,7 @@ public static class WindowsSession
         {
             foreach (var process in Process.GetProcessesByName("OpControl.Parental.Luna"))
             {
-                if (process.SessionId != sessionId) continue;
+                if (process.SessionId != sessionId || IsKidWindow(process)) continue;
                 try
                 {
                     if (!process.CloseMainWindow()) process.Kill(entireProcessTree: true);

@@ -8,6 +8,11 @@ namespace OpControl.Parental.Luna;
 
 public partial class App : Application
 {
+    public static KidWindowOptions? KidOptions { get; set; }
+#if LUNA_DEV
+    public static ContentPreviewOptions? ContentPreview { get; set; }
+#endif
+
     public override void Initialize()
     {
         MarkdownNode.Register<MathInlineNode>();
@@ -19,8 +24,32 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-            desktop.MainWindow = new LunaWindow();
+#if LUNA_DEV
+            if (ContentPreview is { } preview)
+            {
+                desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
+                desktop.MainWindow = new LunaContentPreviewWindow(preview);
+            }
+            else
+#endif
+            if (KidOptions is { } options)
+            {
+                desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
+#if LUNA_DEV
+                IKidDataSource source = options.Preview
+                    ? new KidPreviewDataSource(options.Theme ?? "night")
+                    : new PipeKidDataSource();
+#else
+                options = options with { Preview = false };
+                IKidDataSource source = new PipeKidDataSource();
+#endif
+                desktop.MainWindow = new MyOpControlWindow(source, options);
+            }
+            else
+            {
+                desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                desktop.MainWindow = new LunaWindow();
+            }
         }
 
         base.OnFrameworkInitializationCompleted();
