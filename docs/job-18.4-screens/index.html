@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job 18.4 screens — Luna fixes and Avalonia kid view</title>
+<style>
+  body { margin: 0; background: #0b1714; color: #e3ece8; font: 15px/1.5 system-ui, sans-serif; }
+  main { max-width: 1400px; margin: 0 auto; padding: 24px; }
+  h1, h2 { color: #fff6c8; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 18px; }
+  figure { margin: 0; background: #112420; border: 1px solid #2a4a42; border-radius: 14px; padding: 10px; }
+  figure img { width: 100%; height: auto; display: block; border-radius: 8px; }
+  figcaption { color: #a8bfb7; font-size: 12px; margin-top: 6px; }
+  .note { color: #a8bfb7; max-width: 900px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Job 18.4 screens</h1>
+  <p class="note">Math pictures and markdown are the real Luna content renderer. The kid view is the
+  Avalonia My OpControl window (preview data) at 1366×768 and at 150% scale. The 150% images use the
+  same Avalonia view with a 1.5× layout transform under Xvfb; the real X1 at 150% is checked in the
+  release step (window edge image below).</p>
+
+  <h2>Luna math pictures</h2>
+  <div class="grid">
+    <figure><img src="content-math-night.png" alt="Math pictures, night theme"><figcaption>Night theme</figcaption></figure>
+    <figure><img src="content-math-gray.png" alt="Math pictures, gray theme"><figcaption>Gray theme</figcaption></figure>
+  </div>
+
+  <h2>Luna markdown</h2>
+  <div class="grid">
+    <figure><img src="content-markdown-night.png" alt="Markdown sample, night theme"><figcaption>Night theme</figcaption></figure>
+    <figure><img src="content-markdown-gray.png" alt="Markdown sample, gray theme"><figcaption>Gray theme</figcaption></figure>
+  </div>
+
+  <h2>My OpControl at 1366×768</h2>
+  <div class="grid">
+    <figure><img src="kid-1366-home-night.png" alt="Home, night, 1366x768"><figcaption>Home · night</figcaption></figure>
+    <figure><img src="kid-1366-home-gray.png" alt="Home, gray, 1366x768"><figcaption>Home · gray</figcaption></figure>
+    <figure><img src="kid-1366-schedule-night.png" alt="Schedule, night"><figcaption>Schedule · night</figcaption></figure>
+    <figure><img src="kid-1366-schedule-gray.png" alt="Schedule, gray"><figcaption>Schedule · gray</figcaption></figure>
+    <figure><img src="kid-1366-rules-night.png" alt="Rules, night"><figcaption>Rules · night</figcaption></figure>
+    <figure><img src="kid-1366-rules-gray.png" alt="Rules, gray"><figcaption>Rules · gray</figcaption></figure>
+    <figure><img src="kid-1366-activity-night.png" alt="Activity, night"><figcaption>Activity · night</figcaption></figure>
+    <figure><img src="kid-1366-activity-gray.png" alt="Activity, gray"><figcaption>Activity · gray</figcaption></figure>
+    <figure><img src="kid-1366-messages-night.png" alt="Messages, night"><figcaption>Messages · night</figcaption></figure>
+    <figure><img src="kid-1366-messages-gray.png" alt="Messages, gray"><figcaption>Messages · gray</figcaption></figure>
+  </div>
+
+  <h2>My OpControl at 150%</h2>
+  <div class="grid">
+    <figure><img src="kid-150-home-night.png" alt="Home, night, 150%"><figcaption>Home · night · 150%</figcaption></figure>
+    <figure><img src="kid-150-home-gray.png" alt="Home, gray, 150%"><figcaption>Home · gray · 150%</figcaption></figure>
+    <figure><img src="kid-150-schedule-night.png" alt="Schedule, night, 150%"><figcaption>Schedule · night · 150%</figcaption></figure>
+    <figure><img src="kid-150-schedule-gray.png" alt="Schedule, gray, 150%"><figcaption>Schedule · gray · 150%</figcaption></figure>
+    <figure><img src="kid-150-rules-night.png" alt="Rules, night, 150%"><figcaption>Rules · night · 150%</figcaption></figure>
+    <figure><img src="kid-150-rules-gray.png" alt="Rules, gray, 150%"><figcaption>Rules · gray · 150%</figcaption></figure>
+    <figure><img src="kid-150-activity-night.png" alt="Activity, night, 150%"><figcaption>Activity · night · 150%</figcaption></figure>
+    <figure><img src="kid-150-activity-gray.png" alt="Activity, gray, 150%"><figcaption>Activity · gray · 150%</figcaption></figure>
+    <figure><img src="kid-150-messages-night.png" alt="Messages, night, 150%"><figcaption>Messages · night · 150%</figcaption></figure>
+    <figure><img src="kid-150-messages-gray.png" alt="Messages, gray, 150%"><figcaption>Messages · gray · 150%</figcaption></figure>
+  </div>
+
+  <h2>Luna chat window edge at 150%</h2>
+  <div class="grid">
+    <figure><img src="window-edge-150.png" alt="Luna chat window at 150% scaling"><figcaption>Real X1, 150% scaling: no green frame outside the rounded chat window.</figcaption></figure>
+  </div>
+</main>
+</body>
+</html>
