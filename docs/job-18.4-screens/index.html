@@ -64,9 +64,15 @@
   </div>
 
   <h2>Luna chat window edge at 150%</h2>
-  <div class="grid">
-    <figure><img src="window-edge-150.png" alt="Luna chat window at 150% scaling"><figcaption>Real X1, 150% scaling: no green frame outside the rounded chat window.</figcaption></figure>
-  </div>
+  <p class="note">Windows DWM does not expose the transparent Luna window to screen capture (CopyFromScreen
+  returns the wallpaper and PrintWindow returns black). The real X1 was checked with the native region
+  API instead: at 150% the open chat window is a COMPLEXREGION with box 0,0,779,899, i.e. a 22 DIP
+  rounded window, and the rectangular Blob is hidden at full chat. The green frame therefore cannot
+  render. The raw check was:</p>
+  <pre class="note">moon 780x900 at 0,0 hwnd=1246036
+chat 780x900 at 0,0 hwnd=1246036 rgn_type=3 rgn_box=0,0,779,899 box_ok=3</pre>
+  <p class="note">A screenshot of the Luna chat window itself could not be captured remotely; the kid view
+  150% screenshots above are real X1 captures with demo data in the docs for privacy.</p>
 </main>
 </body>
 </html>
