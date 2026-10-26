@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Job 18.9 — child bubble colour and avatar</title>
+<style>
+  body { margin: 0; padding: 28px; font: 15px/1.5 system-ui, sans-serif; background: #15122c; color: #f4f1ff; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 32px 0 10px; }
+  p { color: #c9c0f5; max-width: 1050px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+  figure { margin: 0; background: #211a4a; border: 1px solid #3a2f7a; border-radius: 14px; padding: 12px; }
+  figure img { width: 100%; border-radius: 10px; display: block; }
+  figcaption { margin-top: 8px; font-weight: 700; }
+  code { background: #2a2160; padding: 2px 5px; border-radius: 5px; }
+  .note { background: #2a2160; border-left: 4px solid #3ddc97; padding: 10px 14px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<h1>Job 18.9 — child bubble colour and avatar</h1>
+<p class="note">The “before” images are v0.17.7 (child bubbles in the subject blue, no avatar). The “after” images are
+v0.17.8: mint-green child bubbles, the child’s chosen avatar on the right, and a readable
+<code>You · time · status</code> line inside the bubble. Both themes are shown at the 960 px chat width.</p>
+
+<h2>Night sky</h2>
+<div class="pair">
+  <figure><img src="before-night.png" alt="Before night"><figcaption>Before — subject-colour child bubbles, no avatar</figcaption></figure>
+  <figure><img src="after-night.png" alt="After night"><figcaption>After — <code>#3ddc97</code> with <code>#15103a</code> text, avatar and meta line</figcaption></figure>
+</div>
+
+<h2>Moon gray</h2>
+<div class="pair">
+  <figure><img src="before-gray.png" alt="Before gray"><figcaption>Before — subject-colour child bubbles</figcaption></figure>
+  <figure><img src="after-gray.png" alt="After gray"><figcaption>After — <code>#14845a</code> with white text, avatar and meta line</figcaption></figure>
+</div>
+
+<h2>All eight avatars</h2>
+<div class="pair">
+  <figure><img src="avatars-night.png" alt="Avatars night"><figcaption>Night sky — face (default), cat, dog, fox, rocket, star, planet, robot</figcaption></figure>
+  <figure><img src="avatars-gray.png" alt="Avatars gray"><figcaption>Moon gray — the same flat vector avatars with the darker ring</figcaption></figure>
+</div>
+
+<p>Pictures are the real Avalonia renderer through headless Skia. The subject colour still appears in the header
+icon, chat-list dots and math pictures. The avatar picker opens from the child’s avatar or the “…” menu and saves
+the choice in <code>%LOCALAPPDATA%\OpControlParental\kid-avatar.txt</code>, next to the theme file.</p>
+</body>
+</html>

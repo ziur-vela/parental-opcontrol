@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using Avalonia;
+using Avalonia.Automation;
 using Path = Avalonia.Controls.Shapes.Path;
 using Avalonia.Collections;
 using Avalonia.Controls;
@@ -53,6 +54,7 @@ public sealed class LunaAppView : UserControl
     private DispatcherTimer? _themeWatch;
     private Grid? _modalLayer;
     private Control? _emptyLabel;
+    private string _avatarKey = LunaAvatarKeys.Face;
     private bool _followTail = true;
     private bool _userScrolledUp;
     private bool _pendingNewMessage;
@@ -78,6 +80,7 @@ public sealed class LunaAppView : UserControl
     {
         _api = api;
         _palette = LunaThemes.From(theme);
+        _avatarKey = KidAvatarStore.ReadLocal();
         ApplyThemeVariant(_palette);
         ApplyMarkdownResources(_palette);
         _root = new Border
@@ -433,7 +436,8 @@ public sealed class LunaAppView : UserControl
         foreach (var message in _messages)
         {
             if (message.Role == LunaChatRoles.Child)
-                _messagesPanel.Children.Add(ChildBubble(message.Text, Flagged(message.Flag)));
+                _messagesPanel.Children.Add(ChildBubble(message.Text, Flagged(message.Flag),
+                    message.CreatedUtc, Loc.T("Client.Messages.Status.Sent"), out _));
             else
                 _messagesPanel.Children.Add(LunaBubble(message.Text));
         }
@@ -576,7 +580,10 @@ public sealed class LunaAppView : UserControl
         rename.Click += (_, _) => ShowRenameDialog(_chat);
         var hide = new MenuItem { Header = Loc.T("Luna.Common.Hide") };
         hide.Click += (_, _) => ShowHideDialog(_chat);
+        var avatar = new MenuItem { Header = Loc.T("Luna.Avatar.Change") };
+        avatar.Click += (_, _) => Dispatcher.UIThread.Post(() => ShowAvatarPicker(anchor));
         flyout.Items.Add(rename);
+        flyout.Items.Add(avatar);
         flyout.Items.Add(hide);
         flyout.ShowAt(anchor);
     }
@@ -781,7 +788,7 @@ public sealed class LunaAppView : UserControl
     private Control LunaBubble(string text)
     {
         var grid = new Grid { ColumnDefinitions = BubbleColumns(withFace: true) };
-        var face = CreateMoonFace(28, sleepy: false);
+        var face = CreateMoonFace(34, sleepy: false);
         face.VerticalAlignment = VerticalAlignment.Top;
         face.Margin = new Thickness(0, 2, 8, 0);
         grid.Children.Add(face);
@@ -811,37 +818,74 @@ public sealed class LunaAppView : UserControl
         HorizontalAlignment = HorizontalAlignment.Left
     };
 
-    private Control ChildBubble(string text, bool flagged)
+    private Control ChildBubble(string text, bool flagged, DateTime createdUtc, string status,
+        out TextBlock statusText)
     {
-        var style = _palette.Subject(_chat?.Subject ?? "curious");
         var gray = _palette.Key == "gray";
-        var bubbleBg = flagged ? (gray ? Color.Parse("#f4ece1") : Color.Parse("#3d3478")) : style.Tile;
-        var bubbleInk = flagged ? (gray ? Color.Parse("#5a4a33") : Color.Parse("#d9d3ff")) : style.Ink;
-        var border = flagged ? (gray ? Color.Parse("#c9a26b") : Color.Parse("#6b5fc4")) : style.Shadow;
+        var bubbleBg = flagged ? (gray ? Color.Parse("#f4ece1") : Color.Parse("#3d3478"))
+            : _palette.ChildChatBg;
+        var bubbleInk = flagged ? (gray ? Color.Parse("#5a4a33") : Color.Parse("#d9d3ff"))
+            : _palette.ChildChatInk;
+        var border = flagged ? (gray ? Color.Parse("#c9a26b") : Color.Parse("#6b5fc4"))
+            : _palette.ChildChatBorder;
         var content = new TextBlock
         {
             Text = text,
             TextWrapping = TextWrapping.Wrap,
             FontFamily = LunaThemes.Body,
-            FontSize = 14.5,
+            FontSize = 15,
             LineHeight = 20,
+            FontWeight = FontWeight.Bold,
             Foreground = LunaBrushes.B(bubbleInk)
         };
+        var when = createdUtc.ToLocalTime().ToString("t", CultureInfo.CurrentCulture);
+        var meta = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 3,
+            Margin = new Thickness(0, 3, 0, 0)
+        };
+        meta.Children.Add(new TextBlock
+        {
+            Text = $"{Loc.T("Client.Messages.SentByYou")} · {when} ·",
+            FontFamily = LunaThemes.Body,
+            FontSize = 9.5,
+            FontWeight = FontWeight.Bold,
+            Foreground = LunaBrushes.B(bubbleInk),
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        statusText = new TextBlock
+        {
+            Text = status,
+            FontFamily = LunaThemes.Body,
+            FontSize = 9.5,
+            FontWeight = FontWeight.Bold,
+            Foreground = LunaBrushes.B(bubbleInk),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        meta.Children.Add(statusText);
+        var body = new StackPanel { Spacing = 0 };
+        body.Children.Add(content);
+        body.Children.Add(meta);
+
         var bubble = new Border
         {
-            Child = content,
+            Child = body,
             Background = LunaBrushes.B(bubbleBg),
             BorderBrush = LunaBrushes.B(flagged ? Colors.Transparent : border),
             BorderThickness = new Thickness(flagged ? 0 : 1),
-            CornerRadius = new CornerRadius(14, 14, flagged ? 4 : 14, 14),
+            CornerRadius = new CornerRadius(14, 14, 4, 14),
             Padding = new Thickness(12, 9, 12, 9),
             HorizontalAlignment = HorizontalAlignment.Right
         };
+        var avatar = ChildAvatarButton();
         if (!flagged)
         {
-            var wrapper = new Grid { ColumnDefinitions = BubbleColumns(withFace: false) };
+            var wrapper = new Grid { ColumnDefinitions = ChildBubbleColumns() };
             Grid.SetColumn(bubble, 1);
             wrapper.Children.Add(bubble);
+            Grid.SetColumn(avatar, 2);
+            wrapper.Children.Add(avatar);
             return wrapper;
         }
 
@@ -876,17 +920,119 @@ public sealed class LunaAppView : UserControl
         var stack = new StackPanel { Spacing = 2, HorizontalAlignment = HorizontalAlignment.Right };
         stack.Children.Add(bubbleGrid);
         stack.Children.Add(noteRow);
-        var flaggedWrapper = new Grid { ColumnDefinitions = BubbleColumns(withFace: false) };
+        var flaggedWrapper = new Grid { ColumnDefinitions = ChildBubbleColumns() };
         Grid.SetColumn(stack, 1);
         flaggedWrapper.Children.Add(stack);
+        Grid.SetColumn(avatar, 2);
+        flaggedWrapper.Children.Add(avatar);
         return flaggedWrapper;
+    }
+
+    internal static ColumnDefinitions ChildBubbleColumns()
+    {
+        var wide = BubbleWidthFraction.ToString("0.##", CultureInfo.InvariantCulture);
+        var narrow = (1 - BubbleWidthFraction).ToString("0.##", CultureInfo.InvariantCulture);
+        return new ColumnDefinitions($"{narrow}*,{wide}*,Auto");
+    }
+
+    private Button ChildAvatarButton()
+    {
+        var name = Loc.T(LunaAvatars.NameKey(_avatarKey));
+        var button = new Button
+        {
+            Name = "ChildAvatar",
+            Content = LunaAvatars.View(_avatarKey, LunaAvatars.ChatSize, _palette),
+            Width = LunaAvatars.ChatSize,
+            Height = LunaAvatars.ChatSize,
+            Padding = new Thickness(0),
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            CornerRadius = new CornerRadius(LunaAvatars.ChatSize / 2),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(8, 2, 0, 0),
+            Cursor = new Cursor(StandardCursorType.Hand)
+        };
+        ToolTip.SetTip(button, name);
+        AutomationProperties.SetName(button, name);
+        button.Click += (_, _) => ShowAvatarPicker(button);
+        return button;
+    }
+
+    private void ShowAvatarPicker(Control anchor)
+    {
+        var flyout = new Flyout();
+        var grid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("*,*,*,*"),
+            RowDefinitions = new RowDefinitions("Auto,Auto"),
+            Width = 300
+        };
+        var index = 0;
+        foreach (var key in LunaAvatarKeys.All)
+        {
+            var name = Loc.T(LunaAvatars.NameKey(key));
+            var content = new StackPanel
+            {
+                Spacing = 3,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            content.Children.Add(LunaAvatars.View(key, 40, _palette));
+            content.Children.Add(Text(name, 10.5, _palette.Text, FontWeight.Bold, center: true, wrap: false));
+            var selected = string.Equals(key, _avatarKey, StringComparison.Ordinal);
+            var option = new Button
+            {
+                Content = content,
+                Width = 71,
+                Height = 78,
+                Padding = new Thickness(0),
+                Margin = new Thickness(2),
+                CornerRadius = new CornerRadius(12),
+                Background = selected ? LunaBrushes.B(_palette.Accent) : Brushes.Transparent,
+                BorderBrush = selected ? LunaBrushes.B(_palette.ChildChatBg) : LunaBrushes.B(_palette.Surface2),
+                BorderThickness = new Thickness(selected ? 2 : 1),
+                HorizontalContentAlignment = HorizontalAlignment.Center,
+                VerticalContentAlignment = VerticalAlignment.Center
+            };
+            ToolTip.SetTip(option, name);
+            AutomationProperties.SetName(option, name);
+            var avatarKey = key;
+            option.Click += (_, _) =>
+            {
+                flyout.Hide();
+                SetAvatar(avatarKey);
+            };
+            Grid.SetRow(option, index / 4);
+            Grid.SetColumn(option, index % 4);
+            grid.Children.Add(option);
+            index++;
+        }
+        flyout.Content = new Border
+        {
+            Background = LunaBrushes.B(_palette.Surface),
+            BorderBrush = LunaBrushes.B(_palette.Surface2),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(16),
+            Padding = new Thickness(10),
+            Child = grid
+        };
+        flyout.ShowAt(anchor);
+    }
+
+    private void SetAvatar(string key)
+    {
+        _avatarKey = LunaAvatarKeys.Normalize(key);
+        KidAvatarStore.WriteLocal(_avatarKey);
+        ShowChat();
     }
 
     private static bool Flagged(string? flag) =>
         string.Equals(flag, "blocked", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(flag, "urgent", StringComparison.OrdinalIgnoreCase);
 
-    private (Control Bubble, ThinkingView Thinking)? AddPendingChild(string text)
+    private (Control Bubble, ThinkingView Thinking, TextBlock Status)? AddPendingChild(string text)
     {
         if (_messagesPanel is null || _chat is null) return null;
         if (_emptyLabel is not null)
@@ -896,7 +1042,8 @@ public sealed class LunaAppView : UserControl
         }
         var local = new LunaChildMessageDto(Guid.NewGuid(), _chat.Id, LunaChatRoles.Child, text, DateTime.UtcNow, "none");
         _messages.Add(local);
-        var bubble = ChildBubble(text, flagged: false);
+        var bubble = ChildBubble(text, flagged: false, local.CreatedUtc,
+            Loc.T("Client.Messages.Sending"), out var statusText);
         _messagesPanel.Children.Add(bubble);
         var thinking = new ThinkingView(_palette);
         _messagesPanel.Children.Add(thinking);
@@ -907,7 +1054,7 @@ public sealed class LunaAppView : UserControl
         _replyFollowMode = ReplyFollowMode.None;
         HideNewMessagePill();
         ScrollToEndSoon();
-        return (bubble, thinking);
+        return (bubble, thinking, statusText);
     }
 
     private async Task SendFromInputAsync()
@@ -921,13 +1068,14 @@ public sealed class LunaAppView : UserControl
         _notice = null;
         var pending = AddPendingChild(text);
         if (pending is null) { _sending = false; return; }
-        var (bubble, thinking) = pending.Value;
+        var (bubble, thinking, statusText) = pending.Value;
         var local = _messages[^1];
         try
         {
             var response = await _api.SendMessageAsync(_chat.Id, text);
             thinking.Stop();
             _messagesPanel?.Children.Remove(thinking);
+            statusText.Text = Loc.T("Client.Messages.Status.Sent");
             if (response.ChildMessage is { } child)
             {
                 local = child;
@@ -935,7 +1083,8 @@ public sealed class LunaAppView : UserControl
                 if (Flagged(child.Flag))
                 {
                     _messagesPanel?.Children.Remove(bubble);
-                    _messagesPanel?.Children.Add(ChildBubble(child.Text, flagged: true));
+                    _messagesPanel?.Children.Add(ChildBubble(child.Text, flagged: true,
+                        child.CreatedUtc, Loc.T("Client.Messages.Status.Sent"), out _));
                 }
             }
             _limitReached = response.LimitReached;
@@ -968,6 +1117,7 @@ public sealed class LunaAppView : UserControl
         catch (Exception ex)
         {
             LunaLog.Exception("send", ex);
+            statusText.Text = Loc.T("Client.Messages.Status.Failed");
             thinking.Stop();
             _messagesPanel?.Children.Remove(thinking);
             _messagesPanel?.Children.Add(NoticeBanner(Loc.T("Luna.Chat.SendError")));
@@ -1003,7 +1153,7 @@ public sealed class LunaAppView : UserControl
         _replyStreaming = true;
 
         var row = new Grid { ColumnDefinitions = BubbleColumns(withFace: true) };
-        var face = CreateMoonFace(28, sleepy: false);
+        var face = CreateMoonFace(34, sleepy: false);
         face.VerticalAlignment = VerticalAlignment.Top;
         face.Margin = new Thickness(0, 2, 8, 0);
         row.Children.Add(face);
@@ -1721,6 +1871,10 @@ public sealed class LunaAppView : UserControl
 
     internal void MarkInitializedForTest() => _initialized = true;
 
+    internal void SetAvatarForTest(string key) => _avatarKey = LunaAvatarKeys.Normalize(key);
+
+    internal string AvatarKeyForTest => _avatarKey;
+
     internal void OpenChatForTest(LunaChatDto chat, List<LunaChildMessageDto> messages)
     {
         _chat = chat;
@@ -1733,7 +1887,7 @@ public sealed class LunaAppView : UserControl
         ShowChat();
     }
 
-    internal (Control Bubble, ThinkingView Thinking)? AddPendingChildForTest(string text) => AddPendingChild(text);
+    internal (Control Bubble, ThinkingView Thinking, TextBlock Status)? AddPendingChildForTest(string text) => AddPendingChild(text);
 
     internal void DeliverReplyForTest(string text) => AddStreamingReply(text);
 

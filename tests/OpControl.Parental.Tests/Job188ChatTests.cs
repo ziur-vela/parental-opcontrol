@@ -111,7 +111,7 @@ public class Job188ChatTests
     }
 
     [Fact]
-    public void Every_subject_bubble_has_at_least_4_5_to_1_contrast_in_both_themes()
+    public void Subject_tiles_and_child_bubbles_have_at_least_4_5_to_1_contrast_in_both_themes()
     {
         foreach (var palette in new[] { LunaPalettes.Night, LunaPalettes.Gray })
         {
@@ -126,6 +126,17 @@ public class Job188ChatTests
 
         Assert.True(LunaColor.ContrastRatio(
             LunaPalettes.Night.Subject("math").Tile, Color.Parse("#15103a")) >= 4.5);
+
+        Assert.Equal(Color.Parse("#3ddc97"), LunaPalettes.Night.ChildChatBg);
+        Assert.Equal(Color.Parse("#15103a"), LunaPalettes.Night.ChildChatInk);
+        Assert.Equal(Color.Parse("#14845a"), LunaPalettes.Gray.ChildChatBg);
+        Assert.Equal(Color.Parse("#ffffff"), LunaPalettes.Gray.ChildChatInk);
+        foreach (var palette in new[] { LunaPalettes.Night, LunaPalettes.Gray })
+        {
+            var ratio = LunaColor.ContrastRatio(palette.ChildChatBg, palette.ChildChatInk);
+            Assert.True(ratio >= 4.5,
+                $"{palette.Key} child bubble {palette.ChildChatBg} vs {palette.ChildChatInk} is {ratio:0.00}:1");
+        }
     }
 
     [Fact]
@@ -171,14 +182,18 @@ public class Job188ChatTests
     }
 
     [Fact]
-    public void Child_bubbles_use_the_design_ink_and_the_bubble_fraction_is_88_percent()
+    public void Child_bubbles_use_the_mint_palette_and_the_88_percent_fraction()
     {
         var root = FindRoot();
         var source = File.ReadAllText(Path.Combine(root, "src", "OpControl.Parental.Luna", "LunaAppView.cs"));
-        Assert.Contains(": style.Ink;", source, StringComparison.Ordinal);
         Assert.Contains("BubbleWidthFraction = 0.88", source, StringComparison.Ordinal);
         Assert.Contains("BubbleColumns(withFace: true)", source, StringComparison.Ordinal);
-        Assert.Contains("BubbleColumns(withFace: false)", source, StringComparison.Ordinal);
+        Assert.Contains("ChildBubbleColumns()", source, StringComparison.Ordinal);
+        Assert.Contains("_palette.ChildChatBg", source, StringComparison.Ordinal);
+        Assert.Contains("_palette.ChildChatInk", source, StringComparison.Ordinal);
+        Assert.Contains("LunaAvatarKeys.All", source, StringComparison.Ordinal);
+        Assert.Contains("KidAvatarStore.ReadLocal()", source, StringComparison.Ordinal);
+        Assert.Contains("KidAvatarStore.WriteLocal(_avatarKey)", source, StringComparison.Ordinal);
     }
 
     [Fact]

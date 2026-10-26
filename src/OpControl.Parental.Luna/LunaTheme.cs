@@ -24,6 +24,10 @@ public sealed class LunaPalette
     public required Color LunaBubbleBorder { get; init; }
     public required Color ChildBubble { get; init; }
     public required Color ChildBubbleBorder { get; init; }
+    /// <summary>The child's own bubbles in the Luna chat (not the kid view).</summary>
+    public required Color ChildChatBg { get; init; }
+    public required Color ChildChatInk { get; init; }
+    public required Color ChildChatBorder { get; init; }
     public required Color Danger { get; init; }
     public required Color Sunken { get; init; }
     public required Color Success { get; init; }
@@ -46,6 +50,7 @@ public static class LunaThemes
         Surface = C("#2a2160"), Surface2 = C("#4a3d94"), InputBg = C("#2a2160"),
         LunaBubble = C("#3a2f7a"), LunaBubbleBorder = C("#4a3d94"),
         ChildBubble = C("#4a3d94"), ChildBubbleBorder = C("#6b5fc4"),
+        ChildChatBg = C("#3ddc97"), ChildChatInk = C("#15103a"), ChildChatBorder = C("#22a46d"),
         Danger = C("#ffb547"), Sunken = C("#1f1846"), Success = C("#3ddc97"),
         Subjects = new Dictionary<string, LunaSubjectStyle>
         {
@@ -66,6 +71,7 @@ public static class LunaThemes
         Surface = C("#f7f8fa"), Surface2 = C("#e2e5eb"), InputBg = C("#ffffff"),
         LunaBubble = C("#ffffff"), LunaBubbleBorder = C("#d7dbe3"),
         ChildBubble = C("#e3d6ff"), ChildBubbleBorder = C("#b9a3ef"),
+        ChildChatBg = C("#14845a"), ChildChatInk = C("#ffffff"), ChildChatBorder = C("#0f6b49"),
         Danger = C("#b5650a"), Sunken = C("#e2e5eb"), Success = C("#14845a"),
         Subjects = new Dictionary<string, LunaSubjectStyle>
         {
