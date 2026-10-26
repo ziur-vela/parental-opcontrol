@@ -3,6 +3,7 @@
 
 using System.Drawing.Text;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace OpControl.Parental.Helper;
 
@@ -83,13 +84,20 @@ internal static class Theme
     }
 
     private static readonly List<PrivateFontCollection> Collections = new();
+    private static readonly List<IntPtr> FontMemory = new();
     private static readonly FontFamily? MonoRegular;
     private static readonly FontFamily? MonoSemiBold;
     private static readonly FontFamily? SansRegular;
     private static readonly FontFamily? SansSemiBold;
     private static readonly FontFamily? SansBold;
-    private static readonly FontFamily? DisplayFamily;
-    private static readonly FontFamily? BodyFamily;
+
+    // GDI+ cannot pick a weight from a variable font, so the lock screen uses
+    // one static Fredoka/Nunito face per weight (see tools/fonts).
+    private static readonly FontFamily? DisplayMedium;
+    private static readonly FontFamily? DisplaySemiBold;
+    private static readonly FontFamily? DisplayBold;
+    private static readonly FontFamily? BodyBold;
+    private static readonly FontFamily? BodyExtraBold;
 
     static Theme()
     {
@@ -98,8 +106,11 @@ internal static class Theme
         SansRegular = Load("OpControl.Parental.Helper.fonts.Manrope-500.ttf");
         SansSemiBold = Load("OpControl.Parental.Helper.fonts.Manrope-600.ttf");
         SansBold = Load("OpControl.Parental.Helper.fonts.Manrope-700.ttf");
-        DisplayFamily = Load("OpControl.Parental.Helper.fonts.Fredoka.ttf");
-        BodyFamily = Load("OpControl.Parental.Helper.fonts.Nunito.ttf");
+        DisplayMedium = Load("OpControl.Parental.Helper.fonts.Fredoka-Medium.ttf");
+        DisplaySemiBold = Load("OpControl.Parental.Helper.fonts.Fredoka-SemiBold.ttf");
+        DisplayBold = Load("OpControl.Parental.Helper.fonts.Fredoka-Bold.ttf");
+        BodyBold = Load("OpControl.Parental.Helper.fonts.Nunito-Bold.ttf");
+        BodyExtraBold = Load("OpControl.Parental.Helper.fonts.Nunito-ExtraBold.ttf");
     }
 
     private static FontFamily? Load(string resource)
@@ -108,13 +119,20 @@ internal static class Theme
         {
             using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resource);
             if (stream is null) return null;
-            var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".ttf");
-            using (var file = File.Create(path)) stream.CopyTo(file);
+            // AddFontFile + delete the temp file used to make GDI+ fail later when
+            // the Font was created. AddMemoryFont keeps the bytes valid for the
+            // lifetime of the collection.
+            var bytes = new byte[stream.Length];
+            stream.ReadExactly(bytes);
+            var memory = Marshal.AllocHGlobal(bytes.Length);
+            Marshal.Copy(bytes, 0, memory, bytes.Length);
             var collection = new PrivateFontCollection();
-            collection.AddFontFile(path);
+            collection.AddMemoryFont(memory, bytes.Length);
             Collections.Add(collection);
-            try { File.Delete(path); } catch { }
-            return collection.Families.FirstOrDefault();
+            FontMemory.Add(memory);
+            return collection.Families
+                .OrderByDescending(f => f.Name.Length)
+                .FirstOrDefault();
         }
         catch { return null; }
     }
@@ -129,16 +147,55 @@ internal static class Theme
         Make(style.HasFlag(FontStyle.Bold) ? MonoSemiBold : MonoRegular, "Consolas", size);
 
     public static Font Display(float size, FontStyle style = FontStyle.Regular) =>
-        Make(DisplayFamily, "Segoe UI Semibold", size);
+        Make(style.HasFlag(FontStyle.Bold) ? DisplayBold : DisplaySemiBold, "Segoe UI Semibold", size);
 
     public static Font Body(float size, FontStyle style = FontStyle.Regular) =>
-        Make(BodyFamily, "Segoe UI", size);
+        Make(BodyBold, "Segoe UI", size);
 
     public static Font DisplayPx(float pixels, FontStyle style = FontStyle.Regular) =>
-        MakePx(DisplayFamily, "Segoe UI Semibold", pixels);
+        MakePx(style.HasFlag(FontStyle.Bold) ? DisplayBold : DisplaySemiBold, "Segoe UI Semibold", pixels);
 
     public static Font BodyPx(float pixels, FontStyle style = FontStyle.Regular) =>
-        MakePx(BodyFamily, "Segoe UI", pixels);
+        MakePx(BodyBold, "Segoe UI", pixels);
+
+    /// <summary>Fredoka 600 for the lock title and the primary button.</summary>
+    public static Font LockTitle(float pixels) => MakePx(DisplaySemiBold, "Segoe UI Semibold", pixels);
+
+    /// <summary>Fredoka 500 for the lock reason line.</summary>
+    public static Font LockReason(float pixels) => MakePx(DisplayMedium, "Segoe UI Semibold", pixels);
+
+    /// <summary>Nunito 700 for the lock hint.</summary>
+    public static Font LockHint(float pixels) => MakePx(BodyBold, "Segoe UI", pixels);
+
+    /// <summary>Nunito 800 for "Parent override".</summary>
+    public static Font LockSecondary(float pixels) => MakePx(BodyExtraBold, "Segoe UI", pixels);
+
+    private static bool _fontCheckLogged;
+
+    /// <summary>One-line runtime proof that the embedded families resolved (no system fallback).</summary>
+    public static string FontCheckReport()
+    {
+        using var title = LockTitle(56);
+        using var reason = LockReason(32);
+        using var hint = LockHint(22);
+        using var primary = LockTitle(26);
+        using var secondary = LockSecondary(18);
+        return "lock-fonts " +
+               $"title={title.FontFamily.Name} " +
+               $"reason={reason.FontFamily.Name} " +
+               $"hint={hint.FontFamily.Name} " +
+               $"primary={primary.FontFamily.Name} " +
+               $"secondary={secondary.FontFamily.Name}";
+    }
+
+    public static string LogFontCheckOnce()
+    {
+        var report = FontCheckReport();
+        if (_fontCheckLogged) return report;
+        _fontCheckLogged = true;
+        HelperPaths.LogEvent(report);
+        return report;
+    }
 
     private static Font Make(FontFamily? family, string fallback, float size)
     {

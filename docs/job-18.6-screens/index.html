@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job 18.6 screens — lock screen text and layout</title>
+<style>
+  body { margin: 0; background: #0b1714; color: #e3ece8; font: 15px/1.5 system-ui, sans-serif; }
+  main { max-width: 1560px; margin: 0 auto; padding: 24px; }
+  h1, h2, h3 { color: #fff6c8; }
+  a { color: #7ee8c4; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 18px; }
+  figure { margin: 0; background: #112420; border: 1px solid #2a4a42; border-radius: 14px; padding: 10px; }
+  figure img { width: 100%; height: auto; display: block; border-radius: 8px; }
+  figcaption { color: #a8bfb7; font-size: 12px; margin-top: 6px; }
+  .note { color: #a8bfb7; max-width: 1040px; }
+  .wide { grid-column: 1 / -1; }
+  ul { color: #c8eadf; }
+  code { color: #fff6c8; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Job 18.6 screens — lock screen text and layout</h1>
+  <p class="note">Every overlay image below is the <strong>real LockForm paint path</strong> used by the
+  Windows Helper (the same <code>OnPaint</code>, buttons, scene and blurred shadow), captured through
+  <code>--lock-preview --capture</code> at the stated physical size and forced UI scale. The HTML
+  reference was rendered in Chromium at the same size with the bundled Fredoka/Nunito static faces and
+  the real <code>lockup-ondark</code> asset.</p>
+
+  <h2>Reference vs real overlay at 100%</h2>
+  <div class="grid">
+    <figure class="wide"><img src="compare-en-1600x900.png" alt="Ref vs overlay, en, 1600x900"><figcaption>English · 1600×900</figcaption></figure>
+    <figure class="wide"><img src="compare-en-1620x1080.png" alt="Ref vs overlay, en, 1620x1080"><figcaption>English · 1620×1080</figcaption></figure>
+    <figure class="wide"><img src="compare-en-1366x768.png" alt="Ref vs overlay, en, 1366x768"><figcaption>English · 1366×768</figcaption></figure>
+    <figure class="wide"><img src="compare-es-MX-1600x900.png" alt="Ref vs overlay, es-MX, 1600x900"><figcaption>es-MX · 1600×900</figcaption></figure>
+    <figure class="wide"><img src="compare-es-MX-1620x1080.png" alt="Ref vs overlay, es-MX, 1620x1080"><figcaption>es-MX · 1620×1080</figcaption></figure>
+    <figure class="wide"><img src="compare-es-MX-1366x768.png" alt="Ref vs overlay, es-MX, 1366x768"><figcaption>es-MX · 1366×768</figcaption></figure>
+  </div>
+
+  <h2>Scaling matrix — real overlay at 100 / 125 / 150 / 200%</h2>
+  <p class="note">These are physical-pixel renders. The lock block scales with the design height (capped
+  at 900 design px) and the monitor scale, so the same layout is centred and clear at every setting.
+  The runtime check in each capture asserted every line/button centre within 1 px of the screen centre
+  and no overlap (<code>issues=0</code> in all 24 runs).</p>
+  <div class="grid">
+    <figure class="wide"><img src="scales-en-1600x900.png" alt="Scaling matrix en 1600x900"><figcaption>English · 1600×900 · 100/125/150/200%</figcaption></figure>
+    <figure class="wide"><img src="scales-en-1620x1080.png" alt="Scaling matrix en 1620x1080"><figcaption>English · 1620×1080 · 100/125/150/200%</figcaption></figure>
+    <figure class="wide"><img src="scales-en-1366x768.png" alt="Scaling matrix en 1366x768"><figcaption>English · 1366×768 · 100/125/150/200%</figcaption></figure>
+    <figure class="wide"><img src="scales-es-MX-1600x900.png" alt="Scaling matrix es-MX 1600x900"><figcaption>es-MX · 1600×900 · 100/125/150/200%</figcaption></figure>
+    <figure class="wide"><img src="scales-es-MX-1620x1080.png" alt="Scaling matrix es-MX 1620x1080"><figcaption>es-MX · 1620×1080 · 100/125/150/200%</figcaption></figure>
+    <figure class="wide"><img src="scales-es-MX-1366x768.png" alt="Scaling matrix es-MX 1366x768"><figcaption>es-MX · 1366×768 · 100/125/150/200%</figcaption></figure>
+  </div>
+
+  <h2>Remaining differences from the reference</h2>
+  <ul>
+    <li>The scene (lamp arm/shade, curtain, chair, plaid blanket) is the existing GDI+ approximation from Job 18.5; this job changed only the text block, buttons and shadow.</li>
+    <li>The static Fredoka/Nunito faces are a pixel or two wider than the web-font instances, so line lengths differ slightly (never clipped; the draw band is full-screen and centred).</li>
+    <li>At 1366×768 the design scale is 0.853 (screen height / 900), so the block is proportionally smaller than the fixed-px HTML reference at that size; this is the intended “sizes scale with screen height” behaviour.</li>
+    <li>At 200% on 1366×768 the block is large and the Spanish hint wraps to two lines; it stays on screen and no element overlaps.</li>
+  </ul>
+</main>
+</body>
+</html>

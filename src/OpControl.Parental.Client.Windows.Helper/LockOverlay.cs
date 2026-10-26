@@ -4,7 +4,9 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing.Drawing2D;
+using System.Drawing.Text;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using OpControl.Parental.Contracts;
 using OpControl.Parental.Localization;
 
@@ -28,6 +30,7 @@ public sealed class LockOverlayManager : IDisposable
     {
         if (_forms.Count == 0)
         {
+            Theme.LogFontCheckOnce();
             foreach (var screen in Screen.AllScreens)
             {
                 var form = new LockForm(screen.Bounds, screen.Primary);
@@ -113,23 +116,44 @@ public sealed class LockOverlayManager : IDisposable
 public sealed class LockForm : Form
 {
     private static readonly Image? Logo = LoadLogo();
-    private readonly Label _title;
-    private readonly Label _reason;
-    private readonly Label _hint;
     private readonly PillButton _message;
     private readonly PillButton _override;
     private readonly System.Windows.Forms.Timer _zTimer;
     private readonly Stopwatch _clock = Stopwatch.StartNew();
     private LockSceneLayout _layout;
-    private Bitmap? _background;
-    private Size _backgroundSize;
+    private LockContentLayout? _content;
+    private LockTextBlock? _titleBlock;
+    private LockTextBlock? _reasonBlock;
+    private LockTextBlock? _hintBlock;
+    private Font? _titleFont;
+    private Font? _reasonFont;
+    private Font? _hintFont;
+    private Font? _primaryFont;
+    private Font? _secondaryFont;
+    private Bitmap? _titleShadow;
+    private int _shadowPad;
+    private string? _shadowText;
+    private float _shadowScale = -1;
+    private int _shadowWidth = -1;
     private float _fontScale = -1f;
     private bool _previewMode;
+    private int _requestedWidth;
+    private int _requestedHeight;
+    private string _titleText = string.Empty;
+    private string _reasonText = string.Empty;
+    private string _hintText = string.Empty;
+    private Bitmap? _background;
+    private Size _backgroundSize;
 
     public event Action? OverrideClicked;
     public event Action? MessageClicked;
 
     public bool IsPrimary { get; }
+
+    /// <summary>Forces a UI scale for the scaling-matrix captures (no Windows setting change).</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public double? UiScaleOverride { get; set; }
+
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public bool PreviewMode
     {
@@ -147,6 +171,8 @@ public sealed class LockForm : Form
     public LockForm(Rectangle bounds, bool primary)
     {
         IsPrimary = primary;
+        _requestedWidth = Math.Max(1, bounds.Width);
+        _requestedHeight = Math.Max(1, bounds.Height);
         AutoScaleMode = AutoScaleMode.None;
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.Manual;
@@ -160,31 +186,20 @@ public sealed class LockForm : Form
         SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
         _layout = LockSceneLayout.For(Math.Max(1, bounds.Width), Math.Max(1, bounds.Height));
 
-        _title = LabelFor(Theme.DisplayPx(56, FontStyle.Bold), Color.White);
-        _reason = LabelFor(Theme.DisplayPx(32, FontStyle.Regular), Color.FromArgb(0x7e, 0xe8, 0xc4));
-        _hint = LabelFor(Theme.BodyPx(22, FontStyle.Bold), Color.FromArgb(0xc8, 0xea, 0xdf));
-        _title.AutoSize = true;
-        _reason.AutoSize = true;
-        _hint.AutoSize = true;
         _message = new PillButton
         {
             Primary = true,
             MessageIcon = true,
-            Text = Loc.T("Client.Messages.Open"),
-            Font = Theme.DisplayPx(26, FontStyle.Bold)
+            Text = Loc.T("Client.Messages.Open")
         };
         _message.Click += (_, _) => MessageClicked?.Invoke();
         _override = new PillButton
         {
             Primary = false,
-            Text = Loc.T("Client.Lock.Override"),
-            Font = Theme.BodyPx(18, FontStyle.Bold)
+            Text = Loc.T("Client.Lock.Override")
         };
         _override.Click += (_, _) => OverrideClicked?.Invoke();
 
-        Controls.Add(_title);
-        Controls.Add(_reason);
-        Controls.Add(_hint);
         Controls.Add(_message);
         Controls.Add(_override);
 
@@ -214,16 +229,21 @@ public sealed class LockForm : Form
         var ui = (float)_layout.UiScale;
         if (Math.Abs(ui - _fontScale) < 0.01f) return;
         _fontScale = ui;
-        _title.Font?.Dispose();
-        _reason.Font?.Dispose();
-        _hint.Font?.Dispose();
-        _message.Font?.Dispose();
-        _override.Font?.Dispose();
-        _title.Font = Theme.DisplayPx(56 * ui, FontStyle.Bold);
-        _reason.Font = Theme.DisplayPx(32 * ui, FontStyle.Regular);
-        _hint.Font = Theme.BodyPx(22 * ui, FontStyle.Bold);
-        _message.Font = Theme.DisplayPx(26 * ui, FontStyle.Bold);
-        _override.Font = Theme.BodyPx(18 * ui, FontStyle.Bold);
+        _titleBlock = null;
+        _reasonBlock = null;
+        _hintBlock = null;
+        _titleFont?.Dispose();
+        _reasonFont?.Dispose();
+        _hintFont?.Dispose();
+        _primaryFont?.Dispose();
+        _secondaryFont?.Dispose();
+        _titleFont = Theme.LockTitle(56 * ui);
+        _reasonFont = Theme.LockReason(32 * ui);
+        _hintFont = Theme.LockHint(22 * ui);
+        _primaryFont = Theme.LockTitle(26 * ui);
+        _secondaryFont = Theme.LockSecondary(18 * ui);
+        _message.Font = _primaryFont;
+        _override.Font = _secondaryFont;
     }
 
     protected override void OnDpiChanged(DpiChangedEventArgs e)
@@ -232,22 +252,12 @@ public sealed class LockForm : Form
         Relayout();
     }
 
-    private static Label LabelFor(Font font, Color color) => new()
-    {
-        AutoSize = false,
-        BackColor = Color.Transparent,
-        ForeColor = color,
-        Font = font,
-        TextAlign = ContentAlignment.MiddleCenter,
-        UseCompatibleTextRendering = false
-    };
-
     public void UpdateState(RuntimeLockStateDto state)
     {
         var (title, reason, hint) = Texts(state);
-        _title.Text = title;
-        _reason.Text = reason;
-        _hint.Text = hint;
+        _titleText = title;
+        _reasonText = reason;
+        _hintText = hint;
         _message.Text = Loc.T("Client.Messages.Open");
         _override.Text = Loc.T("Client.Lock.Override");
         Relayout();
@@ -279,35 +289,35 @@ public sealed class LockForm : Form
     private void Relayout()
     {
         if (ClientSize.Width <= 0 || ClientSize.Height <= 0) return;
-        _layout = LockSceneLayout.For(ClientSize.Width, ClientSize.Height, DeviceDpi / 96.0);
+        _layout = LockSceneLayout.For(ClientSize.Width, ClientSize.Height, UiScaleOverride ?? DeviceDpi / 96.0);
         ApplyTextFonts();
-        var scale = (float)_layout.Scale;
         var ui = (float)_layout.UiScale;
+        var maxTextWidth = _layout.TextColumn.Width;
 
-        var textLeft = (int)_layout.TextColumn.X;
-        var textWidth = (int)_layout.TextColumn.Width;
-        _title.MaximumSize = new Size(textWidth, 0);
-        _reason.MaximumSize = new Size(textWidth, 0);
-        _hint.MaximumSize = new Size(textWidth, 0);
-        _title.Location = new Point(textLeft, (int)_layout.TextColumn.Y);
-        _reason.Location = new Point(textLeft, _title.Bottom + (int)(18 * ui));
-        _hint.Location = new Point(textLeft, _reason.Bottom + (int)(10 * ui));
-        _title.Width = textWidth;
-        _reason.Width = textWidth;
-        _hint.Width = textWidth;
+        using (var measureBitmap = new Bitmap(1, 1))
+        using (var g = Graphics.FromImage(measureBitmap))
+        {
+            _titleBlock = LockTextBlock.Create(g, _titleText, _titleFont!,
+                maxTextWidth, LockSceneLayout.TitleLineHeight * ui);
+            _reasonBlock = LockTextBlock.Create(g, _reasonText, _reasonFont!,
+                maxTextWidth, LockSceneLayout.ReasonLineHeight * ui);
+            _hintBlock = LockTextBlock.Create(g, _hintText, _hintFont!,
+                maxTextWidth, LockSceneLayout.HintLineHeight * ui);
+            var primaryText = LockTextBlock.MeasureWidth(g, _message.Text, _primaryFont!);
+            var secondaryText = LockTextBlock.MeasureWidth(g, _override.Text, _secondaryFont!);
+            _content = _layout.ArrangeContent(
+                _titleBlock.Width, _titleBlock.Height,
+                _reasonBlock.Width, _reasonBlock.Height,
+                _hintBlock.Width, _hintBlock.Height,
+                primaryText, secondaryText);
+        }
 
-        _message.Bounds = new Rectangle(
-            (int)_layout.PrimaryButton.X,
-            (int)_layout.PrimaryButton.Y,
-            (int)_layout.PrimaryButton.Width,
-            (int)_layout.PrimaryButton.Height);
-        _override.Bounds = new Rectangle(
-            (int)_layout.SecondaryButton.X,
-            (int)_layout.SecondaryButton.Y,
-            (int)_layout.SecondaryButton.Width,
-            (int)_layout.SecondaryButton.Height);
+        _message.Bounds = ToRectangle(_content!.PrimaryButton);
+        _override.Bounds = ToRectangle(_content.SecondaryButton);
         _message.Invalidate();
         _override.Invalidate();
+
+        BuildTitleShadow();
 
         if (_background is null || _backgroundSize != ClientSize)
         {
@@ -320,23 +330,142 @@ public sealed class LockForm : Form
         Invalidate();
     }
 
+    private void BuildTitleShadow()
+    {
+        if (_titleShadow is not null
+            && _shadowText == _titleText
+            && Math.Abs(_shadowScale - _fontScale) < 0.001f
+            && _shadowWidth == (int)_layout.Width)
+            return;
+        _titleShadow?.Dispose();
+        _titleShadow = null;
+        _shadowText = _titleText;
+        _shadowScale = _fontScale;
+        _shadowWidth = (int)_layout.Width;
+        if (_titleBlock is null || string.IsNullOrEmpty(_titleText)) return;
+        var radius = Math.Max(2, (int)Math.Round(6 * _layout.UiScale));
+        _shadowPad = Math.Max(2, radius * 2 + 2);
+        try
+        {
+            _titleShadow = _titleBlock.RenderShadowMask(radius, _layout.Width);
+        }
+        catch
+        {
+            _titleShadow = null;
+        }
+    }
+
+    /// <summary>Runtime check used by the capture matrix: centres within 1 px, no overlaps.</summary>
+    public IReadOnlyList<string> ValidateLayout()
+    {
+        var issues = new List<string>();
+        if (_content is null) return ["no content"];
+        var center = _layout.Width / 2;
+        var boxes = _content.InOrder().ToArray();
+        foreach (var (name, box) in boxes)
+        {
+            if (Math.Abs(box.CenterX - center) > 1)
+                issues.Add($"{name} centre {box.CenterX:0.##} != {center:0.##}");
+            if (box.X < 0 || box.Right > _layout.Width + 0.001)
+                issues.Add($"{name} horizontally out of bounds");
+        }
+        for (var i = 0; i < boxes.Length - 1; i++)
+        {
+            if (boxes[i].Box.Bottom > boxes[i + 1].Box.Y + 0.501)
+                issues.Add($"{boxes[i].Name} overlaps {boxes[i + 1].Name}");
+        }
+        return issues;
+    }
+
+    private static Rectangle ToRectangle(LockBox box) => new(
+        (int)Math.Round(box.X), (int)Math.Round(box.Y),
+        Math.Max(1, (int)Math.Round(box.Width)), Math.Max(1, (int)Math.Round(box.Height)));
+
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
-        LockSceneRenderer.DrawStars(e.Graphics, _layout, _clock.Elapsed.TotalSeconds);
-        LockSceneRenderer.DrawSleepingZ(e.Graphics, _layout, _clock.Elapsed.TotalSeconds);
-        DrawTitleShadow(e.Graphics);
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.TextRenderingHint = TextRenderingHint.AntiAlias;
+        LockSceneRenderer.DrawStars(g, _layout, _clock.Elapsed.TotalSeconds);
+        LockSceneRenderer.DrawSleepingZ(g, _layout, _clock.Elapsed.TotalSeconds);
+
+        if (_content is null) return;
+        var centerX = _layout.Width / 2;
+
+        if (_titleShadow is not null)
+        {
+            var x = (float)(centerX - _titleShadow.Width / 2.0);
+            var y = (float)(_content.Title.Y - _shadowPad + 3 * _layout.UiScale);
+            g.DrawImage(_titleShadow, x, y);
+        }
+
+        using (var white = new SolidBrush(Color.White))
+            _titleBlock?.Draw(g, white, centerX, _content.Title.Y);
+        using (var mint = new SolidBrush(Color.FromArgb(0x7e, 0xe8, 0xc4)))
+            _reasonBlock?.Draw(g, mint, centerX, _content.Reason.Y);
+        using (var pale = new SolidBrush(Color.FromArgb(0xc8, 0xea, 0xdf)))
+            _hintBlock?.Draw(g, pale, centerX, _content.Hint.Y);
+
         if (Logo is not null)
         {
             var box = _layout.Logo;
-            e.Graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-            e.Graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-            e.Graphics.DrawImage(Logo, new Rectangle((int)Math.Round(box.X), (int)Math.Round(box.Y),
+            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+            g.DrawImage(Logo, new Rectangle((int)Math.Round(box.X), (int)Math.Round(box.Y),
                 Math.Max(1, (int)Math.Round(box.Width)), Math.Max(1, (int)Math.Round(box.Height))));
         }
     }
 
     protected override bool ShowWithoutActivation => !PreviewMode;
+
+    private const int WmGetMinMaxInfo = 0x0024;
+    private const uint SwpNoZOrder = 0x0004;
+    private const uint SwpNoActivate = 0x0010;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativePoint
+    {
+        public int X;
+        public int Y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MinMaxInfo
+    {
+        public NativePoint Reserved;
+        public NativePoint MaxSize;
+        public NativePoint MaxPosition;
+        public NativePoint MinTrackSize;
+        public NativePoint MaxTrackSize;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr insertAfter, int x, int y, int cx, int cy, uint flags);
+
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        if (!PreviewMode) return;
+        // Windows clamps a window to the desktop's max track size. Captures on
+        // the XPS run in a 1024x768 session but must render 1600x900 and
+        // 1620x1080, so allow the requested size for the preview only.
+        SetWindowPos(Handle, IntPtr.Zero, Left, Top, _requestedWidth, _requestedHeight,
+            SwpNoZOrder | SwpNoActivate);
+    }
+
+    protected override void WndProc(ref Message m)
+    {
+        if (PreviewMode && m.Msg == WmGetMinMaxInfo)
+        {
+            var info = Marshal.PtrToStructure<MinMaxInfo>(m.LParam);
+            info.MaxTrackSize.X = Math.Max(info.MaxTrackSize.X, _requestedWidth + 64);
+            info.MaxTrackSize.Y = Math.Max(info.MaxTrackSize.Y, _requestedHeight + 64);
+            Marshal.StructureToPtr(info, m.LParam, false);
+            return;
+        }
+        base.WndProc(ref m);
+    }
 
     protected override CreateParams CreateParams
     {
@@ -358,24 +487,14 @@ public sealed class LockForm : Form
         {
             _zTimer.Dispose();
             _background?.Dispose();
+            _titleShadow?.Dispose();
+            _titleFont?.Dispose();
+            _reasonFont?.Dispose();
+            _hintFont?.Dispose();
+            _primaryFont?.Dispose();
+            _secondaryFont?.Dispose();
         }
         base.Dispose(disposing);
-    }
-
-    private void DrawTitleShadow(Graphics g)
-    {
-        if (string.IsNullOrEmpty(_title.Text)) return;
-        var offset = (int)Math.Round(3 * _layout.UiScale);
-        var rect = new RectangleF(_title.Left, _title.Top, _title.Width, Math.Max(1, _title.Height + offset));
-        using var format = new StringFormat
-        {
-            Alignment = StringAlignment.Center,
-            LineAlignment = StringAlignment.Near,
-            FormatFlags = StringFormatFlags.LineLimit
-        };
-        using var shadow = new SolidBrush(Color.FromArgb(95, 0, 0, 0));
-        g.DrawString(_title.Text, _title.Font, shadow,
-            new RectangleF(rect.X, rect.Y + offset, rect.Width, rect.Height), format);
     }
 
     private static Image? LoadLogo()
@@ -422,7 +541,9 @@ public sealed class LockForm : Form
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.TextRenderingHint = TextRenderingHint.AntiAlias;
             var rect = new Rectangle(0, 0, Width - 1, Height - 1);
             using var path = Rounded(rect, Height / 2);
             if (Primary)
@@ -431,35 +552,42 @@ public sealed class LockForm : Form
                 var lift = Math.Max(3, Height / 12);
                 using var shadowPath = Rounded(new Rectangle(0, lift, Width - 1, Height - 1 - lift),
                     (Height - lift) / 2);
-                e.Graphics.FillPath(shadow, shadowPath);
+                g.FillPath(shadow, shadowPath);
                 using var fill = new SolidBrush(Color.FromArgb(0x16, 0xa3, 0x4a));
                 using var face = Rounded(new Rectangle(0, 0, Width - 1, Height - 1 - lift),
                     (Height - lift) / 2);
-                e.Graphics.FillPath(fill, face);
+                g.FillPath(fill, face);
             }
             else
             {
                 using var fill = new SolidBrush(Color.FromArgb(90, 11, 29, 32));
-                e.Graphics.FillPath(fill, path);
+                g.FillPath(fill, path);
                 using var border = new Pen(Color.FromArgb(0x4f, 0xd1, 0xa5), 2);
-                e.Graphics.DrawPath(border, path);
+                g.DrawPath(border, path);
             }
 
-            var iconSize = Math.Max(18, Height / 3);
-            var iconSpace = MessageIcon ? iconSize + 14 : 0;
+            var liftPx = Math.Max(3, Height / 12);
+            var ink = Primary ? Color.White : Color.FromArgb(0xd8, 0xf5, 0xea);
+            var iconSize = MessageIcon ? Math.Max(16, Height * 32 / 72) : 0;
+            var iconGap = MessageIcon ? Math.Max(8, Height * 14 / 72) : 0;
+            using var format = new StringFormat
+            {
+                Alignment = StringAlignment.Near,
+                LineAlignment = StringAlignment.Center,
+                FormatFlags = StringFormatFlags.NoWrap
+            };
+            var textWidth = LockTextBlock.MeasureWidth(g, Text, Font);
+            var contentWidth = iconSize + iconGap + textWidth;
+            var startX = (float)((Width - contentWidth) / 2);
             if (MessageIcon)
             {
-                var ink = Primary ? Color.White : Color.FromArgb(0xd8, 0xf5, 0xea);
-                var textWidth = TextRenderer.MeasureText(Text, Font).Width;
-                var ix = (Width - textWidth - iconSpace) / 2;
-                var lift = Math.Max(3, Height / 12);
-                var iy = (Height - lift - iconSize) / 2f;
-                LockGlyphs.DrawMessageIcon(e.Graphics, ix, iy, iconSize, ink, Math.Max(1.8f, Height / 32f));
+                var iy = (Height - liftPx - iconSize) / 2f;
+                LockGlyphs.DrawMessageIcon(g, (float)startX, (float)iy, (float)iconSize, ink, Math.Max(1.8f, Height / 32f));
+                startX += iconSize + iconGap;
             }
-            var textRect = new Rectangle(MessageIcon ? iconSpace : 0, 0, Width - (MessageIcon ? iconSpace : 0), Height - Math.Max(3, Height / 12));
-            TextRenderer.DrawText(e.Graphics, Text, Font, textRect,
-                Primary ? Color.White : Color.FromArgb(0xd8, 0xf5, 0xea),
-                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+            var textRect = new RectangleF((float)startX, 0, (float)(Width - startX), Height - liftPx);
+            using var brush = new SolidBrush(ink);
+            g.DrawString(Text, Font, brush, textRect, format);
         }
 
         private static GraphicsPath Rounded(Rectangle rect, int radius)

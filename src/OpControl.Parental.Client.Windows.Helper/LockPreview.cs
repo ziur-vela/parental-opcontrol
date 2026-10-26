@@ -17,14 +17,17 @@ internal static class LockPreview
         var height = ArgInt(args, "--height", 900);
         var language = Arg(args, "--language") ?? "en";
         var reason = Arg(args, "--reason") ?? "parent";
+        var uiScale = ArgDouble(args, "--ui-scale");
         Loc.SetLanguage(language);
         ApplicationConfiguration.Initialize();
+        Console.WriteLine(Theme.FontCheckReport());
 
         using var form = new LockForm(new Rectangle(0, 0, width, height), true)
         {
             PreviewMode = true,
             StartPosition = FormStartPosition.Manual,
-            Location = new Point(0, 0)
+            Location = new Point(0, 0),
+            UiScaleOverride = uiScale
         };
         var es = language.StartsWith("es", StringComparison.OrdinalIgnoreCase);
         var state = new RuntimeLockStateDto(
@@ -35,6 +38,18 @@ internal static class LockPreview
         form.UpdateState(state);
 
         var capture = Arg(args, "--capture");
+        if (args.Any(a => string.Equals(a, "--layout-check", StringComparison.OrdinalIgnoreCase)))
+        {
+            form.Show();
+            Application.DoEvents();
+            var issues = form.ValidateLayout();
+            Console.WriteLine($"layout-check {form.ClientSize.Width}x{form.ClientSize.Height} " +
+                              $"ui={form.UiScaleOverride?.ToString("0.##") ?? "dpi"} lang={language} issues={issues.Count}");
+            foreach (var issue in issues) Console.WriteLine("  " + issue);
+            Environment.ExitCode = issues.Count == 0 ? 0 : 1;
+            form.Close();
+            return;
+        }
         if (args.Any(a => string.Equals(a, "--messages-preview", StringComparison.OrdinalIgnoreCase)))
         {
             var messages = DemoMessages(es);
@@ -60,25 +75,29 @@ internal static class LockPreview
         }
         if (!string.IsNullOrWhiteSpace(capture))
         {
-            LockPreviewRenderer.Render(capture, width, height, state);
-            return;
-        }
-
-        var captureForm = Arg(args, "--capture-form");
-        if (!string.IsNullOrWhiteSpace(captureForm))
-        {
-            form.Show();
-            Application.DoEvents();
-            Thread.Sleep(250);
-            using var bitmap = new Bitmap(form.ClientSize.Width, form.ClientSize.Height);
-            form.DrawToBitmap(bitmap, new Rectangle(0, 0, bitmap.Width, bitmap.Height));
-            bitmap.Save(captureForm, ImageFormat.Png);
-            form.Close();
+            Capture(form, capture);
             return;
         }
 
         form.Show();
         Application.Run(form);
+    }
+
+    /// <summary>Captures the real LockForm paint path (the same one the overlay uses).</summary>
+    private static void Capture(LockForm form, string path)
+    {
+        form.Show();
+        Application.DoEvents();
+        Thread.Sleep(250);
+        var issues = form.ValidateLayout();
+        Console.WriteLine($"capture {form.ClientSize.Width}x{form.ClientSize.Height} " +
+                          $"ui={form.UiScaleOverride?.ToString("0.##") ?? "dpi"} issues={issues.Count}");
+        foreach (var issue in issues) Console.WriteLine("  " + issue);
+        if (issues.Count > 0) Environment.ExitCode = 1;
+        using var bitmap = new Bitmap(form.ClientSize.Width, form.ClientSize.Height);
+        form.DrawToBitmap(bitmap, new Rectangle(0, 0, bitmap.Width, bitmap.Height));
+        bitmap.Save(path, ImageFormat.Png);
+        form.Close();
     }
 
     private static List<ChildMessageDto> DemoMessages(bool es)
@@ -121,5 +140,11 @@ internal static class LockPreview
 
     private static int ArgInt(string[] args, string name, int fallback) =>
         int.TryParse(Arg(args, name), out var value) && value > 0 ? value : fallback;
+
+    private static double? ArgDouble(string[] args, string name) =>
+        double.TryParse(Arg(args, name), System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture, out var value) && value > 0
+            ? value
+            : null;
 }
 #endif
