@@ -34,7 +34,9 @@ internal static class Program
                     Theme: Arg(args, "--theme"),
                     Language: Arg(args, "--language"),
 #if LUNA_DEV
-                    Preview: args.Any(a => string.Equals(a, "--kid-preview", StringComparison.OrdinalIgnoreCase)));
+                    Preview: args.Any(a => string.Equals(a, "--kid-preview", StringComparison.OrdinalIgnoreCase)),
+                    Scale: double.TryParse(Arg(args, "--scale"), System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out var scale) ? scale : 1);
 #else
                     Preview: false);
 #endif

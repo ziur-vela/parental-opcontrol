@@ -17,7 +17,8 @@ public sealed record KidWindowOptions(
     bool AboveLock = false,
     string? Theme = null,
     string? Language = null,
-    bool Preview = false);
+    bool Preview = false,
+    double Scale = 1);
 
 public sealed class MyOpControlWindow : Window
 {
@@ -25,6 +26,7 @@ public sealed class MyOpControlWindow : Window
 
     private readonly IKidDataSource _data;
     private readonly KidWindowOptions _options;
+    private readonly double _scale;
     private KidSnapshot _snapshot = new(null, null, [], false);
     private LunaPalette _palette;
     private string _themeKey;
@@ -46,6 +48,7 @@ public sealed class MyOpControlWindow : Window
     {
         _data = data;
         _options = options;
+        _scale = options.Preview ? Math.Clamp(options.Scale, 1, 2) : 1;
         _themeKey = options.Theme ?? KidThemeStore.ReadLocal() ?? "night";
         _palette = LunaThemes.From(_themeKey);
         _language = options.Language;
@@ -100,6 +103,11 @@ public sealed class MyOpControlWindow : Window
             Width = Math.Clamp(Math.Min(1040, workWidth - 24), 760, 1040);
             Height = Math.Clamp(Math.Min(700, workHeight - 32), 480, 700);
         }
+        if (_scale != 1)
+        {
+            Width *= _scale;
+            Height *= _scale;
+        }
     }
 
     private Color HighlightColor => _palette.Key == "gray" ? _palette.Success : _palette.Accent;
@@ -115,6 +123,11 @@ public sealed class MyOpControlWindow : Window
             Background = LunaBrushes.B(_palette.Bg),
             ClipToBounds = true
         };
+        if (_scale != 1)
+        {
+            root.Width = Width / _scale;
+            root.Height = Height / _scale;
+        }
         var layout = new Grid
         {
             ColumnDefinitions = compact ? new ColumnDefinitions("*") : new ColumnDefinitions("188,*")
@@ -128,7 +141,18 @@ public sealed class MyOpControlWindow : Window
         Grid.SetColumn(main, compact ? 0 : 1);
         layout.Children.Add(main);
         root.Child = layout;
-        Content = root;
+        if (_scale != 1)
+        {
+            Content = new LayoutTransformControl
+            {
+                Child = root,
+                LayoutTransform = new ScaleTransform(_scale, _scale)
+            };
+        }
+        else
+        {
+            Content = root;
+        }
     }
 
     private Control BuildSidebar()
