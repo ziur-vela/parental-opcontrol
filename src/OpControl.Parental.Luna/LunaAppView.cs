@@ -22,6 +22,10 @@ public sealed class LunaAppView : UserControl
 {
     private enum Screen { Loading, Home, Chat, Chats, Paused, Offline }
 
+    private enum ReplyFollowMode { None, Start, Bottom, BottomTail }
+
+    internal const double BubbleWidthFraction = 0.88;
+
     private readonly LunaApiClient _api;
     private readonly Grid _host = new();
     private readonly Border _root;
@@ -49,6 +53,23 @@ public sealed class LunaAppView : UserControl
     private DispatcherTimer? _themeWatch;
     private Grid? _modalLayer;
     private Control? _emptyLabel;
+    private bool _followTail = true;
+    private bool _userScrolledUp;
+    private bool _pendingNewMessage;
+    private bool _pinToBottom;
+    private bool _scrollEndPending;
+    private double _lastObservedOffset;
+    private long _lastAutoScrollAt;
+    private Control? _replyRow;
+    private ReplyFollowMode _replyFollowMode = ReplyFollowMode.None;
+    private bool _replyStreaming;
+    private double _replyStartOffset;
+    private Button? _newMessagePill;
+    private ObservableStringBuilder? _revealBuilder;
+    private List<string>? _revealTokens;
+    private int _revealIndex;
+    private int _revealPerTick;
+    private DispatcherTimer? _revealTimer;
 
     public event EventHandler? CloseRequested;
     public event Action<double, double>? ResizeRequested;
@@ -377,6 +398,11 @@ public sealed class LunaAppView : UserControl
             LunaLog.Exception("messages", ex);
             _messages = [];
         }
+        _followTail = true;
+        _userScrolledUp = false;
+        _pendingNewMessage = false;
+        _replyRow = null;
+        _replyFollowMode = ReplyFollowMode.None;
         ShowChat();
     }
 
@@ -384,6 +410,21 @@ public sealed class LunaAppView : UserControl
     {
         SetScreen(Screen.Chat);
         if (_chat is null) { ShowHome(); return; }
+        var previousOffset = _messagesScroll?.Offset.Y ?? 0;
+        var hadMessages = _messagesScroll is not null;
+        _lastAutoScrollAt = Environment.TickCount64;
+        _lastObservedOffset = 0;
+        if (_revealTimer is not null)
+        {
+            _revealTimer.Stop();
+            _timers.Remove(_revealTimer);
+            _revealTimer = null;
+        }
+        _revealBuilder = null;
+        _revealTokens = null;
+        _replyStreaming = false;
+        _replyRow = null;
+        _replyFollowMode = ReplyFollowMode.None;
         _host.Children.Clear();
         var root = new Grid { RowDefinitions = new RowDefinitions("Auto,*,Auto,Auto,Auto") };
         root.Children.Add(ChatHeader());
@@ -409,8 +450,15 @@ public sealed class LunaAppView : UserControl
             HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
             VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
         };
+        _messagesScroll.ScrollChanged += OnMessagesScrollChanged;
+        _messagesScroll.LayoutUpdated += OnMessagesLayoutUpdated;
         Grid.SetRow(_messagesScroll, 1);
         root.Children.Add(_messagesScroll);
+
+        _newMessagePill = NewMessagePill();
+        _newMessagePill.IsVisible = _pendingNewMessage;
+        Grid.SetRow(_newMessagePill, 1);
+        root.Children.Add(_newMessagePill);
 
         var middle = new StackPanel { Spacing = 6, Margin = new Thickness(12, 0, 12, 6) };
         if (_status is { MessagesLeftToday: > 0 and <= 5 } && !_limitReached)
@@ -475,7 +523,10 @@ public sealed class LunaAppView : UserControl
         Grid.SetRowSpan(grip, 5);
         root.Children.Add(grip);
         _host.Children.Add(root);
-        ScrollToEnd();
+        if (hadMessages && _userScrolledUp)
+            RestoreScroll(previousOffset);
+        else
+            ScrollToEndSoon();
     }
 
     private Control ChatHeader()
@@ -729,16 +780,23 @@ public sealed class LunaAppView : UserControl
 
     private Control LunaBubble(string text)
     {
-        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), Margin = new Thickness(0, 0, 0, 0) };
+        var grid = new Grid { ColumnDefinitions = BubbleColumns(withFace: true) };
         var face = CreateMoonFace(28, sleepy: false);
         face.VerticalAlignment = VerticalAlignment.Top;
         face.Margin = new Thickness(0, 2, 8, 0);
         grid.Children.Add(face);
         var content = new LunaRichContent(text, _palette, _chat?.Subject ?? "curious");
-        var bubble = BubbleFrame(content, _palette);
+        var bubble = BubbleFrame(content, _palette, double.PositiveInfinity);
         Grid.SetColumn(bubble, 1);
         grid.Children.Add(bubble);
         return grid;
+    }
+
+    internal static ColumnDefinitions BubbleColumns(bool withFace)
+    {
+        var wide = BubbleWidthFraction.ToString("0.##", CultureInfo.InvariantCulture);
+        var narrow = (1 - BubbleWidthFraction).ToString("0.##", CultureInfo.InvariantCulture);
+        return new ColumnDefinitions(withFace ? $"Auto,{wide}*,{narrow}*" : $"{narrow}*,{wide}*");
     }
 
     internal static Border BubbleFrame(Control content, LunaPalette palette, double maxWidth = 380) => new()
@@ -758,7 +816,7 @@ public sealed class LunaAppView : UserControl
         var style = _palette.Subject(_chat?.Subject ?? "curious");
         var gray = _palette.Key == "gray";
         var bubbleBg = flagged ? (gray ? Color.Parse("#f4ece1") : Color.Parse("#3d3478")) : style.Tile;
-        var bubbleInk = flagged ? (gray ? Color.Parse("#5a4a33") : Color.Parse("#d9d3ff")) : _palette.AccentInk;
+        var bubbleInk = flagged ? (gray ? Color.Parse("#5a4a33") : Color.Parse("#d9d3ff")) : style.Ink;
         var border = flagged ? (gray ? Color.Parse("#c9a26b") : Color.Parse("#6b5fc4")) : style.Shadow;
         var content = new TextBlock
         {
@@ -777,10 +835,15 @@ public sealed class LunaAppView : UserControl
             BorderThickness = new Thickness(flagged ? 0 : 1),
             CornerRadius = new CornerRadius(14, 14, flagged ? 4 : 14, 14),
             Padding = new Thickness(12, 9, 12, 9),
-            MaxWidth = 360,
             HorizontalAlignment = HorizontalAlignment.Right
         };
-        if (!flagged) return bubble;
+        if (!flagged)
+        {
+            var wrapper = new Grid { ColumnDefinitions = BubbleColumns(withFace: false) };
+            Grid.SetColumn(bubble, 1);
+            wrapper.Children.Add(bubble);
+            return wrapper;
+        }
 
         var dashed = new Rectangle
         {
@@ -791,7 +854,7 @@ public sealed class LunaAppView : UserControl
             RadiusY = 14,
             IsHitTestVisible = false
         };
-        var bubbleGrid = new Grid { Children = { bubble, dashed }, HorizontalAlignment = HorizontalAlignment.Right, MaxWidth = 360 };
+        var bubbleGrid = new Grid { Children = { bubble, dashed }, HorizontalAlignment = HorizontalAlignment.Right };
         var noteRow = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -813,12 +876,39 @@ public sealed class LunaAppView : UserControl
         var stack = new StackPanel { Spacing = 2, HorizontalAlignment = HorizontalAlignment.Right };
         stack.Children.Add(bubbleGrid);
         stack.Children.Add(noteRow);
-        return stack;
+        var flaggedWrapper = new Grid { ColumnDefinitions = BubbleColumns(withFace: false) };
+        Grid.SetColumn(stack, 1);
+        flaggedWrapper.Children.Add(stack);
+        return flaggedWrapper;
     }
 
     private static bool Flagged(string? flag) =>
         string.Equals(flag, "blocked", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(flag, "urgent", StringComparison.OrdinalIgnoreCase);
+
+    private (Control Bubble, ThinkingView Thinking)? AddPendingChild(string text)
+    {
+        if (_messagesPanel is null || _chat is null) return null;
+        if (_emptyLabel is not null)
+        {
+            _messagesPanel.Children.Remove(_emptyLabel);
+            _emptyLabel = null;
+        }
+        var local = new LunaChildMessageDto(Guid.NewGuid(), _chat.Id, LunaChatRoles.Child, text, DateTime.UtcNow, "none");
+        _messages.Add(local);
+        var bubble = ChildBubble(text, flagged: false);
+        _messagesPanel.Children.Add(bubble);
+        var thinking = new ThinkingView(_palette);
+        _messagesPanel.Children.Add(thinking);
+        _followTail = true;
+        _userScrolledUp = false;
+        _pendingNewMessage = false;
+        _replyRow = null;
+        _replyFollowMode = ReplyFollowMode.None;
+        HideNewMessagePill();
+        ScrollToEndSoon();
+        return (bubble, thinking);
+    }
 
     private async Task SendFromInputAsync()
     {
@@ -829,18 +919,10 @@ public sealed class LunaAppView : UserControl
         _input.Text = string.Empty;
         _sending = true;
         _notice = null;
-        if (_emptyLabel is not null)
-        {
-            _messagesPanel?.Children.Remove(_emptyLabel);
-            _emptyLabel = null;
-        }
-        var local = new LunaChildMessageDto(Guid.NewGuid(), _chat.Id, LunaChatRoles.Child, text, DateTime.UtcNow, "none");
-        _messages.Add(local);
-        var bubble = ChildBubble(text, flagged: false);
-        _messagesPanel?.Children.Add(bubble);
-        var thinking = new ThinkingView(_palette);
-        _messagesPanel?.Children.Add(thinking);
-        ScrollToEnd();
+        var pending = AddPendingChild(text);
+        if (pending is null) { _sending = false; return; }
+        var (bubble, thinking) = pending.Value;
+        var local = _messages[^1];
         try
         {
             var response = await _api.SendMessageAsync(_chat.Id, text);
@@ -918,8 +1000,9 @@ public sealed class LunaAppView : UserControl
     private void AddStreamingReply(string markdown)
     {
         if (_messagesPanel is null) return;
+        _replyStreaming = true;
 
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
+        var row = new Grid { ColumnDefinitions = BubbleColumns(withFace: true) };
         var face = CreateMoonFace(28, sleepy: false);
         face.VerticalAlignment = VerticalAlignment.Top;
         face.Margin = new Thickness(0, 2, 8, 0);
@@ -927,39 +1010,60 @@ public sealed class LunaAppView : UserControl
 
         if (LunaRichContent.HasPictures(markdown))
         {
-            var rich = BubbleFrame(new LunaRichContent(markdown, _palette, _chat?.Subject ?? "curious"), _palette);
+            var rich = BubbleFrame(new LunaRichContent(markdown, _palette, _chat?.Subject ?? "curious"),
+                _palette, double.PositiveInfinity);
             Grid.SetColumn(rich, 1);
             row.Children.Add(rich);
             _messagesPanel.Children.Add(row);
-            ScrollToEnd();
+            _replyStreaming = false;
+            BeginReplyFollow(row);
             return;
         }
 
         var builder = new ObservableStringBuilder();
         var renderer = new MarkdownRenderer { MarkdownBuilder = builder };
-        var bubble = BubbleFrame(renderer, _palette);
+        var bubble = BubbleFrame(renderer, _palette, double.PositiveInfinity);
         Grid.SetColumn(bubble, 1);
         row.Children.Add(bubble);
         _messagesPanel.Children.Add(row);
-        ScrollToEnd();
+        BeginReplyFollow(row);
 
-        var tokens = Tokenize(LunaMarkdown.Prepare(markdown));
-        var perTick = Math.Max(1, (int)Math.Ceiling(tokens.Count / 50.0));
-        var index = 0;
-        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(28) };
-        timer.Tick += (_, _) =>
+        if (_revealTimer is not null)
         {
-            var end = Math.Min(tokens.Count, index + perTick);
-            for (; index < end; index++) builder.Append(tokens[index]);
-            ScrollToEnd();
-            if (index >= tokens.Count)
-            {
-                timer.Stop();
-                _timers.Remove(timer);
-            }
-        };
-        _timers.Add(timer);
-        timer.Start();
+            _revealTimer.Stop();
+            _timers.Remove(_revealTimer);
+            _revealTimer = null;
+        }
+        _revealBuilder = builder;
+        _revealTokens = Tokenize(LunaMarkdown.Prepare(markdown));
+        _revealPerTick = Math.Max(1, (int)Math.Ceiling(_revealTokens.Count / 50.0));
+        _revealIndex = 0;
+        _revealTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(28) };
+        _revealTimer.Tick += (_, _) => AdvanceStreaming();
+        _timers.Add(_revealTimer);
+        _revealTimer.Start();
+    }
+
+    private void AdvanceStreaming()
+    {
+        if (_revealBuilder is null || _revealTokens is null) return;
+        var end = Math.Min(_revealTokens.Count, _revealIndex + _revealPerTick);
+        for (; _revealIndex < end; _revealIndex++)
+            _revealBuilder.Append(_revealTokens[_revealIndex]);
+        KeepReplyInView();
+        if (_revealIndex < _revealTokens.Count) return;
+
+        _replyStreaming = false;
+        _revealTimer?.Stop();
+        if (_revealTimer is not null) _timers.Remove(_revealTimer);
+        _revealTimer = null;
+        _revealBuilder = null;
+        _revealTokens = null;
+    }
+
+    internal void AdvanceStreamingForTest(int ticks = 1)
+    {
+        for (var i = 0; i < ticks; i++) AdvanceStreaming();
     }
 
     private static List<string> Tokenize(string text)
@@ -1248,7 +1352,7 @@ public sealed class LunaAppView : UserControl
         }
         _messagesPanel.Children.Add(ChildBubble(string.IsNullOrWhiteSpace(question) ? "What's a volcano?" : question, flagged: false));
         _messagesPanel.Children.Add(new ThinkingView(_palette));
-        ScrollToEnd();
+        ScrollToEndSoon();
     }
 #endif
 
@@ -1341,9 +1445,303 @@ public sealed class LunaAppView : UserControl
 
     private void e_Reset() { }
 
-    private void ScrollToEnd()
+    private Button NewMessagePill()
     {
-        Dispatcher.UIThread.Post(() => _messagesScroll?.ScrollToEnd(), DispatcherPriority.Background);
+        var pill = new Button
+        {
+            Name = "NewMessagePill",
+            Content = new TextBlock
+            {
+                Text = Loc.T("Luna.Chat.NewMessage"),
+                FontFamily = LunaThemes.Body,
+                FontSize = 12.5,
+                FontWeight = FontWeight.Bold,
+                Foreground = LunaBrushes.B(_palette.AccentInk)
+            },
+            Height = 32,
+            Padding = new Thickness(14, 0, 14, 0),
+            Background = LunaBrushes.B(_palette.Accent),
+            BorderThickness = new Thickness(0),
+            CornerRadius = new CornerRadius(16),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Bottom,
+            Margin = new Thickness(0, 0, 0, 10),
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
+            IsVisible = false,
+            Cursor = new Cursor(StandardCursorType.Hand)
+        };
+        pill.Click += (_, _) => FollowLatest();
+        return pill;
+    }
+
+    private void ShowNewMessagePill()
+    {
+        if (_newMessagePill is not null) _newMessagePill.IsVisible = true;
+    }
+
+    private void HideNewMessagePill()
+    {
+        _pendingNewMessage = false;
+        if (_newMessagePill is not null) _newMessagePill.IsVisible = false;
+    }
+
+    private void FollowLatest()
+    {
+        _followTail = true;
+        _userScrolledUp = false;
+        _pendingNewMessage = false;
+        _pinToBottom = true;
+        _replyFollowMode = ReplyFollowMode.BottomTail;
+        HideNewMessagePill();
+        ScrollToEndSoon();
+    }
+
+    private bool IsAtBottom()
+    {
+        if (_messagesScroll is null) return true;
+        var maximum = Math.Max(0, _messagesScroll.Extent.Height - _messagesScroll.Viewport.Height);
+        return _messagesScroll.Offset.Y >= maximum - 24;
+    }
+
+    private void OnMessagesScrollChanged(object? sender, ScrollChangedEventArgs e)
+    {
+        if (_messagesScroll is null) return;
+        var offset = _messagesScroll.Offset.Y;
+        var previousOffset = _lastObservedOffset;
+        _lastObservedOffset = offset;
+        if (Environment.TickCount64 - _lastAutoScrollAt < 150) return;
+
+        if (IsAtBottom())
+        {
+            _followTail = true;
+            _userScrolledUp = false;
+            _pinToBottom = true;
+            if (_replyFollowMode == ReplyFollowMode.Start)
+                _replyFollowMode = ReplyFollowMode.BottomTail;
+            HideNewMessagePill();
+            return;
+        }
+
+        if (_replyFollowMode == ReplyFollowMode.Start &&
+            Math.Abs(offset - _replyStartOffset) <= 4)
+            return;
+
+        // While we are following the tail, a growing reply changes the extent
+        // but not the offset. Only a real upward move (a smaller offset) means
+        // the child took over the scroll.
+        if (_pinToBottom)
+        {
+            if (offset < previousOffset - 2)
+            {
+                _pinToBottom = false;
+                _followTail = false;
+                _userScrolledUp = true;
+                if (_replyStreaming)
+                {
+                    _pendingNewMessage = true;
+                    ShowNewMessagePill();
+                }
+            }
+            return;
+        }
+
+        _followTail = false;
+        _userScrolledUp = true;
+        _pinToBottom = false;
+        if (_replyFollowMode != ReplyFollowMode.None)
+            _replyFollowMode = ReplyFollowMode.None;
+        if (_replyStreaming)
+        {
+            _pendingNewMessage = true;
+            ShowNewMessagePill();
+        }
+    }
+
+    private void OnMessagesLayoutUpdated(object? sender, EventArgs e)
+    {
+        if (_messagesScroll is null || _messagesPanel is null) return;
+        if (_replyRow is not null && !_userScrolledUp &&
+            _replyFollowMode == ReplyFollowMode.Bottom &&
+            _replyRow.Bounds.Height > _messagesScroll.Viewport.Height - 24)
+        {
+            var top = _replyRow.TranslatePoint(new Point(0, 0), _messagesPanel)?.Y ?? 0;
+            _replyFollowMode = ReplyFollowMode.Start;
+            _pinToBottom = false;
+            _scrollEndPending = false;
+            _replyStartOffset = Math.Max(0, top - 8);
+            _lastAutoScrollAt = Environment.TickCount64;
+            _messagesScroll.Offset = new Vector(_messagesScroll.Offset.X, _replyStartOffset);
+            return;
+        }
+        if (_scrollEndPending)
+        {
+            _scrollEndPending = false;
+            _lastAutoScrollAt = Environment.TickCount64;
+            _messagesScroll.ScrollToEnd();
+            return;
+        }
+        if (_pinToBottom && !_userScrolledUp)
+        {
+            _lastAutoScrollAt = Environment.TickCount64;
+            _messagesScroll.ScrollToEnd();
+        }
+    }
+
+    private void ScrollTo(double offset)
+    {
+        if (_messagesScroll is null) return;
+        var maximum = Math.Max(0, _messagesScroll.Extent.Height - _messagesScroll.Viewport.Height);
+        _lastAutoScrollAt = Environment.TickCount64;
+        _messagesScroll.Offset = new Vector(_messagesScroll.Offset.X, Math.Clamp(offset, 0, maximum));
+    }
+
+    private void ScrollToEndSoon()
+    {
+        _followTail = true;
+        _userScrolledUp = false;
+        _pinToBottom = true;
+        _pendingNewMessage = false;
+        _scrollEndPending = true;
+        _lastAutoScrollAt = Environment.TickCount64;
+        _messagesScroll?.InvalidateMeasure();
+        AttemptScrollToEnd(3);
+    }
+
+    private void AttemptScrollToEnd(int remaining)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_messagesScroll is null) return;
+            _lastAutoScrollAt = Environment.TickCount64;
+            _messagesScroll.ScrollToEnd();
+            if (remaining > 0 && !IsAtBottom())
+                AttemptScrollToEnd(remaining - 1);
+        }, DispatcherPriority.Background);
+    }
+
+    private void RestoreScroll(double offset)
+    {
+        _scrollEndPending = false;
+        _pinToBottom = false;
+        _lastAutoScrollAt = Environment.TickCount64;
+        _messagesScroll?.InvalidateMeasure();
+        AttemptRestoreScroll(offset, 2);
+    }
+
+    private void AttemptRestoreScroll(double offset, int remaining)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_messagesScroll is null) return;
+            ScrollTo(offset);
+            if (remaining > 0) AttemptRestoreScroll(offset, remaining - 1);
+        }, DispatcherPriority.Background);
+    }
+
+    private void BeginReplyFollow(Control row)
+    {
+        _replyRow = row;
+        if (_userScrolledUp)
+        {
+            _replyFollowMode = ReplyFollowMode.None;
+            _pinToBottom = false;
+            _pendingNewMessage = true;
+            ShowNewMessagePill();
+            return;
+        }
+        _replyFollowMode = ReplyFollowMode.Bottom;
+        Dispatcher.UIThread.Post(() => FocusReply(row), DispatcherPriority.Loaded);
+    }
+
+    private void FocusReply(Control row)
+    {
+        if (_messagesScroll is null || _messagesPanel is null ||
+            !ReferenceEquals(_replyRow, row) || _userScrolledUp) return;
+        var viewport = _messagesScroll.Viewport.Height;
+        if (viewport <= 0) return;
+        var top = row.TranslatePoint(new Point(0, 0), _messagesPanel)?.Y ?? 0;
+        if (row.Bounds.Height > viewport - 24)
+        {
+            _replyFollowMode = ReplyFollowMode.Start;
+            _pinToBottom = false;
+            _replyStartOffset = Math.Max(0, top - 8);
+            _lastAutoScrollAt = Environment.TickCount64;
+            _messagesScroll.Offset = new Vector(_messagesScroll.Offset.X, _replyStartOffset);
+        }
+        else
+        {
+            _replyFollowMode = ReplyFollowMode.Bottom;
+            ScrollToEndSoon();
+        }
+    }
+
+    private void KeepReplyInView()
+    {
+        if (_messagesScroll is null || _messagesPanel is null || _replyRow is null) return;
+        if (_userScrolledUp)
+        {
+            if (_pendingNewMessage) ShowNewMessagePill();
+            return;
+        }
+        var viewport = _messagesScroll.Viewport.Height;
+        if (viewport <= 0) return;
+        switch (_replyFollowMode)
+        {
+            case ReplyFollowMode.None:
+            case ReplyFollowMode.Start:
+                return;
+            case ReplyFollowMode.BottomTail:
+                ScrollToEndSoon();
+                return;
+            case ReplyFollowMode.Bottom:
+                if (_replyRow.Bounds.Height > viewport - 24)
+                {
+                    var top = _replyRow.TranslatePoint(new Point(0, 0), _messagesPanel)?.Y ?? 0;
+                    _replyFollowMode = ReplyFollowMode.Start;
+                    _pinToBottom = false;
+                    _replyStartOffset = Math.Max(0, top - 8);
+                    _lastAutoScrollAt = Environment.TickCount64;
+                    _messagesScroll.Offset = new Vector(_messagesScroll.Offset.X, _replyStartOffset);
+                }
+                else
+                {
+                    ScrollToEndSoon();
+                }
+                return;
+        }
+    }
+
+    internal ScrollViewer? MessagesScrollForTest => _messagesScroll;
+    internal bool FollowTailForTest => _followTail;
+    internal bool UserScrolledUpForTest => _userScrolledUp;
+    internal bool NewMessagePillVisibleForTest => _newMessagePill?.IsVisible == true;
+    internal Control? LastMessageRowForTest => _messagesPanel is { Children.Count: > 0 }
+        ? _messagesPanel.Children[^1] as Control : null;
+
+    internal void MarkInitializedForTest() => _initialized = true;
+
+    internal void OpenChatForTest(LunaChatDto chat, List<LunaChildMessageDto> messages)
+    {
+        _chat = chat;
+        _messages = messages;
+        _followTail = true;
+        _userScrolledUp = false;
+        _pendingNewMessage = false;
+        _replyRow = null;
+        _replyFollowMode = ReplyFollowMode.None;
+        ShowChat();
+    }
+
+    internal (Control Bubble, ThinkingView Thinking)? AddPendingChildForTest(string text) => AddPendingChild(text);
+
+    internal void DeliverReplyForTest(string text) => AddStreamingReply(text);
+
+    internal void ScrollToStartForTest()
+    {
+        if (_messagesScroll is null) return;
+        _lastAutoScrollAt = 0;
+        _messagesScroll.Offset = new Vector(_messagesScroll.Offset.X, 0);
     }
 
     private void StopTimers()

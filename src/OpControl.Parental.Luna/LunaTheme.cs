@@ -91,3 +91,25 @@ public static class LunaBrushes
 {
     public static IBrush B(Color c) => new SolidColorBrush(c);
 }
+
+/// <summary>WCAG contrast helpers for the child bubble colours.</summary>
+public static class LunaColor
+{
+    public static double Luminance(Color color) =>
+        0.2126 * Channel(color.R) + 0.7152 * Channel(color.G) + 0.0722 * Channel(color.B);
+
+    public static double ContrastRatio(Color a, Color b)
+    {
+        var first = Luminance(a);
+        var second = Luminance(b);
+        var lighter = Math.Max(first, second);
+        var darker = Math.Min(first, second);
+        return (lighter + 0.05) / (darker + 0.05);
+    }
+
+    private static double Channel(byte value)
+    {
+        var channel = value / 255.0;
+        return channel <= 0.04045 ? channel / 12.92 : Math.Pow((channel + 0.055) / 1.055, 2.4);
+    }
+}

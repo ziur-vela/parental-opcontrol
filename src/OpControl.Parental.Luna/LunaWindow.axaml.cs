@@ -29,13 +29,7 @@ public partial class LunaWindow : Window
     }
 
     private const double SlideDistance = 80;
-    private const double DefaultChatWidth = 520;
-    private const double DefaultChatHeight = 600;
-    private const double MinChatWidth = 420;
-    private const double MaxChatWidth = 630;
-    private const double MinChatHeight = 600;
-    private const double MaxChatHeight = 900;
-    private const double ScreenMargin = 12;
+    private const double ScreenMargin = LunaChatSize.ScreenMargin;
     private const double DefaultSleepScale = 1.6;
     private const double MinSleepScale = 1.0;
     private const double MaxSleepScale = 3.0;
@@ -89,8 +83,8 @@ public partial class LunaWindow : Window
     private double _blobY = 12;
     private double _blobW = 96;
     private double _blobH = 96;
-    private double _chatWidth = DefaultChatWidth;
-    private double _chatHeight = DefaultChatHeight;
+    private double _chatWidth = LunaChatSize.MinWidth;
+    private double _chatHeight = LunaChatSize.MinHeight;
     private double _lastResizeLog = -1;
     private double _sleepScale = DefaultSleepScale;
 
@@ -273,6 +267,7 @@ public partial class LunaWindow : Window
         }
 
         var screen = Screens.Primary;
+        InitializeChatSize(screen);
         LunaLog.Write(
             $"startup screen={screen?.Bounds.Width}x{screen?.Bounds.Height}@{screen?.Bounds.X},{screen?.Bounds.Y} " +
             $"work={screen?.WorkingArea.Width}x{screen?.WorkingArea.Height}@{screen?.WorkingArea.X},{screen?.WorkingArea.Y} " +
@@ -696,25 +691,37 @@ public partial class LunaWindow : Window
         }
     }
 
+    private void InitializeChatSize(Screen? screen)
+    {
+        var scale = RenderScaling > 0 ? RenderScaling : 1.0;
+        var workWidth = screen is { } s ? s.WorkingArea.Width / scale : 1920;
+        var workHeight = screen is { } s2 ? s2.WorkingArea.Height / scale : 1080;
+        var saved = LoadChatSize();
+        var size = saved is { } value
+            ? LunaChatSize.Clamp(value.Width, value.Height, workWidth, workHeight)
+            : LunaChatSize.Default(workWidth, workHeight);
+        _chatWidth = size.Width;
+        _chatHeight = size.Height;
+        ApplyWindowSize(_chatWidth, _chatHeight);
+        LunaLog.Write($"chat_size source={(saved is null ? "default" : "saved")} " +
+                      $"{_chatWidth:0.#}x{_chatHeight:0.#} work={workWidth:0.#}x{workHeight:0.#} scaling={scale:0.##}");
+    }
+
     private void ClampChatSize()
     {
-        var (maxW, maxH) = MaxChatSize();
-        _chatWidth = Math.Clamp(_chatWidth, MinChatWidth, maxW);
-        _chatHeight = Math.Clamp(_chatHeight, MinChatHeight, maxH);
+        var max = MaxChatSize();
+        _chatWidth = Math.Clamp(_chatWidth, Math.Min(LunaChatSize.MinWidth, max.Width), max.Width);
+        _chatHeight = Math.Clamp(_chatHeight, Math.Min(LunaChatSize.MinHeight, max.Height), max.Height);
     }
 
     private (double Width, double Height) MaxChatSize()
     {
-        var maxW = MaxChatWidth;
-        var maxH = MaxChatHeight;
         var screen = Screens.Primary;
         var scale = RenderScaling > 0 ? RenderScaling : 1.0;
-        if (screen is { } s)
-        {
-            maxW = Math.Min(maxW, s.WorkingArea.Width / scale - ScreenMargin);
-            maxH = Math.Min(maxH, s.WorkingArea.Height / scale - ScreenMargin);
-        }
-        return (Math.Max(MinChatWidth, maxW), Math.Max(MinChatHeight, maxH));
+        var workWidth = screen is { } s ? s.WorkingArea.Width / scale : 1920;
+        var workHeight = screen is { } s2 ? s2.WorkingArea.Height / scale : 1080;
+        var max = LunaChatSize.Max(workWidth, workHeight);
+        return (max.Width, max.Height);
     }
 
     private void ApplyWindowSize(double w, double h)
@@ -741,8 +748,8 @@ public partial class LunaWindow : Window
         }
 
         var (maxW, maxH) = MaxChatSize();
-        var w = Math.Clamp(_chatWidth + dx, MinChatWidth, maxW);
-        var h = Math.Clamp(_chatHeight + dy, MinChatHeight, maxH);
+        var w = Math.Clamp(_chatWidth + dx, Math.Min(LunaChatSize.MinWidth, maxW), maxW);
+        var h = Math.Clamp(_chatHeight + dy, Math.Min(LunaChatSize.MinHeight, maxH), maxH);
         if (Math.Abs(w - _chatWidth) < 0.1 && Math.Abs(h - _chatHeight) < 0.1)
         {
             return;
@@ -753,6 +760,7 @@ public partial class LunaWindow : Window
         ApplyWindowSize(w, h);
         SetBlob(0, 0, w, h, 0);
         UpdateRegion();
+        SaveChatSize();
 
         var now = _clock.Elapsed.TotalSeconds;
         if (now - _lastResizeLog > 0.25)
@@ -1493,6 +1501,55 @@ public partial class LunaWindow : Window
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "OpControlParental", "luna-sleep-scale.txt");
 
+    private static string ChatSizePath => System.IO.Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "OpControlParental", "luna-chat-size.txt");
+
+    internal static (double Width, double Height)? ParseChatSize(string text)
+    {
+        text = text.Trim();
+        var parts = text.Split('x', ',');
+        if (parts.Length == 2 &&
+            double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var width) &&
+            double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var height) &&
+            width > 0 && height > 0)
+            return (width, height);
+        return null;
+    }
+
+    internal static string FormatChatSize(double width, double height) =>
+        $"{width.ToString("0.#", CultureInfo.InvariantCulture)}x{height.ToString("0.#", CultureInfo.InvariantCulture)}";
+
+    private static (double Width, double Height)? LoadChatSize()
+    {
+        try
+        {
+            if (!System.IO.File.Exists(ChatSizePath)) return null;
+            var text = System.IO.File.ReadAllText(ChatSizePath).Trim();
+            var size = ParseChatSize(text);
+            if (size is not null) return size;
+            LunaLog.Write($"chat_size_invalid text={text}");
+        }
+        catch (Exception ex)
+        {
+            LunaLog.Write($"chat_size_load_failed {ex.Message}");
+        }
+        return null;
+    }
+
+    private void SaveChatSize()
+    {
+        try
+        {
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(ChatSizePath)!);
+            System.IO.File.WriteAllText(ChatSizePath, FormatChatSize(_chatWidth, _chatHeight));
+        }
+        catch (Exception ex)
+        {
+            LunaLog.Write($"chat_size_save_failed {ex.Message}");
+        }
+    }
+
     private double LoadSleepScale()
     {
         var value = DefaultSleepScale;
@@ -1723,6 +1780,12 @@ public partial class LunaWindow : Window
         < 0.78 => Lerp(6, 0, (t - 0.68) / 0.10),
         _ => 0
     };
+
+    internal static (double X, double Y, double W, double H, double R) MorphRectForTest(
+        double u, bool opening, double targetW, double targetH) =>
+        MorphRect(u, opening, targetW, targetH);
+
+    internal LunaChatDimensions ChatSizeForTest => new(_chatWidth, _chatHeight);
 
     private static (double X, double Y, double W, double H, double R) MorphRect(
         double u, bool opening, double targetW, double targetH)

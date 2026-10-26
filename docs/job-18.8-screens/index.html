@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Job 18.8 — Luna chat size, bubbles and scroll</title>
+<style>
+  body { margin: 0; padding: 28px; font: 15px/1.5 system-ui, sans-serif; background: #15122c; color: #f4f1ff; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 32px 0 10px; }
+  p { color: #c9c0f5; max-width: 1050px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+  figure { margin: 0; background: #211a4a; border: 1px solid #3a2f7a; border-radius: 14px; padding: 12px; }
+  figure img { width: 100%; border-radius: 10px; display: block; }
+  figcaption { margin-top: 8px; font-weight: 700; }
+  code { background: #2a2160; padding: 2px 5px; border-radius: 5px; }
+  .note { background: #2a2160; border-left: 4px solid #f6dc7e; padding: 10px 14px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<h1>Job 18.8 — Luna chat size, bubbles and scroll</h1>
+<p class="note">The “before” images are v0.17.6 (default 520 × 600). The “after” images use the Job 18.8 default:
+<code>50% × 80%</code> of the working area, never below 520 × 600 where the screen allows it. Both themes are
+shown on a 1920 × 1080-class screen (1040 DIP working height) and on 1366 × 768 (728 DIP working height).</p>
+
+<h2>1920 × 1080 — Night sky</h2>
+<div class="pair">
+  <figure><img src="before-1920x1080-night.png" alt="Before 1920 night"><figcaption>Before — 520 × 600 at the top-left</figcaption></figure>
+  <figure><img src="after-1920x1080-night.png" alt="After 1920 night"><figcaption>After — 960 × 832 (50% width, 80% height)</figcaption></figure>
+</div>
+
+<h2>1920 × 1080 — Gray</h2>
+<div class="pair">
+  <figure><img src="before-1920x1080-gray.png" alt="Before 1920 gray"><figcaption>Before — 520 × 600</figcaption></figure>
+  <figure><img src="after-1920x1080-gray.png" alt="After 1920 gray"><figcaption>After — 960 × 832; dark ink on every subject bubble</figcaption></figure>
+</div>
+
+<h2>1366 × 768 — Night sky</h2>
+<div class="pair">
+  <figure><img src="before-1366x768-night.png" alt="Before 1366 night"><figcaption>Before — 520 × 600</figcaption></figure>
+  <figure><img src="after-1366x768-night.png" alt="After 1366 night"><figcaption>After — 683 × 600 (50% width, minimum height)</figcaption></figure>
+</div>
+
+<h2>1366 × 768 — Gray</h2>
+<div class="pair">
+  <figure><img src="before-1366x768-gray.png" alt="Before 1366 gray"><figcaption>Before — 520 × 600</figcaption></figure>
+  <figure><img src="after-1366x768-gray.png" alt="After 1366 gray"><figcaption>After — 683 × 600</figcaption></figure>
+</div>
+
+<h2>What the screenshots show</h2>
+<p>The after window is wider, so the bubbles use up to 88% of the chat column and more text fits per line.
+Pictures and display math stay centred and keep their limits. The child’s text is the design ink
+(<code>#15103a</code> in Night sky) on every subject colour; <code>Job188ChatTests</code> checks WCAG contrast
+≥ 4.5:1 for all six subjects in both themes. The scroll policy and the “New message ↓” pill are covered by the
+headless tests, because the transparent Luna window cannot be captured by DWM (the Job 18.4 limitation).</p>
+</body>
+</html>

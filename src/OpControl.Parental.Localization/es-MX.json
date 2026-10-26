@@ -279,6 +279,7 @@
   "Luna.Chat.Ask": "Pregunta a Luna",
   "Luna.Chat.Placeholder": "Pregunta a Luna sobre la escuela…",
   "Luna.Chat.Thinking": "Pensando…",
+  "Luna.Chat.NewMessage": "Mensaje nuevo ↓",
   "Luna.Chat.MessagesLeftOne": "Queda 1 mensaje hoy",
   "Luna.Chat.MessagesLeft": "Quedan {0} mensajes hoy",
   "Luna.Chat.AskParents": "Pedir a mis papás",
