@@ -10,7 +10,10 @@
     <!-- Kid-friendly markdown: body font, small headings, soft tips, no code chrome. -->
     <Style Selector="md|MarkdownTextBlock">
       <Setter Property="FontFamily" Value="avares://OpControl.Parental.Luna/Assets/Fonts#Nunito" />
+      <Setter Property="FontSize" Value="14.5" />
       <Setter Property="LineHeight" Value="21" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="TextAlignment" Value="Left" />
     </Style>
     <Style Selector="md|CodeBlock">
       <Setter Property="Background" Value="Transparent" />

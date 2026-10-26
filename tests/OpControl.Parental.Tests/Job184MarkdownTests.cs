@@ -35,16 +35,16 @@ public class Job184MarkdownTests
     }
 
     [Fact]
-    public void Luna_content_wraps_markdown_in_a_horizontal_scroll_viewer_for_tables()
+    public void Luna_content_has_no_inner_horizontal_scroller_and_wraps_text()
     {
         var root = FindRoot();
         var markdown = File.ReadAllText(Path.Combine(root, "src", "OpControl.Parental.Luna", "LunaMarkdown.cs"));
         var blockStart = markdown.IndexOf("public static Control Block(", StringComparison.Ordinal);
         Assert.True(blockStart > 0);
-        var block = markdown[blockStart..Math.Min(markdown.Length, blockStart + 500)];
-        Assert.Contains("ScrollViewer", block, StringComparison.Ordinal);
-        Assert.Contains("ScrollBarVisibility.Auto", block, StringComparison.Ordinal);
-        Assert.Contains("VerticalScrollBarVisibility = ScrollBarVisibility.Disabled", block, StringComparison.Ordinal);
+        var block = markdown[blockStart..Math.Min(markdown.Length, blockStart + 700)];
+        Assert.DoesNotContain("ScrollViewer", block, StringComparison.Ordinal);
+        Assert.Contains("OfType<MarkdownTextBlock>", block, StringComparison.Ordinal);
+        Assert.Contains("TextWrapping.Wrap", block, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -3,7 +3,10 @@
 
 using Avalonia;
 using Avalonia.Headless;
+using Avalonia.Markup.Xaml;
+using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
+using LiveMarkdown.Avalonia;
 using Avalonia.Threading;
 
 namespace OpControl.Parental.Tests;
@@ -14,6 +17,9 @@ public sealed class UiTestApp : Application
     public override void Initialize()
     {
         Styles.Add(new FluentTheme());
+        Styles.Add((IStyle)AvaloniaXamlLoader.Load(new Uri("avares://LiveMarkdown.Avalonia/Styles.axaml")));
+        MarkdownNode.Register<MathInlineNode>();
+        MarkdownNode.Register<MathBlockNode>();
     }
 }
 

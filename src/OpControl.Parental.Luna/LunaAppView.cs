@@ -735,21 +735,21 @@ public sealed class LunaAppView : UserControl
         face.Margin = new Thickness(0, 2, 8, 0);
         grid.Children.Add(face);
         var content = new LunaRichContent(text, _palette, _chat?.Subject ?? "curious");
-        var bubble = BubbleFrame(content);
+        var bubble = BubbleFrame(content, _palette);
         Grid.SetColumn(bubble, 1);
         grid.Children.Add(bubble);
         return grid;
     }
 
-    private Border BubbleFrame(Control content) => new()
+    internal static Border BubbleFrame(Control content, LunaPalette palette, double maxWidth = 380) => new()
     {
         Child = content,
-        Background = LunaBrushes.B(_palette.LunaBubble),
-        BorderBrush = LunaBrushes.B(_palette.LunaBubbleBorder),
+        Background = LunaBrushes.B(palette.LunaBubble),
+        BorderBrush = LunaBrushes.B(palette.LunaBubbleBorder),
         BorderThickness = new Thickness(1),
         CornerRadius = new CornerRadius(14),
         Padding = new Thickness(12, 9, 12, 9),
-        MaxWidth = 380,
+        MaxWidth = maxWidth,
         HorizontalAlignment = HorizontalAlignment.Left
     };
 
@@ -927,7 +927,7 @@ public sealed class LunaAppView : UserControl
 
         if (LunaRichContent.HasPictures(markdown))
         {
-            var rich = BubbleFrame(new LunaRichContent(markdown, _palette, _chat?.Subject ?? "curious"));
+            var rich = BubbleFrame(new LunaRichContent(markdown, _palette, _chat?.Subject ?? "curious"), _palette);
             Grid.SetColumn(rich, 1);
             row.Children.Add(rich);
             _messagesPanel.Children.Add(row);
@@ -937,7 +937,7 @@ public sealed class LunaAppView : UserControl
 
         var builder = new ObservableStringBuilder();
         var renderer = new MarkdownRenderer { MarkdownBuilder = builder };
-        var bubble = BubbleFrame(renderer);
+        var bubble = BubbleFrame(renderer, _palette);
         Grid.SetColumn(bubble, 1);
         row.Children.Add(bubble);
         _messagesPanel.Children.Add(row);

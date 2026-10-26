@@ -190,6 +190,7 @@ public static class LunaPictures
             if (filledNumerator > 0)
                 shapes.Add(new LunaPictureShape("bar", 0, y, BarWidth * filledNumerator / term.Denominator,
                     BarHeight, "term1", true));
+            AddBarDividers(shapes, 0, y, BarWidth, BarHeight, term.Denominator);
         }
         return new LunaPictureLayout(BarWidth, bars * BarHeight + (bars - 1) * BarGap,
             shapes, picture.CaptionLatex, picture.AnswerLatex);
@@ -208,6 +209,7 @@ public static class LunaPictures
             if (term.Numerator > 0)
                 shapes.Add(new LunaPictureShape("bar", 0, y, BarWidth * term.Numerator / term.Denominator,
                     BarHeight, i == 0 ? "term1" : "term2", true));
+            AddBarDividers(shapes, 0, y, BarWidth, BarHeight, term.Denominator);
         }
         var answerY = 2 * (BarHeight + BarGap);
         shapes.Add(new LunaPictureShape("bar", 0, answerY, BarWidth, BarHeight, "answer-outline", false));
@@ -219,6 +221,7 @@ public static class LunaPictures
         x += width1;
         if (width2 > 0)
             shapes.Add(new LunaPictureShape("bar", x, answerY, width2, BarHeight, "term2", true));
+        AddBarDividers(shapes, 0, answerY, BarWidth, BarHeight, term1.Denominator);
         return new LunaPictureLayout(BarWidth, answerY + BarHeight, shapes,
             picture.CaptionLatex, picture.AnswerLatex);
     }
@@ -231,10 +234,11 @@ public static class LunaPictures
             new("pie", 0, 0, PieSize, PieSize, "empty", false)
         };
         var sweep = 360.0 / term.Denominator;
-        for (var i = 0; i < term.Numerator; i++)
+        for (var i = 0; i < term.Denominator; i++)
         {
+            var filled = i < term.Numerator;
             shapes.Add(new LunaPictureShape("pie-slice", PieSize / 2, PieSize / 2, PieSize, PieSize,
-                "term1", true, -90 + i * sweep, -90 + (i + 1) * sweep));
+                filled ? "term1" : "empty", filled, -90 + i * sweep, -90 + (i + 1) * sweep));
         }
         for (var i = 0; i < Math.Min(term.Numerator, 3); i++)
         {
@@ -254,6 +258,16 @@ public static class LunaPictures
                 "term1", true)
         };
         return new LunaPictureLayout(LineWidth, LineHeight, shapes, picture.CaptionLatex, picture.AnswerLatex);
+    }
+
+    private static void AddBarDividers(List<LunaPictureShape> shapes, double x, double y,
+        double width, double height, int denominator)
+    {
+        for (var piece = 1; piece < denominator; piece++)
+        {
+            shapes.Add(new LunaPictureShape("bar-divider",
+                x + width * piece / denominator, y, 1.5, height, "divider", true));
+        }
     }
 
     private static bool ValidDenominator(int d) => d is >= 1 and <= MaxDenominator;

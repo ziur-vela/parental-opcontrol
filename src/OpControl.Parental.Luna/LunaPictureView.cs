@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text.RegularExpressions;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
@@ -10,6 +12,9 @@ namespace OpControl.Parental.Luna;
 /// <summary>Draws the approved Luna fraction pictures with vector shapes.</summary>
 public sealed class LunaPictureView : UserControl
 {
+    private const double CaptionSize = 20;
+    private static readonly Regex Fraction = new(@"\\frac\{(\d+)\}\{(\d+)\}", RegexOptions.Compiled);
+
     private readonly LunaPictureLayout _layout;
     private readonly LunaPalette _palette;
     private readonly LunaSubjectStyle _style;
@@ -25,30 +30,89 @@ public sealed class LunaPictureView : UserControl
             Width = _layout.Width,
             Height = _layout.Height
         };
-        var caption = new StackPanel { Spacing = 2, HorizontalAlignment = HorizontalAlignment.Left };
-        if (!string.IsNullOrWhiteSpace(_layout.CaptionLatex))
+        var scaled = new Viewbox
         {
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
-            row.Children.Add(LunaMarkdown.Renderer("$" + _layout.CaptionLatex + "$"));
-            if (picture.Answer is { } answer)
-            {
-                row.Children.Add(new TextBlock
-                {
-                    Text = "=",
-                    FontFamily = LunaThemes.Body,
-                    FontSize = 15,
-                    Foreground = new SolidColorBrush(palette.Text),
-                    VerticalAlignment = VerticalAlignment.Center
-                });
-                row.Children.Add(new LunaFractionText(answer.Numerator, answer.Denominator,
-                    new SolidColorBrush(palette.Success)));
-            }
-            caption.Children.Add(row);
-        }
-        var stack = new StackPanel { Spacing = 6, HorizontalAlignment = HorizontalAlignment.Left };
-        stack.Children.Add(canvas);
-        stack.Children.Add(caption);
+            Child = canvas,
+            Stretch = Stretch.Uniform,
+            StretchDirection = StretchDirection.DownOnly,
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        var stack = new StackPanel
+        {
+            Spacing = 6,
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        stack.Children.Add(scaled);
+        if (BuildCaption() is { } caption)
+            stack.Children.Add(caption);
         Content = stack;
+    }
+
+    internal LunaPictureLayout LayoutForTest => _layout;
+
+    private Control? BuildCaption()
+    {
+        var answer = _layout.AnswerLatex is { } answerLatex && TryParse(answerLatex, out var a)
+            ? new LunaFraction(a.Numerator, a.Denominator)
+            : null;
+        var terms = ParseTerms(_layout.CaptionLatex);
+        if (terms.Count == 0) return null;
+
+        var row = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 8,
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        for (var i = 0; i < terms.Count; i++)
+        {
+            if (i > 0) row.Children.Add(Operator("+"));
+            row.Children.Add(new LunaFractionText(terms[i].Numerator, terms[i].Denominator,
+                new SolidColorBrush(_palette.Text), CaptionSize));
+        }
+        if (answer is { } value)
+        {
+            row.Children.Add(Operator("="));
+            row.Children.Add(new LunaFractionText(value.Numerator, value.Denominator,
+                new SolidColorBrush(_palette.Success), CaptionSize));
+        }
+        return row;
+    }
+
+    private TextBlock Operator(string text) => new()
+    {
+        Text = text,
+        FontFamily = LunaThemes.Body,
+        FontSize = CaptionSize - 2,
+        FontWeight = FontWeight.Bold,
+        Foreground = new SolidColorBrush(_palette.Text),
+        VerticalAlignment = VerticalAlignment.Center
+    };
+
+    private static List<LunaFraction> ParseTerms(string latex)
+    {
+        var terms = new List<LunaFraction>();
+        foreach (Match match in Fraction.Matches(latex ?? ""))
+        {
+            if (int.TryParse(match.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var numerator) &&
+                int.TryParse(match.Groups[2].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var denominator))
+                terms.Add(new LunaFraction(numerator, denominator));
+        }
+        return terms;
+    }
+
+    private static bool TryParse(string latex, out LunaFraction fraction)
+    {
+        var match = Fraction.Match(latex ?? "");
+        if (match.Success &&
+            int.TryParse(match.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var numerator) &&
+            int.TryParse(match.Groups[2].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var denominator))
+        {
+            fraction = new LunaFraction(numerator, denominator);
+            return true;
+        }
+        fraction = null!;
+        return false;
     }
 
     private sealed class PictureCanvas : Control
@@ -73,6 +137,10 @@ public sealed class LunaPictureView : UserControl
                 {
                     case "bar":
                         DrawBar(context, shape);
+                        break;
+                    case "bar-divider":
+                        context.DrawRectangle(new SolidColorBrush(_style.Shadow), null,
+                            new Rect(shape.X - shape.Width / 2, shape.Y, shape.Width, shape.Height));
                         break;
                     case "pie":
                         context.DrawEllipse(new SolidColorBrush(_palette.Sunken),
@@ -104,7 +172,6 @@ public sealed class LunaPictureView : UserControl
             {
                 "term1" => new SolidColorBrush(_style.Dot),
                 "term2" => new SolidColorBrush(_palette.Accent),
-                "answer-outline" => new SolidColorBrush(_palette.Sunken),
                 _ => new SolidColorBrush(_palette.Sunken)
             };
             var penColor = shape.ColorRole == "answer-outline" ? _palette.Success : _style.Shadow;
@@ -130,7 +197,8 @@ public sealed class LunaPictureView : UserControl
                     SweepDirection.Clockwise);
                 path.EndFigure(true);
             }
-            context.DrawGeometry(new SolidColorBrush(_style.Dot),
+            var fill = shape.ColorRole == "term1" ? _style.Dot : _palette.Sunken;
+            context.DrawGeometry(new SolidColorBrush(fill),
                 new Pen(new SolidColorBrush(_style.Shadow), 1.5), geometry);
         }
 
@@ -142,33 +210,33 @@ public sealed class LunaPictureView : UserControl
     }
 }
 
-/// <summary>A small stacked fraction used for the emphasised answer.</summary>
+/// <summary>A small stacked fraction used for captions and the emphasised answer.</summary>
 public sealed class LunaFractionText : UserControl
 {
-    public LunaFractionText(int numerator, int denominator, IBrush brush)
+    public LunaFractionText(int numerator, int denominator, IBrush brush, double fontSize = 15)
     {
         var stack = new StackPanel { Spacing = 1, HorizontalAlignment = HorizontalAlignment.Center };
         stack.Children.Add(new TextBlock
         {
-            Text = numerator.ToString(),
+            Text = numerator.ToString(CultureInfo.InvariantCulture),
             FontFamily = LunaThemes.Body,
-            FontSize = 15,
+            FontSize = fontSize,
             FontWeight = FontWeight.Bold,
             Foreground = brush,
             HorizontalAlignment = HorizontalAlignment.Center
         });
         stack.Children.Add(new Border
         {
-            Height = 1.6,
-            MinWidth = 22,
+            Height = Math.Max(1.6, fontSize / 12),
+            MinWidth = fontSize + 4,
             Background = brush,
             HorizontalAlignment = HorizontalAlignment.Stretch
         });
         stack.Children.Add(new TextBlock
         {
-            Text = denominator.ToString(),
+            Text = denominator.ToString(CultureInfo.InvariantCulture),
             FontFamily = LunaThemes.Body,
-            FontSize = 15,
+            FontSize = fontSize,
             FontWeight = FontWeight.Bold,
             Foreground = brush,
             HorizontalAlignment = HorizontalAlignment.Center

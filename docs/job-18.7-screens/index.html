@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Job 18.7 — Luna bubble wrapping and math pictures</title>
+<style>
+  body { margin: 0; padding: 28px; font: 15px/1.5 system-ui, sans-serif; background: #15122c; color: #f4f1ff; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 32px 0 10px; }
+  p { color: #c9c0f5; max-width: 1000px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+  figure { margin: 0; background: #211a4a; border: 1px solid #3a2f7a; border-radius: 14px; padding: 12px; }
+  figure img { width: 100%; border-radius: 10px; display: block; }
+  figcaption { margin-top: 8px; font-weight: 700; }
+  code { background: #2a2160; padding: 2px 5px; border-radius: 5px; }
+</style>
+</head>
+<body>
+<h1>Job 18.7 — Luna chat bubbles and math pictures</h1>
+<p>Exact replies from the production “Multiplying Fractions Together” chat, rendered with the real Avalonia app
+and theme resources at 150% scaling. The “before” images are v0.17.5 (tag <code>v0.17.5</code>); the “after”
+images are the Job 18.7 build. Both themes are shown.</p>
+
+<h2>Math chat — Night sky</h2>
+<div class="pair">
+  <figure><img src="before-chat-night-150.png" alt="Before, Night sky"><figcaption>Before v0.17.5 — lines clipped, bar has no piece lines, tiny inline math</figcaption></figure>
+  <figure><img src="after-chat-night-150.png" alt="After, Night sky"><figcaption>After — wrapped, no inner scrollbars, readable inline math, 6-piece bar</figcaption></figure>
+</div>
+
+<h2>Math chat — Gray</h2>
+<div class="pair">
+  <figure><img src="before-chat-gray-150.png" alt="Before, Gray"><figcaption>Before v0.17.5 — same clipping and picture problems</figcaption></figure>
+  <figure><img src="after-chat-gray-150.png" alt="After, Gray"><figcaption>After — same fixes in the light theme</figcaption></figure>
+</div>
+
+<h2>Bars and pie — Night sky</h2>
+<div class="pair">
+  <figure><img src="before-pictures-night-150.png" alt="Before pictures, Night sky"><figcaption>Before v0.17.5 — one shaded block, no dividers, left small caption</figcaption></figure>
+  <figure><img src="after-pictures-night-150.png" alt="After pictures, Night sky"><figcaption>After — all pieces visible, answer bar two colours, centred 20 px captions</figcaption></figure>
+</div>
+
+<h2>Bars and pie — Gray</h2>
+<div class="pair">
+  <figure><img src="before-pictures-gray-150.png" alt="Before pictures, Gray"><figcaption>Before v0.17.5</figcaption></figure>
+  <figure><img src="after-pictures-gray-150.png" alt="After pictures, Gray"><figcaption>After</figcaption></figure>
+</div>
+
+<h2>Tests</h2>
+<p><code>Job187BubbleTests</code> renders all three exact replies at bubble widths 300, 420 and 560 DIP and
+100%, 125%, 150% and 200% render scaling in both themes. It asserts that no control is outside the bubble,
+there is no inner <code>ScrollViewer</code>, and the bubble grows to fit. Picture tests assert 5 divider lines
+for <code>[[bar 2/6]]</code>, 15 for <code>[[bars 1/6 + 2/6]]</code>, and 6 slices for <code>[[pie 2/6]]</code>.</p>
+</body>
+</html>

@@ -14,6 +14,7 @@ using Xunit;
 
 namespace OpControl.Parental.Tests;
 
+[Collection(HeadlessUiCollection.Name)]
 public class Job185HotfixTests
 {
     [Fact]

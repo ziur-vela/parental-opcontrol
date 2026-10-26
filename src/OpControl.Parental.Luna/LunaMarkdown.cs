@@ -1,8 +1,14 @@
 using System.Text;
 using System.Text.RegularExpressions;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Styling;
+using Avalonia.VisualTree;
 using LiveMarkdown.Avalonia;
+using RaTeX.Avalonia;
 
 namespace OpControl.Parental.Luna;
 
@@ -14,6 +20,13 @@ public static class LunaMarkdown
     private static readonly Regex Image = new(@"!\[([^\]]*)\]\([^)]+\)", RegexOptions.Compiled);
     private static readonly Regex Link = new(@"\[([^\]]+)\]\([^)]+\)", RegexOptions.Compiled);
     private static readonly Regex AutoLink = new(@"<((?:https?|mailto):[^>]+)>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    /// <summary>Inline formulas are slightly larger than the body so a stacked
+    /// fraction inside them is about the same size as the surrounding words.</summary>
+    internal const double InlineMathSize = 19;
+
+    /// <summary>Display formulas stand on their own line, larger than the body.</summary>
+    internal const double DisplayMathSize = 24;
 
     public static string Prepare(string? text)
     {
@@ -33,15 +46,75 @@ public static class LunaMarkdown
         return new MarkdownRenderer { MarkdownBuilder = builder };
     }
 
+    /// <summary>
+    /// A bubble body. There is deliberately **no** horizontal ScrollViewer: a
+    /// ScrollViewer measures its child with an infinite width, so every
+    /// paragraph laid itself out on one long line and was clipped with a
+    /// scrollbar. The renderer now measures against the bubble width and every
+    /// text block wraps.
+    /// </summary>
     public static Control Block(string? text)
     {
         var renderer = Renderer(text);
-        return new ScrollViewer
+        renderer.Styles.Add(CreateBubbleTextStyle());
+        renderer.AttachedToVisualTree += (_, _) => Tune(renderer);
+        renderer.LayoutUpdated += (_, _) => Tune(renderer);
+        return renderer;
+    }
+
+    private static Style CreateBubbleTextStyle()
+    {
+        var style = new Style(selector => selector.OfType<MarkdownTextBlock>());
+        style.Setters.Add(new Setter(TextBlock.TextWrappingProperty, TextWrapping.Wrap));
+        style.Setters.Add(new Setter(TextBlock.TextAlignmentProperty, TextAlignment.Left));
+        return style;
+    }
+
+    /// <summary>
+    /// LiveMarkdown creates its math controls with the default 14 px size, and
+    /// the formula font size is a local value, so a style cannot change it.
+    /// Walk the small number of controls after each layout pass and give inline
+    /// math body-relative size and display math a larger, centred size.
+    /// </summary>
+    private static void Tune(Control root)
+    {
+        foreach (var formula in root.GetVisualDescendants().OfType<FormulaControl>())
         {
-            Content = renderer,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Disabled
-        };
+            var display = formula.Classes.Contains("MathBlock");
+            var size = display ? DisplayMathSize : InlineMathSize;
+            if (Math.Abs(formula.FontSize - size) > 0.01)
+                formula.FontSize = size;
+
+            if (display && formula.Parent is Control presenter &&
+                presenter.HorizontalAlignment != HorizontalAlignment.Center)
+                presenter.HorizontalAlignment = HorizontalAlignment.Center;
+        }
+
+        // LiveMarkdown measures table cells with an infinite width and puts
+        // the table in a scroll viewer. Cap every cell at the bubble width so
+        // the table wraps and grows downwards instead of scrolling sideways.
+        foreach (var table in root.GetVisualDescendants().OfType<MarkdownTableGrid>())
+        {
+            var cells = table.Children.OfType<Control>().ToList();
+            if (cells.Count == 0 || root.Bounds.Width <= 0) continue;
+            var columns = cells.Select(Grid.GetColumn).DefaultIfEmpty(0).Max() + 1;
+            var gaps = table.ColumnSpacing * Math.Max(0, columns - 1);
+            var cellWidth = Math.Max(40, (root.Bounds.Width - gaps) / columns);
+            foreach (var cell in cells)
+            {
+                if (double.IsInfinity(cell.MaxWidth) || cell.MaxWidth > cellWidth + 0.5)
+                    cell.MaxWidth = cellWidth;
+            }
+        }
+
+        // A bubble never scrolls; the chat list is the only scroller.
+        foreach (var viewer in root.GetVisualDescendants().OfType<ScrollViewer>())
+        {
+            if (viewer.HorizontalScrollBarVisibility != ScrollBarVisibility.Disabled)
+                viewer.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
+            if (viewer.VerticalScrollBarVisibility != ScrollBarVisibility.Disabled)
+                viewer.VerticalScrollBarVisibility = ScrollBarVisibility.Disabled;
+        }
     }
 
     private static string PlainBlock(string content)

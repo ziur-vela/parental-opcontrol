@@ -89,7 +89,7 @@ public class Job184MathTests
         var barLayout = LunaPictures.Layout(bar);
         Assert.Equal(300, barLayout.Width);
         Assert.Equal(54, barLayout.Height);
-        Assert.Equal("bar|0|0|300|54|empty|False|0|0;bar|0|0|150|54|term1|True|0|0", Describe(barLayout));
+        Assert.Equal("bar|0|0|300|54|empty|False|0|0;bar|0|0|150|54|term1|True|0|0;bar-divider|150|0|1.5|54|divider|True|0|0", Describe(barLayout));
 
         Assert.True(LunaPictures.TryParse("bars 1/4 + 2/4", out var bars));
         var barsLayout = LunaPictures.Layout(bars);
@@ -101,7 +101,7 @@ public class Job184MathTests
         Assert.True(LunaPictures.TryParse("pie 1/4", out var pie));
         var pieLayout = LunaPictures.Layout(pie);
         Assert.Single(pieLayout.Shapes, s => s.Kind == "pie");
-        Assert.Single(pieLayout.Shapes, s => s.Kind == "pie-slice");
+        Assert.Equal(4, pieLayout.Shapes.Count(s => s.Kind == "pie-slice"));
         Assert.Equal(-90, pieLayout.Shapes.First(s => s.Kind == "pie-slice").StartAngle);
         Assert.Equal(0, pieLayout.Shapes.First(s => s.Kind == "pie-slice").EndAngle);
 
