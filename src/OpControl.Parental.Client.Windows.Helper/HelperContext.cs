@@ -48,7 +48,9 @@ public sealed class HelperContext : ApplicationContext
         _monitored = monitored;
         _overlays = new LockOverlayManager();
         _overlays.OverrideClicked += ShowPinDialog;
-        _overlays.MessageClicked += () => ShowMyOpControl("messages", aboveLock: true, messagesOnly: true);
+        // The lock overlay opens an owned messaging panel (LockMessagesForm); no
+        // separate top-level window may sit above the overlay.
+        _overlays.MessageClicked += () => HelperPaths.LogEvent("lock-messages-requested");
         _countdown = new CountdownForm();
         _ = _marshal.Handle;
         _remote = new RemoteCaptureHost(monitored);
@@ -313,7 +315,7 @@ public sealed class HelperContext : ApplicationContext
             {
                 var commandLine = item["CommandLine"]?.ToString() ?? "";
                 item.Dispose();
-                if (commandLine.Contains("--kid-window", StringComparison.OrdinalIgnoreCase)) return true;
+                if (LunaProcessPolicy.IsKidCommandLine(commandLine)) return true;
             }
             return false;
         }

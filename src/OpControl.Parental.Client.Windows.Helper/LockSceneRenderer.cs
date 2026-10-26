@@ -115,33 +115,25 @@ internal static class LockSceneRenderer
             using (var sky = new LinearGradientBrush(new Rectangle(330, 110, 320, 360),
                        Color.FromArgb(0x14, 0x20, 0x4a), Color.FromArgb(0x28, 0x40, 0x7a), 90f))
                 FillRounded(g, sky, 330, 110, 320, 360, 14);
-            using (var star = new SolidBrush(Color.FromArgb(255, 246, 200)))
-            {
-                g.FillEllipse(star, 368, 156, 6, 6);
-                g.FillEllipse(star, 606, 146, 5, 5);
-                g.FillEllipse(star, 586, 246, 6, 6);
-                g.FillEllipse(star, 396, 296, 4, 4);
-                g.FillEllipse(star, 616, 386, 5, 5);
-                g.FillEllipse(star, 466, 146, 4, 4);
-            }
-            // Sleeping moon.
+            // Sleeping moon in the upper-left pane, behind the bars, at 84% of
+            // the full size used before Job 18.5.
             using (var moon = new SolidBrush(Color.FromArgb(246, 220, 126)))
-                g.FillEllipse(moon, 430, 242, 116, 116);
+                g.FillEllipse(moon, 359.2f, 149.2f, 97.4f, 97.4f);
             using (var crater = new SolidBrush(Color.FromArgb(0xec, 0xc9, 0x64)))
             {
-                g.FillEllipse(crater, 455, 267, 18, 18);
-                g.FillEllipse(crater, 506, 320, 20, 20);
+                g.FillEllipse(crater, 387.8f, 177.8f, 15.1f, 15.1f);
+                g.FillEllipse(crater, 430.7f, 222.2f, 16.8f, 16.8f);
             }
-            using (var ink = new Pen(Color.FromArgb(0x2b, 0x2f, 0x3a), 4.5f) { StartCap = LineCap.Round, EndCap = LineCap.Round })
+            using (var ink = new Pen(Color.FromArgb(0x2b, 0x2f, 0x3a), 3.8f) { StartCap = LineCap.Round, EndCap = LineCap.Round })
             {
-                g.DrawArc(ink, 452, 292, 20, 14, 20, 140);
-                g.DrawArc(ink, 492, 292, 20, 14, 20, 140);
-                g.DrawArc(ink, 476, 318, 16, 10, 20, 140);
+                g.DrawArc(ink, 383.2f, 188.6f, 16.8f, 11.8f, 20, 140);
+                g.DrawArc(ink, 416.8f, 188.6f, 16.8f, 11.8f, 20, 140);
+                g.DrawArc(ink, 403.2f, 210.6f, 13.4f, 8.4f, 20, 140);
             }
             using (var cheek = new SolidBrush(Color.FromArgb(180, 240, 169, 160)))
             {
-                g.FillEllipse(cheek, 444, 314, 16, 10);
-                g.FillEllipse(cheek, 516, 314, 16, 10);
+                g.FillEllipse(cheek, 376.4f, 207.2f, 13.4f, 8.4f);
+                g.FillEllipse(cheek, 436.8f, 207.2f, 13.4f, 8.4f);
             }
             // Window mullions and frame.
             using (var frame = new Pen(Color.FromArgb(0xe8, 0xdc, 0xc6), 12f))
@@ -202,26 +194,46 @@ internal static class LockSceneRenderer
         g.FillPath(brush, path);
     }
 
+    public static void DrawStars(Graphics g, LockSceneLayout layout, double time)
+    {
+        var scale = (float)layout.Scale;
+        var x0 = (float)layout.RightGroup.X;
+        var y0 = (float)layout.RightGroup.Y;
+        var stars = new (float X, float Y, float R, float Delay)[]
+        {
+            (372, 160, 3.0f, 0.0f), (610, 150, 2.5f, 1.0f), (590, 250, 3.0f, 2.0f),
+            (400, 300, 2.0f, 1.0f), (620, 390, 2.5f, 0.0f), (470, 150, 2.0f, 2.0f)
+        };
+        foreach (var (x, y, r, delay) in stars)
+        {
+            var twinkle = 0.5 + 0.5 * Math.Sin((time + delay) * Math.PI * 2 / 3.0);
+            var alpha = (int)(90 + 165 * twinkle);
+            using var brush = new SolidBrush(Color.FromArgb(alpha, 255, 246, 200));
+            g.FillEllipse(brush, x0 + x * scale - r * scale, y0 + y * scale - r * scale,
+                r * 2 * scale, r * 2 * scale);
+        }
+    }
+
     public static void DrawSleepingZ(Graphics g, LockSceneLayout layout, double time)
     {
         var scale = (float)layout.Scale;
-        using var yellow = new SolidBrush(Color.FromArgb(255, 0xd8, 0x4d));
-        using var ink = new SolidBrush(Color.FromArgb(26, 26, 26));
-        var bx = (float)(layout.RightGroup.X + 540 * layout.Scale);
-        var by = (float)(layout.RightGroup.Y + 240 * layout.Scale);
-        var sizes = new[] { 18f, 22f, 26f };
+        var sizes = new[] { 16f, 19f, 22f };
         for (var i = 0; i < 3; i++)
         {
             var phase = (time / 3.6 + i / 3.0) % 1.0;
-            var x = bx + (float)(26 * phase) * scale;
-            var y = by - (float)(30 * phase) * scale;
+            var x = (float)(layout.RightGroup.X + (440 + 26 * phase) * layout.Scale);
+            var y = (float)(layout.RightGroup.Y + (168 - 30 * phase) * layout.Scale);
             var alpha = (int)(255 * Math.Clamp(phase < 0.15 ? phase / 0.15 : phase > 0.75 ? (1 - phase) / 0.25 : 1, 0, 1));
             if (alpha <= 0) continue;
             using var font = Theme.Display(sizes[i] * scale, FontStyle.Bold);
-            using var yb = new SolidBrush(Color.FromArgb(alpha, 255, 216, 77));
-            using var ib = new SolidBrush(Color.FromArgb(alpha, 26, 26, 26));
-            g.DrawString("Z", font, yb, x + 1.5f * scale, y + 1.5f * scale);
-            g.DrawString("Z", font, ib, x, y);
+            using var stroke = new SolidBrush(Color.FromArgb(alpha, 255, 216, 77));
+            using var fill = new SolidBrush(Color.FromArgb(alpha, 26, 26, 26));
+            var strokeWidth = 1.5f * scale;
+            for (var dx = -1; dx <= 1; dx++)
+            for (var dy = -1; dy <= 1; dy++)
+                if (dx != 0 || dy != 0)
+                    g.DrawString("Z", font, stroke, x + dx * strokeWidth, y + dy * strokeWidth);
+            g.DrawString("Z", font, fill, x, y);
         }
     }
 
@@ -262,28 +274,42 @@ internal static class LockSceneRenderer
 
     private static PointF[] ParsePath(string path)
     {
-        // The few paths used here are simple M/L/q pairs. Parse the line segments
-        // and approximate the quadratic curves with a short polyline.
-        var tokens = path.Replace(",", " ").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        // The few paths used here are simple M/L/Q/Z commands (lowercase is
+        // relative to the current point). Quadratics are approximated with a
+        // short polyline. Numbers may be glued to the command letter.
+        var tokens = System.Text.RegularExpressions.Regex
+            .Matches(path, @"[MLQqZz]|-?\d+(?:\.\d+)?")
+            .Select(m => m.Value)
+            .ToArray();
         var points = new List<PointF>();
         float x = 0, y = 0, startX = 0, startY = 0;
         var i = 0;
         while (i < tokens.Length)
         {
             var command = tokens[i++];
-            if (command is "M" or "L")
+            if (command is "M" or "m")
             {
-                x = float.Parse(tokens[i++], System.Globalization.CultureInfo.InvariantCulture);
-                y = float.Parse(tokens[i++], System.Globalization.CultureInfo.InvariantCulture);
-                if (command == "M") { startX = x; startY = y; }
+                var nx = float.Parse(tokens[i++], System.Globalization.CultureInfo.InvariantCulture);
+                var ny = float.Parse(tokens[i++], System.Globalization.CultureInfo.InvariantCulture);
+                if (command == "m") { nx += x; ny += y; }
+                x = nx; y = ny; startX = x; startY = y;
                 points.Add(new PointF(x, y));
             }
-            else if (command == "q")
+            else if (command is "L" or "l")
+            {
+                var nx = float.Parse(tokens[i++], System.Globalization.CultureInfo.InvariantCulture);
+                var ny = float.Parse(tokens[i++], System.Globalization.CultureInfo.InvariantCulture);
+                if (command == "l") { nx += x; ny += y; }
+                x = nx; y = ny;
+                points.Add(new PointF(x, y));
+            }
+            else if (command is "Q" or "q")
             {
                 var cx = float.Parse(tokens[i++], System.Globalization.CultureInfo.InvariantCulture);
                 var cy = float.Parse(tokens[i++], System.Globalization.CultureInfo.InvariantCulture);
                 var ex = float.Parse(tokens[i++], System.Globalization.CultureInfo.InvariantCulture);
                 var ey = float.Parse(tokens[i++], System.Globalization.CultureInfo.InvariantCulture);
+                if (command == "q") { cx += x; cy += y; ex += x; ey += y; }
                 for (var t = 0.2f; t <= 1.001f; t += 0.2f)
                 {
                     var mt = 1 - t;
@@ -292,7 +318,7 @@ internal static class LockSceneRenderer
                 }
                 x = ex; y = ey;
             }
-            else if (command == "z")
+            else if (command is "z" or "Z")
             {
                 points.Add(new PointF(startX, startY));
             }

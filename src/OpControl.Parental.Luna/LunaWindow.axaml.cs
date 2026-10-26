@@ -686,6 +686,7 @@ public partial class LunaWindow : Window
         _bubbleOpacity = 0;
         _bob = 0;
         _blob.IsVisible = false;
+        SetBlobChrome(true);
         _chatRoot.IsVisible = false;
         _greeting.Opacity = 0;
         if (updateRegion)
@@ -766,7 +767,8 @@ public partial class LunaWindow : Window
         var cs = ClientSize;
         LunaLog.Write(
             $"chat_layout window_dip={Width:0.#}x{Height:0.#} client_dip={cs.Width:0.#}x{cs.Height:0.#} " +
-            $"scaling={RenderScaling:0.##} blob={_blob.Width:0.#}x{_blob.Height:0.#} {_chat.LayoutInfo()}");
+            $"scaling={RenderScaling:0.##} blob={_blob.Width:0.#}x{_blob.Height:0.#} " +
+            $"blob_visible={_blob.IsVisible} chat_visible={_chatRoot.IsVisible} {_chat.LayoutInfo()}");
     }
 
     private void OpenChat()
@@ -787,6 +789,7 @@ public partial class LunaWindow : Window
         ClampChatSize();
         ApplyWindowSize(_chatWidth, _chatHeight);
         _blob.IsVisible = true;
+        SetBlobChrome(true);
         _chatRoot.Opacity = 0;
         _chatRoot.IsVisible = false;
         _blobYellow.Opacity = 1;
@@ -797,6 +800,14 @@ public partial class LunaWindow : Window
         StartProbe(2.5);
         LunaLog.Write($"morph_open_begin from_mode slide={_slide:0.###}");
     }
+
+    internal bool ChatRootVisibleForTest => _chatRoot.IsVisible && _blob.IsVisible;
+    internal string ModeForTest => _mode.ToString();
+
+    internal void OpenChatForTest() => OpenChat();
+
+    /// <summary>Headless tests drive the animation frame directly (no native timer).</summary>
+    internal void TickForTest() => OnTick(null, EventArgs.Empty);
 
     private void CloseChat()
     {
@@ -810,6 +821,7 @@ public partial class LunaWindow : Window
         _morphLogStart = _morphStart;
         _morphFrames = 0;
         _blob.IsVisible = true;
+        SetBlobChrome(true);
         StartProbe(1.5);
         LunaLog.Write("morph_close_begin");
     }
@@ -841,7 +853,10 @@ public partial class LunaWindow : Window
             _mode = Mode.Chat;
             SetBlob(0, 0, _chatWidth, _chatHeight, 0);
             _blobYellow.Opacity = 0;
-            _blob.IsVisible = false;
+            // ChatRoot lives inside Blob, so Blob must stay visible. Only its dark
+            // chrome is removed; the chat's own rounded border is the background.
+            _blob.IsVisible = true;
+            SetBlobChrome(false);
             _chatRoot.Opacity = 1;
             _chatRoot.IsVisible = true;
             UpdateRegion();
@@ -881,6 +896,7 @@ public partial class LunaWindow : Window
         if (t >= 1)
         {
             _blob.IsVisible = false;
+            SetBlobChrome(true);
             _greeting.Opacity = 0;
             _mode = Mode.Awake;
             _slide = 1;
@@ -902,6 +918,21 @@ public partial class LunaWindow : Window
         var fps = _morphFrames / seconds;
         LunaLog.Write($"{name}_end frames={_morphFrames} seconds={seconds:0.###} fps={fps:0.#}");
         _morphLogStart = 0;
+    }
+
+    private void SetBlobChrome(bool visible)
+    {
+        if (visible)
+        {
+            _blob.Background = new SolidColorBrush(Color.Parse("#0e1d19"));
+            _blob.BorderBrush = new SolidColorBrush(Color.Parse("#2a4a42"));
+            _blob.BorderThickness = new Thickness(1);
+        }
+        else
+        {
+            _blob.Background = Brushes.Transparent;
+            _blob.BorderThickness = new Thickness(0);
+        }
     }
 
     private void SetBlob(double x, double y, double w, double h, double r)

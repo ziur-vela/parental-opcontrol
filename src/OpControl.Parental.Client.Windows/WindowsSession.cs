@@ -259,7 +259,7 @@ public static class WindowsSession
                 var processSession = Convert.ToInt32(item["SessionId"]);
                 var commandLine = item["CommandLine"]?.ToString() ?? "";
                 item.Dispose();
-                if (processSession == sessionId && !IsKidCommandLine(commandLine)) return true;
+                if (processSession == sessionId && LunaProcessPolicy.IsMoonCommandLine(commandLine)) return true;
             }
             return false;
         }
@@ -284,8 +284,8 @@ public static class WindowsSession
         catch { return false; }
     }
 
-    private static bool IsKidCommandLine(string commandLine) =>
-        commandLine.Contains("--kid-window", StringComparison.OrdinalIgnoreCase);
+    public static bool IsKidCommandLine(string commandLine) =>
+        LunaProcessPolicy.IsKidCommandLine(commandLine);
 
     public static void StopLuna(int sessionId, ILogger logger)
     {
@@ -293,7 +293,8 @@ public static class WindowsSession
         {
             foreach (var process in Process.GetProcessesByName("OpControl.Parental.Luna"))
             {
-                if (process.SessionId != sessionId || IsKidWindow(process)) continue;
+                if (process.SessionId != sessionId) continue;
+                if (IsKidWindow(process)) continue;
                 try
                 {
                     if (!process.CloseMainWindow()) process.Kill(entireProcessTree: true);

@@ -16,7 +16,7 @@ public class Job184KidViewTests
         Assert.False(File.Exists(Path.Combine(root, "src", "OpControl.Parental.Client.Windows.Helper", "MyOpControlForm.cs")));
         Assert.False(File.Exists(Path.Combine(root, "src", "OpControl.Parental.Client.Windows.Helper", "KidViews.cs")));
         var helper = File.ReadAllText(Path.Combine(root, "src", "OpControl.Parental.Client.Windows.Helper", "HelperContext.cs"));
-        Assert.Contains("--kid-window", helper, StringComparison.Ordinal);
+        Assert.Contains("LunaProcessPolicy.IsKidCommandLine", helper, StringComparison.Ordinal);
         Assert.Contains("--messages-only", helper, StringComparison.Ordinal);
         Assert.Contains("--above-lock", helper, StringComparison.Ordinal);
         Assert.Contains("OpControl.Parental.Luna.exe", helper, StringComparison.Ordinal);
@@ -87,11 +87,11 @@ public class Job184KidViewTests
         Assert.Contains("IsKidWindow", session, StringComparison.Ordinal);
         Assert.Contains("ManagementObjectSearcher", session, StringComparison.Ordinal);
         Assert.Contains("CommandLine", session, StringComparison.Ordinal);
-        Assert.Contains("--kid-window", session, StringComparison.Ordinal);
-        Assert.Contains("|| IsKidWindow(process)", session, StringComparison.Ordinal);
+        Assert.Contains("LunaProcessPolicy.IsMoonCommandLine", session, StringComparison.Ordinal);
+        Assert.Contains("IsKidWindow(process)", session, StringComparison.Ordinal);
         var helper = File.ReadAllText(Path.Combine(root, "src", "OpControl.Parental.Client.Windows.Helper", "HelperContext.cs"));
         Assert.Contains("private static bool IsKidWindow", helper, StringComparison.Ordinal);
-        Assert.Contains("--kid-window", helper, StringComparison.Ordinal);
+        Assert.Contains("LunaProcessPolicy.IsKidCommandLine", helper, StringComparison.Ordinal);
     }
 
     private static string FindRoot()

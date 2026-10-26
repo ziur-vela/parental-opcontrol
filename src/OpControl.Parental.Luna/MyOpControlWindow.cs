@@ -5,7 +5,9 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using OpControl.Parental.Contracts;
 using OpControl.Parental.Localization;
 
@@ -43,6 +45,7 @@ public sealed class MyOpControlWindow : Window
     private DispatcherTimer? _refreshTimer;
     private DispatcherTimer? _themeTimer;
     private string? _language;
+    private readonly Dictionary<Screen, Button> _navButtons = new();
 
     public MyOpControlWindow(IKidDataSource data, KidWindowOptions options)
     {
@@ -69,6 +72,15 @@ public sealed class MyOpControlWindow : Window
         {
             SizeToScreen();
             await LoadAsync();
+#if LUNA_DEV
+            if (!string.IsNullOrWhiteSpace(App.KidScreenshotPath))
+            {
+                await Task.Delay(300);
+                CaptureForDev(App.KidScreenshotPath!);
+                Close();
+                return;
+            }
+#endif
             _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
             _refreshTimer.Tick += async (_, _) => await LoadAsync();
             _refreshTimer.Start();
@@ -86,6 +98,24 @@ public sealed class MyOpControlWindow : Window
             if (e.Key == Key.Escape) { e.Handled = true; Close(); }
         };
     }
+
+#if LUNA_DEV
+    private void CaptureForDev(string path)
+    {
+        try
+        {
+            var pixel = new PixelSize(Math.Max(1, (int)Math.Round(Width)), Math.Max(1, (int)Math.Round(Height)));
+            var bitmap = new RenderTargetBitmap(pixel, new Vector(96, 96));
+            bitmap.Render(this);
+            bitmap.Save(path);
+            LunaLog.Write($"kid_screenshot saved={path} size={pixel.Width}x{pixel.Height}");
+        }
+        catch (Exception ex)
+        {
+            LunaLog.Write("kid_screenshot_failed " + ex);
+        }
+    }
+#endif
 
     private void SizeToScreen()
     {
@@ -128,9 +158,12 @@ public sealed class MyOpControlWindow : Window
             root.Width = Width / _scale;
             root.Height = Height / _scale;
         }
+        _navButtons.Clear();
+        var outer = new Grid { RowDefinitions = new RowDefinitions("52,*") };
+        outer.Children.Add(BuildTitleBar());
         var layout = new Grid
         {
-            ColumnDefinitions = compact ? new ColumnDefinitions("*") : new ColumnDefinitions("188,*")
+            ColumnDefinitions = compact ? new ColumnDefinitions("*") : new ColumnDefinitions("196,*")
         };
         if (!compact)
         {
@@ -140,7 +173,10 @@ public sealed class MyOpControlWindow : Window
         var main = BuildMain();
         Grid.SetColumn(main, compact ? 0 : 1);
         layout.Children.Add(main);
-        root.Child = layout;
+        Grid.SetRow(layout, 1);
+        outer.Children.Add(layout);
+        root.Child = outer;
+        UpdateNavSelection();
         if (_scale != 1)
         {
             Content = new LayoutTransformControl
@@ -155,31 +191,69 @@ public sealed class MyOpControlWindow : Window
         }
     }
 
+    private Control BuildTitleBar()
+    {
+        var bar = new Border
+        {
+            Name = "TitleBar",
+            Background = LunaBrushes.B(_palette.Surface),
+            BorderBrush = LunaBrushes.B(_palette.Surface2),
+            BorderThickness = new Thickness(0, 0, 0, 1),
+            Padding = new Thickness(16, 0, 10, 0)
+        };
+        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto,Auto") };
+        var moon = MoonFace(28);
+        moon.VerticalAlignment = VerticalAlignment.Center;
+        grid.Children.Add(moon);
+
+        var brand = new StackPanel { Spacing = 0, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(9, 0, 8, 0) };
+        brand.Children.Add(Text(Loc.T("Client.Kid.WindowTitle"), 18, _palette.Text, FontWeight.Bold, LunaThemes.Display, wrap: false));
+        brand.Children.Add(Text(Loc.T("Client.Kid.ViewOnly"), 10.5, _palette.Muted, FontWeight.SemiBold));
+        brand.Children[1].Name = "ViewOnlySubtitle";
+        Grid.SetColumn(brand, 1);
+        grid.Children.Add(brand);
+
+        var theme = SmallButton("◐", Loc.T("Client.Kid.Theme.Pick"));
+        theme.Name = "ThemeButton";
+        theme.Click += async (_, _) => await ToggleThemeAsync();
+        Grid.SetColumn(theme, 2);
+        grid.Children.Add(theme);
+        var minimize = SmallButton("–", Loc.T("Client.Kid.Minimize"));
+        minimize.Name = "MinimizeButton";
+        minimize.Click += (_, _) => WindowState = WindowState.Minimized;
+        Grid.SetColumn(minimize, 3);
+        grid.Children.Add(minimize);
+        var close = SmallButton("×", Loc.T("Client.Kid.Close"));
+        close.Name = "CloseButton";
+        close.Click += (_, _) => Close();
+        Grid.SetColumn(close, 4);
+        grid.Children.Add(close);
+
+        bar.Child = grid;
+        bar.PointerPressed += (_, e) =>
+        {
+            if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+            var onButton = (e.Source as Visual)?.GetVisualAncestors().OfType<Button>().Any() == true;
+            if (!onButton) BeginMoveDrag(e);
+        };
+        return bar;
+    }
+
     private Control BuildSidebar()
     {
-        var grid = new Grid { RowDefinitions = new RowDefinitions("Auto,*,Auto") };
-        var top = new StackPanel { Spacing = 4, Margin = new Thickness(16, 16, 16, 12) };
-        var brand = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        brand.Children.Add(MoonFace(34));
-        var brandText = new StackPanel { Spacing = 0, VerticalAlignment = VerticalAlignment.Center };
-        brandText.Children.Add(Text(Loc.T("Client.Kid.WindowTitle"), 18, _palette.Text, FontWeight.Bold, LunaThemes.Display));
-        brandText.Children.Add(Text(Loc.T("Client.Kid.ViewOnly"), 10.5, _palette.Muted, FontWeight.SemiBold));
-        brand.Children.Add(brandText);
-        top.Children.Add(brand);
-
-        var nav = new StackPanel { Spacing = 4, Margin = new Thickness(10, 12, 10, 0) };
+        var grid = new Grid { RowDefinitions = new RowDefinitions("*,Auto") };
+        var nav = new StackPanel { Spacing = 4, Margin = new Thickness(12, 16, 12, 0) };
         nav.Children.Add(NavButton(Screen.Home, "⌂", Loc.T("Client.Kid.Nav.Home")));
         nav.Children.Add(NavButton(Screen.Schedule, "◷", Loc.T("Client.Kid.Nav.Schedule")));
         nav.Children.Add(NavButton(Screen.Rules, "◎", Loc.T("Client.Kid.Nav.Rules")));
         nav.Children.Add(NavButton(Screen.Activity, "▤", Loc.T("Client.Kid.Nav.Activity")));
         nav.Children.Add(NavButton(Screen.Messages, "✉", Loc.T("Client.Kid.Nav.Messages")));
-        Grid.SetRow(nav, 1);
-        grid.Children.Add(top);
         grid.Children.Add(nav);
 
-        var bottom = new StackPanel { Spacing = 8, Margin = new Thickness(12, 0, 12, 14) };
+        var bottom = new StackPanel { Spacing = 8, Margin = new Thickness(12, 0, 12, 16) };
         var message = new Button
         {
+            Name = "MessageParentsButton",
             Content = Text(Loc.T("Client.Kid.MessageParents"), 12, _palette.AccentInk, FontWeight.Bold),
             Background = LunaBrushes.B(_palette.Accent),
             Foreground = LunaBrushes.B(_palette.AccentInk),
@@ -190,17 +264,7 @@ public sealed class MyOpControlWindow : Window
         };
         message.Click += (_, _) => ShowScreen(Screen.Messages);
         bottom.Children.Add(message);
-        var theme = new Button
-        {
-            Content = Text(Loc.T("Client.Kid.Theme.Pick"), 11, _palette.Muted, FontWeight.SemiBold),
-            Background = Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            Padding = new Thickness(6),
-            HorizontalContentAlignment = HorizontalAlignment.Center
-        };
-        theme.Click += async (_, _) => await ToggleThemeAsync();
-        bottom.Children.Add(theme);
-        Grid.SetRow(bottom, 2);
+        Grid.SetRow(bottom, 1);
         grid.Children.Add(bottom);
 
         return new Border
@@ -228,41 +292,27 @@ public sealed class MyOpControlWindow : Window
             Padding = new Thickness(12, 9),
             HorizontalContentAlignment = HorizontalAlignment.Stretch
         };
+        button.Name = "Nav" + screen;
         button.Click += (_, _) => ShowScreen(screen);
+        _navButtons[screen] = button;
         return button;
+    }
+
+    private void UpdateNavSelection()
+    {
+        foreach (var (screen, button) in _navButtons)
+        {
+            var active = screen == _screen;
+            button.Background = active ? LunaBrushes.B(_palette.Surface2) : Brushes.Transparent;
+            button.BorderBrush = LunaBrushes.B(active ? _palette.Accent : Colors.Transparent);
+            button.BorderThickness = new Thickness(active ? 2 : 0);
+        }
     }
 
     private Control BuildMain()
     {
-        var grid = new Grid { RowDefinitions = new RowDefinitions("54,*") };
-        var bar = new Border
-        {
-            Background = Brushes.Transparent,
-            Padding = new Thickness(18, 0, 12, 0)
-        };
-        var barGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto,Auto") };
-        barGrid.Children.Add(Text(Loc.T("Client.Kid.WindowTitle"), 13, _palette.Muted, FontWeight.SemiBold));
-        var theme = SmallButton("◐", Loc.T("Client.Kid.Theme.Pick"));
-        theme.Click += async (_, _) => await ToggleThemeAsync();
-        Grid.SetColumn(theme, 1);
-        barGrid.Children.Add(theme);
-        var minimize = SmallButton("–", Loc.T("Client.Kid.Minimize"));
-        minimize.Click += (_, _) => WindowState = WindowState.Minimized;
-        Grid.SetColumn(minimize, 2);
-        barGrid.Children.Add(minimize);
-        var close = SmallButton("×", Loc.T("Client.Kid.Close"));
-        close.Click += (_, _) => Close();
-        Grid.SetColumn(close, 3);
-        barGrid.Children.Add(close);
-        bar.Child = barGrid;
-        bar.PointerPressed += (_, e) =>
-        {
-            if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) BeginMoveDrag(e);
-        };
-        grid.Children.Add(bar);
-
-        _content = new Grid();
-        Grid.SetRow(_content, 1);
+        var grid = new Grid();
+        _content = new Grid { Name = "ContentRoot" };
         grid.Children.Add(_content);
         return grid;
     }
@@ -303,7 +353,9 @@ public sealed class MyOpControlWindow : Window
                 _palette = LunaThemes.From(_themeKey);
             }
             _loaded = true;
-            RenderCurrent();
+            var keepEditor = _screen == Screen.Messages && _input is { } editor
+                             && (editor.IsFocused || !string.IsNullOrWhiteSpace(editor.Text));
+            if (!keepEditor) RenderCurrent();
         }
         catch (Exception ex)
         {
@@ -334,6 +386,7 @@ public sealed class MyOpControlWindow : Window
     private void ShowScreen(Screen screen)
     {
         _screen = screen;
+        UpdateNavSelection();
         RenderCurrent();
     }
 
@@ -745,7 +798,7 @@ public sealed class MyOpControlWindow : Window
             _ = _data.MarkSeenAsync(message.Id, CancellationToken.None);
 
         var composer = new StackPanel { Spacing = 6, Margin = new Thickness(22, 4, 22, 18) };
-        var quick = new StackPanel { Spacing = 4 };
+        var quick = new WrapPanel { Orientation = Orientation.Horizontal };
         foreach (var text in new[]
                  {
                      Loc.T("Client.Messages.Quick.MoreTime"),
@@ -755,13 +808,16 @@ public sealed class MyOpControlWindow : Window
         {
             var button = new Button
             {
-                Content = Text(text, 11.5, _palette.Text, FontWeight.SemiBold),
-                Background = LunaBrushes.B(_palette.Surface2),
-                BorderThickness = new Thickness(0),
-                CornerRadius = new CornerRadius(10),
-                Padding = new Thickness(10, 6),
-                HorizontalContentAlignment = HorizontalAlignment.Left,
-                HorizontalAlignment = HorizontalAlignment.Stretch
+                Content = Text(text, 11.5, _palette.Text, FontWeight.SemiBold, wrap: false),
+                Background = Brushes.Transparent,
+                BorderBrush = LunaBrushes.B(_palette.Surface2),
+                BorderThickness = new Thickness(1.5),
+                CornerRadius = new CornerRadius(99),
+                Padding = new Thickness(14, 8),
+                MinHeight = 36,
+                Margin = new Thickness(0, 0, 8, 8),
+                HorizontalContentAlignment = HorizontalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Left
             };
             button.Click += (_, _) => { if (_input is not null) { _input.Text = text; _input.Focus(); } };
             quick.Children.Add(button);
@@ -928,7 +984,7 @@ public sealed class MyOpControlWindow : Window
         Background = LunaBrushes.B(_palette.Surface),
         BorderBrush = LunaBrushes.B(_palette.Surface2),
         BorderThickness = new Thickness(1),
-        CornerRadius = new CornerRadius(18),
+        CornerRadius = new CornerRadius(20),
         Padding = new Thickness(16),
         Child = child
     };
@@ -1058,6 +1114,9 @@ public sealed class MyOpControlWindow : Window
         var localized = Loc.T(key);
         return string.Equals(localized, key, StringComparison.Ordinal) ? category.Name : localized;
     }
+
+    internal string CurrentScreenName => _screen.ToString();
+    internal Task RefreshForTestAsync() => LoadAsync();
 
     private static Screen ParseScreen(string? tab) => (tab ?? "home").ToLowerInvariant() switch
     {

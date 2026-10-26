@@ -27,13 +27,15 @@ internal static class LockPreviewRenderer
         g.PixelOffsetMode = PixelOffsetMode.HighQuality;
         g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
         g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+        LockSceneRenderer.DrawStars(g, layout, 1.1);
         LockSceneRenderer.DrawSleepingZ(g, layout, 0.9);
 
         var (title, reason, hint) = LockForm.Texts(state);
         var scale = (float)layout.Scale;
-        using (var titleFont = Theme.DisplayPx(56, FontStyle.Bold))
-        using (var reasonFont = Theme.DisplayPx(32, FontStyle.Regular))
-        using (var hintFont = Theme.BodyPx(22, FontStyle.Bold))
+        var ui = (float)layout.UiScale;
+        using (var titleFont = Theme.DisplayPx(56 * ui, FontStyle.Bold))
+        using (var reasonFont = Theme.DisplayPx(32 * ui, FontStyle.Regular))
+        using (var hintFont = Theme.BodyPx(22 * ui, FontStyle.Bold))
         using (var white = new SolidBrush(Color.White))
         using (var mint = new SolidBrush(Color.FromArgb(0x7e, 0xe8, 0xc4)))
         using (var pale = new SolidBrush(Color.FromArgb(0xc8, 0xea, 0xdf)))
@@ -47,31 +49,37 @@ internal static class LockPreviewRenderer
             var titleSize = g.MeasureString(title, titleFont, (int)w);
             var reasonSize = g.MeasureString(reason, reasonFont, (int)w);
             var hintSize = g.MeasureString(hint, hintFont, (int)w);
+            using (var shadow = new SolidBrush(Color.FromArgb(95, 0, 0, 0)))
+                g.DrawString(title, titleFont, shadow,
+                    new RectangleF(x, y + 3 * ui, w, titleSize.Height + 2), titleFormat);
             g.DrawString(title, titleFont, white, new RectangleF(x, y, w, titleSize.Height + 2), titleFormat);
-            y += titleSize.Height + 14 * scale;
+            y += titleSize.Height + 18 * ui;
             g.DrawString(reason, reasonFont, mint, new RectangleF(x, y, w, reasonSize.Height + 2), reasonFormat);
-            y += reasonSize.Height + 10 * scale;
+            y += reasonSize.Height + 10 * ui;
             g.DrawString(hint, hintFont, pale, new RectangleF(x, y, w, hintSize.Height + 2), hintFormat);
         }
 
-        DrawButton(g, layout.PrimaryButton, Loc.T("Client.Messages.Open"), primary: true, icon: true, scale);
-        DrawButton(g, layout.SecondaryButton, Loc.T("Client.Lock.Override"), primary: false, icon: false, scale);
+        DrawButton(g, layout.PrimaryButton, Loc.T("Client.Messages.Open"), primary: true, icon: true, ui);
+        DrawButton(g, layout.SecondaryButton, Loc.T("Client.Lock.Override"), primary: false, icon: false, ui);
         if (Logo is not null)
         {
             var box = layout.Logo;
-            g.DrawImage(Logo, new Rectangle((int)box.X, (int)box.Y, (int)box.Width, (int)box.Height));
+            g.DrawImage(Logo, new Rectangle((int)Math.Round(box.X), (int)Math.Round(box.Y),
+                Math.Max(1, (int)Math.Round(box.Width)), Math.Max(1, (int)Math.Round(box.Height))));
         }
         bitmap.Save(path, ImageFormat.Png);
     }
 
-    private static void DrawButton(Graphics g, LockBox box, string text, bool primary, bool icon, float scale)
+    private static void DrawButton(Graphics g, LockBox box, string text, bool primary, bool icon, float ui)
     {
-        var rect = new Rectangle((int)box.X, (int)box.Y, (int)box.Width, (int)box.Height);
-        using var path = Rounded(rect, rect.Height / 2);
+        var rect = new Rectangle((int)Math.Round(box.X), (int)Math.Round(box.Y),
+            (int)Math.Round(box.Width), (int)Math.Round(box.Height));
+        var lift = Math.Max(3, (int)(6 * ui));
+        using var path = Rounded(new Rectangle(rect.X, rect.Y, rect.Width, rect.Height - lift), (rect.Height - lift) / 2);
         if (primary)
         {
             using var shadow = new SolidBrush(Color.FromArgb(0x0f, 0x7a, 0x37));
-            using var shadowPath = Rounded(new Rectangle(rect.X, rect.Y + (int)(5 * scale), rect.Width, rect.Height), rect.Height / 2);
+            using var shadowPath = Rounded(new Rectangle(rect.X, rect.Y + lift, rect.Width, rect.Height - lift), (rect.Height - lift) / 2);
             g.FillPath(shadow, shadowPath);
             using var fill = new SolidBrush(Color.FromArgb(0x16, 0xa3, 0x4a));
             g.FillPath(fill, path);
@@ -80,36 +88,29 @@ internal static class LockPreviewRenderer
         {
             using var fill = new SolidBrush(Color.FromArgb(90, 11, 29, 32));
             g.FillPath(fill, path);
-            using var border = new Pen(Color.FromArgb(0x4f, 0xd1, 0xa5), Math.Max(1.5f, 2 * scale));
+            using var border = new Pen(Color.FromArgb(0x4f, 0xd1, 0xa5), Math.Max(1.5f, 2 * ui));
             g.DrawPath(border, path);
         }
 
-        using var font = primary ? Theme.DisplayPx(26, FontStyle.Bold) : Theme.BodyPx(18, FontStyle.Bold);
+        using var font = primary ? Theme.DisplayPx(26 * ui, FontStyle.Bold) : Theme.BodyPx(18 * ui, FontStyle.Bold);
         var color = primary ? Color.White : Color.FromArgb(0xd8, 0xf5, 0xea);
         using var brush = new SolidBrush(color);
-        var iconSize = icon ? (int)(32 * scale) : 0;
-        var iconSpace = icon ? iconSize + (int)(14 * scale) : 0;
+        var iconSize = icon ? (int)(32 * ui) : 0;
+        var iconSpace = icon ? iconSize + (int)(14 * ui) : 0;
+        var textSize = g.MeasureString(text, font);
         if (icon)
         {
-            using var pen = new Pen(color, Math.Max(1.8f, 2.2f * scale)) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round };
-            var textSize = g.MeasureString(text, font);
             var ix = rect.X + (rect.Width - (int)textSize.Width - iconSpace) / 2;
-            var iy = rect.Y + (rect.Height - iconSize) / 2;
-            var bw = iconSize;
-            var bh = iconSize * 0.8f;
-            using var bubble = new GraphicsPath();
-            bubble.AddArc(ix, iy, bw, bh, 180, 180);
-            bubble.AddLine(ix + bw, iy + bh / 2, ix + bw, iy + bh);
-            bubble.AddLine(ix + bw, iy + bh, ix + bw * 0.55f, iy + iconSize);
-            bubble.AddLine(ix + bw * 0.55f, iy + iconSize, ix + bw * 0.25f, iy + bh);
-            bubble.AddLine(ix + bw * 0.25f, iy + bh, ix, iy + bh);
-            bubble.AddArc(ix, iy, bw, bh, 90, 90);
-            g.DrawPath(pen, bubble);
+            var iy = rect.Y + (rect.Height - lift - iconSize) / 2;
+            DrawMessageIcon(g, ix, iy, iconSize, color, Math.Max(1.8f, 2.2f * ui));
         }
         using var format = CenterFormat();
-        var textRect = new RectangleF(rect.X + iconSpace, rect.Y, rect.Width - iconSpace, rect.Height);
+        var textRect = new RectangleF(rect.X + iconSpace, rect.Y, rect.Width - iconSpace, rect.Height - lift);
         g.DrawString(text, font, brush, textRect, format);
     }
+
+    internal static void DrawMessageIcon(Graphics g, float x, float y, float size, Color color, float stroke) =>
+        LockGlyphs.DrawMessageIcon(g, x, y, size, color, stroke);
 
     private static StringFormat CenterFormat() => new()
     {

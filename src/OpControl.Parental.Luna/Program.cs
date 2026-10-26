@@ -26,6 +26,7 @@ internal static class Program
             }
             App.LunaOpenChatPreview = args.Any(a => string.Equals(a, "--open-chat-preview", StringComparison.OrdinalIgnoreCase));
             App.LunaScreenshotPath = Arg(args, "--luna-screenshot");
+            App.KidScreenshotPath = Arg(args, "--kid-screenshot");
 #endif
             if (kidMode)
             {
