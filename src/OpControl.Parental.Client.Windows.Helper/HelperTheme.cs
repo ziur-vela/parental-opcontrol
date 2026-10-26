@@ -95,7 +95,6 @@ internal static class Theme
     // one static Fredoka/Nunito face per weight (see tools/fonts).
     private static readonly FontFamily? DisplayMedium;
     private static readonly FontFamily? DisplaySemiBold;
-    private static readonly FontFamily? DisplayBold;
     private static readonly FontFamily? BodyBold;
     private static readonly FontFamily? BodyExtraBold;
 
@@ -108,7 +107,6 @@ internal static class Theme
         SansBold = Load("OpControl.Parental.Helper.fonts.Manrope-700.ttf");
         DisplayMedium = Load("OpControl.Parental.Helper.fonts.Fredoka-Medium.ttf");
         DisplaySemiBold = Load("OpControl.Parental.Helper.fonts.Fredoka-SemiBold.ttf");
-        DisplayBold = Load("OpControl.Parental.Helper.fonts.Fredoka-Bold.ttf");
         BodyBold = Load("OpControl.Parental.Helper.fonts.Nunito-Bold.ttf");
         BodyExtraBold = Load("OpControl.Parental.Helper.fonts.Nunito-ExtraBold.ttf");
     }
@@ -146,17 +144,20 @@ internal static class Theme
     public static Font Mono(float size, FontStyle style = FontStyle.Regular) =>
         Make(style.HasFlag(FontStyle.Bold) ? MonoSemiBold : MonoRegular, "Consolas", size);
 
+    // Legacy accessors are used by GDI controls (labels, TextRenderer) that cannot
+    // see a PrivateFontCollection. Keep the exact 0.17.3 system fallbacks here;
+    // the lock overlay uses the private faces through the Lock* methods below.
     public static Font Display(float size, FontStyle style = FontStyle.Regular) =>
-        Make(style.HasFlag(FontStyle.Bold) ? DisplayBold : DisplaySemiBold, "Segoe UI Semibold", size);
+        new("Segoe UI Semibold", size, FontStyle.Regular);
 
     public static Font Body(float size, FontStyle style = FontStyle.Regular) =>
-        Make(BodyBold, "Segoe UI", size);
+        new("Segoe UI", size, FontStyle.Regular);
 
     public static Font DisplayPx(float pixels, FontStyle style = FontStyle.Regular) =>
-        MakePx(style.HasFlag(FontStyle.Bold) ? DisplayBold : DisplaySemiBold, "Segoe UI Semibold", pixels);
+        new("Segoe UI Semibold", pixels, FontStyle.Regular, GraphicsUnit.Pixel);
 
     public static Font BodyPx(float pixels, FontStyle style = FontStyle.Regular) =>
-        MakePx(BodyBold, "Segoe UI", pixels);
+        new("Segoe UI", pixels, FontStyle.Regular, GraphicsUnit.Pixel);
 
     /// <summary>Fredoka 600 for the lock title and the primary button.</summary>
     public static Font LockTitle(float pixels) => MakePx(DisplaySemiBold, "Segoe UI Semibold", pixels);

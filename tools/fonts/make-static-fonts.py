@@ -27,7 +27,6 @@ TARGET = ROOT / "src" / "OpControl.Parental.Client.Windows.Helper" / "fonts"
 JOBS = [
     ("Fredoka-Variable.ttf", "Fredoka-Medium.ttf", 500, "Fredoka", "Medium"),
     ("Fredoka-Variable.ttf", "Fredoka-SemiBold.ttf", 600, "Fredoka", "SemiBold"),
-    ("Fredoka-Variable.ttf", "Fredoka-Bold.ttf", 700, "Fredoka", "Bold"),
     ("Nunito-Variable.ttf", "Nunito-Bold.ttf", 700, "Nunito", "Bold"),
     ("Nunito-Variable.ttf", "Nunito-ExtraBold.ttf", 800, "Nunito", "ExtraBold"),
 ]
