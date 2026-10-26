@@ -158,6 +158,7 @@
   <data name="Apps.Subtitle" xml:space="preserve"><value>Installed apps, new installs to review, and app rules.</value></data>
   <data name="Apps.UnknownPublisher" xml:space="preserve"><value>unknown publisher</value></data>
   <data name="Category.Adult" xml:space="preserve"><value>Adult content</value></data>
+  <data name="Category.Ai" xml:space="preserve"><value>Public AI chats</value></data>
   <data name="Category.FakeNews" xml:space="preserve"><value>Fake news</value></data>
   <data name="Category.Gambling" xml:space="preserve"><value>Gambling</value></data>
   <data name="Category.Social" xml:space="preserve"><value>Social media</value></data>
@@ -282,6 +283,13 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Email.InviteNewFamilySubject" xml:space="preserve"><value>Invitation to create your family on Parental OpControl</value></data>
   <data name="Email.SmtpNotConfigured" xml:space="preserve"><value>Server SMTP is not configured.</value></data>
   <data name="Error.AccountInactive" xml:space="preserve"><value>This account is no longer active. Sign in again.</value></data>
+  <data name="Error.AiCategoryEmpty" xml:space="preserve"><value>The AI category list is empty.</value></data>
+  <data name="Error.AiCategoryGuard" xml:space="preserve"><value>The AI category list would block a protected domain: {0} ({1}).</value></data>
+  <data name="Error.AiCategoryInvalidDomain" xml:space="preserve"><value>The AI category list contains an invalid domain: {0}.</value></data>
+  <data name="Error.AiCategoryKey" xml:space="preserve"><value>The AI category key must be {0}.</value></data>
+  <data name="Error.AiCategoryMissing" xml:space="preserve"><value>The AI category list is missing.</value></data>
+  <data name="Error.AiCategoryNoEntries" xml:space="preserve"><value>The AI category list has no entries.</value></data>
+  <data name="Error.AiCategoryVersion" xml:space="preserve"><value>The AI category version is invalid.</value></data>
   <data name="Error.AllowNoSchedule" xml:space="preserve"><value>Always-allow rules cannot be tied to a schedule.</value></data>
   <data name="Error.Back" xml:space="preserve"><value>Back to dashboard</value></data>
   <data name="Error.Body" xml:space="preserve"><value>Please try again. If the problem continues, check the server logs.</value></data>
@@ -782,6 +790,15 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Websites.BlockedAttemptOne" xml:space="preserve"><value>{0} blocked attempt</value></data>
   <data name="Websites.BlockedDuringSchedule" xml:space="preserve"><value>Blocked during schedule</value></data>
   <data name="Websites.Categories" xml:space="preserve"><value>Categories</value></data>
+  <data name="Websites.Ai.Subtitle" xml:space="preserve"><value>Blocks AI chat and AI companion sites so Luna is the AI your child uses.</value></data>
+  <data name="Websites.Ai.WhatTitle" xml:space="preserve"><value>What this does and doesn't block</value></data>
+  <data name="Websites.Ai.BlocksLabel" xml:space="preserve"><value>Blocks:</value></data>
+  <data name="Websites.Ai.Blocks" xml:space="preserve"><value>AI chat sites (ChatGPT, Gemini, Copilot, Claude, Grok, DeepSeek, Perplexity, and more), AI companion apps (Character.AI, Talkie, Replika, and more), and free copy sites.</value></data>
+  <data name="Websites.Ai.DoesNotBlockLabel" xml:space="preserve"><value>Doesn't block:</value></data>
+  <data name="Websites.Ai.DoesNotBlock" xml:space="preserve"><value>AI answers inside Google or Brave search, AI inside Instagram, WhatsApp, Messenger, Snapchat, Discord or X, and AI features built into browsers or Windows. We're working on options for these.</value></data>
+  <data name="Websites.Ai.Updates" xml:space="preserve"><value>New AI sites appear all the time; we update this list regularly.</value></data>
+  <data name="Websites.Ai.Report" xml:space="preserve"><value>Report a site</value></data>
+  <data name="Websites.Ai.ReportSubject" xml:space="preserve"><value>Report an AI site</value></data>
   <data name="Websites.DuringSchedule" xml:space="preserve"><value>During schedule</value></data>
   <data name="Websites.EarlierBlockedAttemptMany" xml:space="preserve"><value>{0} earlier blocked attempts</value></data>
   <data name="Websites.EarlierBlockedAttemptOne" xml:space="preserve"><value>{0} earlier blocked attempt</value></data>
@@ -1403,7 +1420,7 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Luna.Why.Bullet.Alerts" xml:space="preserve"><value>You can read every chat and get alerts when something needs you.</value></data>
   <data name="Luna.Why.Bullet.NoAds" xml:space="preserve"><value>No ads, no account for your child, and zero data retention with Setup A.</value></data>
   <data name="Luna.Why.Bullet.Limits" xml:space="preserve"><value>Daily limits, schedules and locks apply to Luna too.</value></data>
-  <data name="Luna.Why.Footer" xml:space="preserve"><value>Recommended: turn on Block public AI chats in Websites. It blocks sites like ChatGPT, Gemini and the AI chats built into search engines and browsers, so Luna becomes the AI your child uses.</value></data>
+  <data name="Luna.Why.Footer" xml:space="preserve"><value>Recommended: turn on Block public AI chats in Websites. It blocks public AI chat and AI companion sites so Luna becomes the AI your child uses.</value></data>
   <data name="Luna.Child.AiBlockTip" xml:space="preserve"><value>Tip: Block public AI chats is off for {0}. Turn it on in Websites so Luna is the AI {0} uses.</value></data>
   <data name="Luna.Common.ComingSoon" xml:space="preserve"><value>Coming soon</value></data>
   <data name="Luna.Child.OpenWebsites" xml:space="preserve"><value>Open Websites</value></data>

@@ -228,15 +228,34 @@ else
                 <div class="eyebrow">@L["Websites.Categories"]</div>
                 @foreach (var category in _categories)
                 {
-                    <div class="toggle-row">
-                        <div>
+                    <div class="toggle-row" id="@($"category-{category.Key}")">
+                        <div class="ai-category-main">
                             <div class="rule-title">@CategoryText.Name(category.Key, category.Name)</div>
                             <div class="muted tiny">v@(category.Version)</div>
+                            @if (category.Key == AiCategoryCatalog.Key)
+                            {
+                                <div class="ai-category-subtitle">@L["Websites.Ai.Subtitle"]</div>
+                            }
                         </div>
                         <button class="toggle @(category.Enabled ? "on" : "")" @onclick="() => ToggleCategoryAsync(category.Key, !category.Enabled)">
                             <span></span>
                         </button>
                     </div>
+                    @if (category.Key == AiCategoryCatalog.Key)
+                    {
+                        <details class="ai-category-help">
+                            <summary>@L["Websites.Ai.WhatTitle"]</summary>
+                            <ul>
+                                <li><b>@L["Websites.Ai.BlocksLabel"]</b> @L["Websites.Ai.Blocks"]</li>
+                                <li><b>@L["Websites.Ai.DoesNotBlockLabel"]</b> @L["Websites.Ai.DoesNotBlock"]</li>
+                            </ul>
+                            <p class="muted tiny">@L["Websites.Ai.Updates"]</p>
+                            @if (_reportMailto is not null)
+                            {
+                                <a class="ghost-btn ai-report-link" href="@_reportMailto">@L["Websites.Ai.Report"]</a>
+                            }
+                        </details>
+                    }
                 }
             </div>
         </section>
@@ -449,6 +468,7 @@ else
     private bool _reviewLoading;
     private bool _adultConfirmed;
     private string _reviewScheduleId = "";
+    private string? _reportMailto;
 
     private List<SiteRow> FilteredSites => _filteredSites;
 
@@ -487,6 +507,17 @@ else
         _childId = child.Id;
         _childName = child.Name;
         _timeZoneId = await db.Devices.AsNoTracking().Where(d => d.ChildId == child.Id).Select(d => d.TimeZoneId).FirstOrDefaultAsync() ?? "UTC";
+
+        var serverSettings = await db.ServerSettings.AsNoTracking().FirstOrDefaultAsync(s => s.Id == 1);
+        var reportEmail = serverSettings?.FromAddress;
+        if (string.IsNullOrWhiteSpace(reportEmail))
+            reportEmail = await db.Users.AsNoTracking()
+                .Where(u => u.IsServerAdmin && u.Email != null)
+                .Select(u => u.Email)
+                .FirstOrDefaultAsync();
+        _reportMailto = string.IsNullOrWhiteSpace(reportEmail)
+            ? null
+            : "mailto:" + reportEmail.Trim() + "?subject=" + Uri.EscapeDataString(L["Websites.Ai.ReportSubject"].Value);
 
         _rules = await db.WebsiteRules.AsNoTracking()
             .Where(r => r.FamilyId == _familyId && r.ChildId == child.Id)

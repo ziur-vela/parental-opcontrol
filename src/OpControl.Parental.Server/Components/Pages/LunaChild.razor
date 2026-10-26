@@ -156,7 +156,7 @@ else
                 {
                     <div class="luna-tip">
                         <span>@L["Luna.Child.AiBlockTip", _childName]</span>
-                        <a class="btn btn-ghost" href="/websites">@L["Luna.Child.OpenWebsites"]</a>
+                        <a class="btn btn-ghost" href="/websites#category-ai">@L["Luna.Child.OpenWebsites"]</a>
                     </div>
                 }
             </section>
@@ -309,6 +309,7 @@ else
     private string? _profileUpdatedBy;
     private bool _showAck;
     private bool _ackChecked;
+    private bool _publicAiChatsBlocked;
 
     protected override async Task OnInitializedAsync()
     {
@@ -362,6 +363,9 @@ else
             _familySettings = await settingsService.GetAsync(_familyId);
             _setup = _familySettings.Setup;
             _child = await parent.GetChildAsync(_familyId, _childId);
+            _publicAiChatsBlocked = await db.ChildCategories.AsNoTracking()
+                .AnyAsync(c => c.FamilyId == _familyId && c.ChildId == _childId
+                    && c.CategoryKey == AiCategoryCatalog.Key && c.Enabled);
             _dailyLimit = _child.DailyMessageLimit;
             _extraInstructions = _child.ExtraInstructions ?? "";
             _requests = await parent.ListRequestsAsync(_familyId, _childId);
@@ -537,7 +541,7 @@ else
             _child.Enabled && _child.SetupValid);
 
     private bool ShowAiBlockTip =>
-        LunaUi.ShowPublicAiBlockTip(_child.Enabled && _child.SetupValid, null);
+        LunaUi.ShowPublicAiBlockTip(_child.Enabled && _child.SetupValid, _publicAiChatsBlocked);
 
     private string Subtitle
     {

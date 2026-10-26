@@ -297,6 +297,15 @@ code { font-family: var(--mono); background: var(--panel-2); padding: 2px 5px; f
 .tiny-pill { margin-left: 6px; font-size: 9px; padding: 1px 6px; }
 .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
 .toggle-row:last-child { border-bottom: 0; }
+.toggle-row:target { outline: 1px dashed var(--value); outline-offset: 4px; scroll-margin-top: 20px; }
+.ai-category-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ai-category-subtitle { max-width: 48ch; line-height: 1.45; }
+.ai-category-help { margin: 6px 0 12px; padding: 10px 12px; border: 1px solid var(--line); background: var(--panel-2); }
+.ai-category-help summary { cursor: pointer; color: var(--value); font-family: var(--mono); font-size: 11px; letter-spacing: .04em; }
+.ai-category-help summary:focus-visible { outline: 2px solid var(--value); outline-offset: 3px; }
+.ai-category-help ul { display: flex; flex-direction: column; gap: 6px; margin: 9px 0; padding-left: 18px; font-size: 13px; line-height: 1.5; }
+.ai-category-help p { margin: 6px 0; }
+.ai-category-help .ai-report-link { margin-top: 2px; }
 .toggle { width: 40px; height: 22px; border-radius: 0; background: var(--panel-2); border: 1px solid var(--line-2); position: relative; cursor: pointer; padding: 0; }
 .toggle span { position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 0; background: var(--muted); transition: left .12s ease, background .12s ease; }
 .toggle.on { border-color: var(--brand); background: var(--accent-soft); }

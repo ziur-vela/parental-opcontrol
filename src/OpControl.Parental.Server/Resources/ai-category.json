@@ -1,0 +1,701 @@
+{
+  "key": "ai",
+  "name": "Public AI chats",
+  "version": 1,
+  "checked": "2026-10-26",
+  "versionNote": "Bump version whenever entries or domains change. The importer also bumps the DB version automatically when the domain set changes.",
+  "entries": [
+    {
+      "name": "ChatGPT",
+      "group": "standalone",
+      "blockable": "full",
+      "domains": [
+        "chatgpt.com",
+        "chat.openai.com",
+        "auth.openai.com",
+        "api.openai.com",
+        "cdn.oaistatic.com"
+      ],
+      "sources": [
+        "https://help.openai.com/en/articles/9125172-the-chatgpt-home-page",
+        "https://chatgpt.com/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Google Gemini",
+      "group": "standalone",
+      "blockable": "full",
+      "domains": [
+        "gemini.google.com",
+        "aistudio.google.com",
+        "notebooklm.google.com",
+        "labs.google",
+        "bard.google.com"
+      ],
+      "sources": [
+        "https://gemini.google.com/",
+        "https://support.google.com/chrome/a/answer/16291696?hl=en"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Microsoft Copilot (web)",
+      "group": "standalone",
+      "blockable": "partial",
+      "domains": [
+        "copilot.microsoft.com",
+        "edgeservices.bing.com"
+      ],
+      "sources": [
+        "https://copilot.microsoft.com/",
+        "https://learn.microsoft.com/en-us/deployedge/microsoft-edge-policies/hubssidebarenabled",
+        "https://learn.microsoft.com/en-us/deployedge/microsoft-edge-policies/copilotpagecontext"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Anthropic Claude",
+      "group": "standalone",
+      "blockable": "full",
+      "domains": [
+        "claude.ai",
+        "claude.com",
+        "api.anthropic.com",
+        "console.anthropic.com"
+      ],
+      "sources": [
+        "https://claude.com/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "xAI Grok",
+      "group": "standalone",
+      "blockable": "partial",
+      "domains": [
+        "grok.com",
+        "x.ai",
+        "api.x.ai"
+      ],
+      "sources": [
+        "https://grok.com/",
+        "https://x.ai/grok"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Meta AI (standalone web)",
+      "group": "standalone",
+      "blockable": "partial",
+      "domains": [
+        "meta.ai",
+        "ai.meta.com"
+      ],
+      "sources": [
+        "https://www.meta.ai/",
+        "https://ai.meta.com/meta-ai/assistant/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Perplexity",
+      "group": "standalone",
+      "blockable": "full",
+      "domains": [
+        "perplexity.ai",
+        "api.perplexity.ai",
+        "social.perplexity.ai"
+      ],
+      "sources": [
+        "https://www.perplexity.ai/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "DeepSeek",
+      "group": "standalone",
+      "blockable": "full",
+      "domains": [
+        "chat.deepseek.com",
+        "deepseek.com",
+        "api.deepseek.com"
+      ],
+      "sources": [
+        "https://www.deepseek.com/",
+        "https://chat.deepseek.com/sign_in"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Mistral Vibe (formerly Le Chat)",
+      "group": "standalone",
+      "blockable": "full",
+      "domains": [
+        "chat.mistral.ai",
+        "mistral.ai",
+        "api.mistral.ai",
+        "console.mistral.ai"
+      ],
+      "sources": [
+        "https://mistral.ai/products/vibe/",
+        "https://help.mistral.ai/en/articles/682992-le-chat-is-now-vibe"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Poe",
+      "group": "standalone",
+      "blockable": "full",
+      "domains": [
+        "poe.com",
+        "poecdn.com"
+      ],
+      "sources": [
+        "https://poe.com/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "HuggingChat",
+      "group": "standalone",
+      "blockable": "partial",
+      "domains": [
+        "huggingface.co"
+      ],
+      "sources": [
+        "https://huggingface.co/chat"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Inflection Pi",
+      "group": "standalone",
+      "blockable": "full",
+      "domains": [
+        "pi.ai",
+        "heypi.com"
+      ],
+      "sources": [
+        "https://apps.apple.com/za/app/pi-personal-ai-assistant/id6445815935",
+        "https://inflection.ai/blog"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Qwen Chat",
+      "group": "standalone",
+      "blockable": "full",
+      "domains": [
+        "chat.qwen.ai",
+        "qwen.ai",
+        "tongyi.aliyun.com"
+      ],
+      "sources": [
+        "https://chat.qwen.ai/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Kimi",
+      "group": "standalone",
+      "blockable": "full",
+      "domains": [
+        "kimi.com",
+        "kimi.moonshot.cn",
+        "moonshot.cn",
+        "statics.moonshot.cn"
+      ],
+      "sources": [
+        "https://www.kimi.com/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "You.com",
+      "group": "standalone",
+      "blockable": "full",
+      "domains": [
+        "you.com",
+        "api.you.com"
+      ],
+      "sources": [
+        "https://apps.apple.com/us/app/you-com-enterprise-grade-ai/id1600782099"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Phind",
+      "group": "standalone",
+      "blockable": "full",
+      "domains": [
+        "phind.com"
+      ],
+      "sources": [
+        "https://www.phind.com/",
+        "https://www.producthunt.com/products/phind-com-ai-search-engine"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "ChatGLM / Zhipu AI",
+      "group": "standalone",
+      "blockable": "full",
+      "domains": [
+        "chatglm.cn",
+        "z.ai",
+        "bigmodel.cn"
+      ],
+      "sources": [
+        "https://www.toolai.io/ai/chatglm"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Doubao",
+      "group": "standalone",
+      "blockable": "full",
+      "domains": [
+        "doubao.com"
+      ],
+      "sources": [
+        "https://www.doubao.com/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "ERNIE Bot",
+      "group": "standalone",
+      "blockable": "full",
+      "domains": [
+        "yiyan.baidu.com",
+        "ernie.baidu.com",
+        "aistudio.baidu.com"
+      ],
+      "sources": [
+        "https://ernie.baidu.com/blog/about/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Character.AI",
+      "group": "companion",
+      "blockable": "full",
+      "domains": [
+        "character.ai",
+        "beta.character.ai",
+        "api.character.ai"
+      ],
+      "sources": [
+        "https://character.ai/",
+        "https://blog.character.ai/u18-chat-announcement/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Talkie",
+      "group": "companion",
+      "blockable": "full",
+      "domains": [
+        "talkie-ai.com",
+        "api.talkie-ai.com"
+      ],
+      "sources": [
+        "https://www.talkie-ai.com/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Chai",
+      "group": "companion",
+      "blockable": "full",
+      "domains": [
+        "chai-ai.com",
+        "chai-research.com",
+        "api.chai-research.com"
+      ],
+      "sources": [
+        "https://www.chai-ai.com/",
+        "https://www.chai-research.com/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Replika",
+      "group": "companion",
+      "blockable": "full",
+      "domains": [
+        "replika.com",
+        "replika.ai",
+        "api.replika.com"
+      ],
+      "sources": [
+        "https://replika.com/legal/privacy/en"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Janitor AI",
+      "group": "companion",
+      "blockable": "full",
+      "domains": [
+        "janitorai.com",
+        "help.janitorai.com",
+        "api.janitorai.com"
+      ],
+      "sources": [
+        "https://janitorai.com/",
+        "https://help.janitorai.com/en/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Nomi",
+      "group": "companion",
+      "blockable": "full",
+      "domains": [
+        "nomi.ai",
+        "api.nomi.ai"
+      ],
+      "sources": [
+        "https://nomi.ai/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Kindroid",
+      "group": "companion",
+      "blockable": "full",
+      "domains": [
+        "kindroid.ai",
+        "app.kindroid.ai"
+      ],
+      "sources": [
+        "https://kindroid.ai/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "PolyBuzz / Poly.AI",
+      "group": "companion",
+      "blockable": "full",
+      "domains": [
+        "polybuzz.ai"
+      ],
+      "sources": [
+        "https://www.polybuzz.ai/En"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Candy AI",
+      "group": "companion",
+      "blockable": "full",
+      "domains": [
+        "candyai.com",
+        "candy.ai"
+      ],
+      "sources": [
+        "https://candyai.com/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Crushon.AI",
+      "group": "companion",
+      "blockable": "full",
+      "domains": [
+        "crushon.ai",
+        "chat.crushon.ai"
+      ],
+      "sources": [
+        "https://crushon.ai/faq"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Muah.AI",
+      "group": "companion",
+      "blockable": "full",
+      "domains": [
+        "muah.ai"
+      ],
+      "sources": [
+        "https://muah.ai/info/about.php"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "SpicyChat",
+      "group": "companion",
+      "blockable": "full",
+      "domains": [
+        "spicychat.ai"
+      ],
+      "sources": [
+        "https://spicychat.ai/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "DreamGF",
+      "group": "companion",
+      "blockable": "full",
+      "domains": [
+        "dreamgf.ai"
+      ],
+      "sources": [
+        "https://dreamgf.ai/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Bing Copilot in Bing",
+      "group": "search",
+      "blockable": "partial",
+      "domains": [
+        "copilot.microsoft.com",
+        "edgeservices.bing.com"
+      ],
+      "sources": [
+        "https://www.bing.com/",
+        "https://learn.microsoft.com/en-us/deployedge/microsoft-edge-policies/hubssidebarenabled"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "DuckDuckGo Duck.ai and Search Assist",
+      "group": "search",
+      "blockable": "partial",
+      "domains": [
+        "duck.ai"
+      ],
+      "sources": [
+        "https://duckduckgo.com/duckduckgo-help-pages/duckai",
+        "https://duck.ai/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Yandex AI / Alice",
+      "group": "search",
+      "blockable": "partial",
+      "domains": [
+        "alice.yandex.ru"
+      ],
+      "sources": [
+        "https://yandex.ru/",
+        "https://alice.yandex.ru/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Baidu ERNIE / AI search",
+      "group": "search",
+      "blockable": "partial",
+      "domains": [
+        "yiyan.baidu.com",
+        "ernie.baidu.com",
+        "aistudio.baidu.com"
+      ],
+      "sources": [
+        "https://ernie.baidu.com/blog/about/",
+        "https://www.baidu.com/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Edge Copilot sidebar and toolbar",
+      "group": "browser",
+      "blockable": "partial",
+      "domains": [
+        "edgeservices.bing.com",
+        "copilot.microsoft.com"
+      ],
+      "sources": [
+        "https://learn.microsoft.com/en-us/deployedge/microsoft-edge-policies/hubssidebarenabled",
+        "https://learn.microsoft.com/en-us/deployedge/microsoft-edge-policies/microsoft365copilotchaticonenabled",
+        "https://learn.microsoft.com/en-us/deployedge/microsoft-edge-policies/copilotpagecontext",
+        "https://learn.microsoft.com/en-us/deployedge/microsoft-edge-sidebar"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Gemini in Chrome",
+      "group": "browser",
+      "blockable": "partial",
+      "domains": [
+        "gemini.google.com"
+      ],
+      "sources": [
+        "https://support.google.com/chrome/a/answer/16291696?hl=en",
+        "https://chromeenterprise.google/intl/en_uk/policies/url-blocklist/",
+        "https://support.google.com/chrome/a/answer/7679408?hl=en"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Firefox AI chatbot sidebar",
+      "group": "browser",
+      "blockable": "partial",
+      "domains": [
+        "chatgpt.com",
+        "claude.ai",
+        "gemini.google.com",
+        "copilot.microsoft.com",
+        "huggingface.co",
+        "chat.mistral.ai"
+      ],
+      "sources": [
+        "https://firefox-admin-docs.mozilla.org/reference/policies/aicontrols/",
+        "https://firefox-admin-docs.mozilla.org/reference/policies/aichatbot/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "Windows Copilot app",
+      "group": "windows",
+      "blockable": "partial",
+      "domains": [
+        "copilot.microsoft.com"
+      ],
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-windowsai",
+        "https://learn.microsoft.com/en-us/windows/client-management/manage-windows-copilot"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "aifreeforever.com",
+      "group": "wrapper",
+      "blockable": "full",
+      "domains": [
+        "aifreeforever.com"
+      ],
+      "sources": [
+        "https://aifreeforever.com/chat"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "heck.ai",
+      "group": "wrapper",
+      "blockable": "full",
+      "domains": [
+        "heck.ai"
+      ],
+      "sources": [
+        "https://heck.ai/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "writecream.com ChatGPT page",
+      "group": "wrapper",
+      "blockable": "full",
+      "domains": [
+        "writecream.com"
+      ],
+      "sources": [
+        "https://www.writecream.com/chatgpt-free-online/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "overchat.ai",
+      "group": "wrapper",
+      "blockable": "full",
+      "domains": [
+        "overchat.ai"
+      ],
+      "sources": [
+        "https://overchat.ai/chat/best-free-ai-chat"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "unlimitedai.online",
+      "group": "wrapper",
+      "blockable": "full",
+      "domains": [
+        "unlimitedai.online"
+      ],
+      "sources": [
+        "https://unlimitedai.online/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "chattide.ai",
+      "group": "wrapper",
+      "blockable": "full",
+      "domains": [
+        "chattide.ai"
+      ],
+      "sources": [
+        "https://www.chattide.ai/chat-gpt/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "chatjanitor.com (Janitor clone)",
+      "group": "wrapper",
+      "blockable": "full",
+      "domains": [
+        "chatjanitor.com"
+      ],
+      "sources": [
+        "https://chatjanitor.com/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "spicy-chat.io (SpicyChat clone)",
+      "group": "wrapper",
+      "blockable": "full",
+      "domains": [
+        "spicy-chat.io"
+      ],
+      "sources": [
+        "https://spicy-chat.io/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "talkieai.cc (Talkie clone)",
+      "group": "wrapper",
+      "blockable": "full",
+      "domains": [
+        "talkieai.cc"
+      ],
+      "sources": [
+        "https://talkieai.cc/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "polybuzz.org (PolyBuzz mirror)",
+      "group": "wrapper",
+      "blockable": "full",
+      "domains": [
+        "polybuzz.org"
+      ],
+      "sources": [
+        "https://polybuzz.org/es/"
+      ],
+      "checked": "2026-10-26"
+    },
+    {
+      "name": "crushona.com (Crushon clone)",
+      "group": "wrapper",
+      "blockable": "full",
+      "domains": [
+        "crushona.com"
+      ],
+      "sources": [
+        "https://crushona.com/"
+      ],
+      "checked": "2026-10-26"
+    }
+  ]
+}

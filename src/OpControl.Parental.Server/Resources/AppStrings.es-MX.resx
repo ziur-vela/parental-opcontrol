@@ -158,6 +158,7 @@
   <data name="Apps.Subtitle" xml:space="preserve"><value>Aplicaciones instaladas, instalaciones nuevas por revisar y reglas de aplicaciones.</value></data>
   <data name="Apps.UnknownPublisher" xml:space="preserve"><value>editor desconocido</value></data>
   <data name="Category.Adult" xml:space="preserve"><value>Contenido para adultos</value></data>
+  <data name="Category.Ai" xml:space="preserve"><value>Chats públicos de IA</value></data>
   <data name="Category.FakeNews" xml:space="preserve"><value>Noticias falsas</value></data>
   <data name="Category.Gambling" xml:space="preserve"><value>Apuestas</value></data>
   <data name="Category.Social" xml:space="preserve"><value>Redes sociales</value></data>
@@ -282,6 +283,13 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Email.InviteNewFamilySubject" xml:space="preserve"><value>Invitación para crear tu familia en Parental OpControl</value></data>
   <data name="Email.SmtpNotConfigured" xml:space="preserve"><value>El SMTP del servidor no está configurado.</value></data>
   <data name="Error.AccountInactive" xml:space="preserve"><value>Esta cuenta ya no está activa. Vuelve a iniciar sesión.</value></data>
+  <data name="Error.AiCategoryEmpty" xml:space="preserve"><value>La lista de la categoría de IA está vacía.</value></data>
+  <data name="Error.AiCategoryGuard" xml:space="preserve"><value>La lista de la categoría de IA bloquearía un dominio protegido: {0} ({1}).</value></data>
+  <data name="Error.AiCategoryInvalidDomain" xml:space="preserve"><value>La lista de la categoría de IA contiene un dominio no válido: {0}.</value></data>
+  <data name="Error.AiCategoryKey" xml:space="preserve"><value>La clave de la categoría de IA debe ser {0}.</value></data>
+  <data name="Error.AiCategoryMissing" xml:space="preserve"><value>Falta la lista de la categoría de IA.</value></data>
+  <data name="Error.AiCategoryNoEntries" xml:space="preserve"><value>La lista de la categoría de IA no tiene entradas.</value></data>
+  <data name="Error.AiCategoryVersion" xml:space="preserve"><value>La versión de la categoría de IA no es válida.</value></data>
   <data name="Error.AllowNoSchedule" xml:space="preserve"><value>Las reglas de siempre permitido no pueden vincularse a un horario.</value></data>
   <data name="Error.Back" xml:space="preserve"><value>Volver al panel</value></data>
   <data name="Error.Body" xml:space="preserve"><value>Inténtalo de nuevo. Si el problema continúa, revisa los registros del servidor.</value></data>
@@ -782,6 +790,15 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Websites.BlockedAttemptOne" xml:space="preserve"><value>{0} intento bloqueado</value></data>
   <data name="Websites.BlockedDuringSchedule" xml:space="preserve"><value>Bloqueados durante el horario</value></data>
   <data name="Websites.Categories" xml:space="preserve"><value>Categorías</value></data>
+  <data name="Websites.Ai.Subtitle" xml:space="preserve"><value>Bloquea sitios de chat de IA y de compañeros de IA para que Luna sea la IA que usan tus hijos.</value></data>
+  <data name="Websites.Ai.WhatTitle" xml:space="preserve"><value>Qué bloquea y qué no</value></data>
+  <data name="Websites.Ai.BlocksLabel" xml:space="preserve"><value>Bloquea:</value></data>
+  <data name="Websites.Ai.Blocks" xml:space="preserve"><value>Sitios de chat de IA (ChatGPT, Gemini, Copilot, Claude, Grok, DeepSeek, Perplexity y más), aplicaciones de compañeros de IA (Character.AI, Talkie, Replika y más) y sitios de copias gratuitas.</value></data>
+  <data name="Websites.Ai.DoesNotBlockLabel" xml:space="preserve"><value>No bloquea:</value></data>
+  <data name="Websites.Ai.DoesNotBlock" xml:space="preserve"><value>Respuestas de IA dentro de la búsqueda de Google o Brave, IA dentro de Instagram, WhatsApp, Messenger, Snapchat, Discord o X, y funciones de IA integradas en navegadores o Windows. Estamos trabajando en opciones para esto.</value></data>
+  <data name="Websites.Ai.Updates" xml:space="preserve"><value>Aparecen nuevos sitios de IA todo el tiempo; actualizamos esta lista con regularidad.</value></data>
+  <data name="Websites.Ai.Report" xml:space="preserve"><value>Reportar un sitio</value></data>
+  <data name="Websites.Ai.ReportSubject" xml:space="preserve"><value>Reportar un sitio de IA</value></data>
   <data name="Websites.DuringSchedule" xml:space="preserve"><value>Durante el horario</value></data>
   <data name="Websites.EarlierBlockedAttemptMany" xml:space="preserve"><value>{0} intentos bloqueados anteriormente</value></data>
   <data name="Websites.EarlierBlockedAttemptOne" xml:space="preserve"><value>{0} intento bloqueado anteriormente</value></data>
@@ -1403,7 +1420,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Luna.Why.Bullet.Alerts" xml:space="preserve"><value>Puedes leer todos los chats y recibir alertas cuando algo necesite tu atención.</value></data>
   <data name="Luna.Why.Bullet.NoAds" xml:space="preserve"><value>Sin anuncios, sin cuenta para tus hijos y con retención cero de datos con la configuración A.</value></data>
   <data name="Luna.Why.Bullet.Limits" xml:space="preserve"><value>Los límites diarios, los horarios y los bloqueos también se aplican a Luna.</value></data>
-  <data name="Luna.Why.Footer" xml:space="preserve"><value>Recomendado: activa Bloquear chats públicos de IA en Sitios web. Bloquea sitios como ChatGPT, Gemini y los chats de IA integrados en buscadores y navegadores, para que Luna sea la IA que usan tus hijos.</value></data>
+  <data name="Luna.Why.Footer" xml:space="preserve"><value>Recomendado: activa Bloquear chats públicos de IA en Sitios web. Bloquea sitios de chat de IA y de compañeros de IA para que Luna sea la IA que usan tus hijos.</value></data>
   <data name="Luna.Child.AiBlockTip" xml:space="preserve"><value>Consejo: Bloquear chats públicos de IA está desactivado para {0}. Actívalo en Sitios web para que Luna sea la IA que usa {0}.</value></data>
   <data name="Luna.Common.ComingSoon" xml:space="preserve"><value>Próximamente</value></data>
   <data name="Luna.Child.OpenWebsites" xml:space="preserve"><value>Abrir Sitios web</value></data>

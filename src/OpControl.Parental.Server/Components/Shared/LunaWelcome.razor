@@ -108,14 +108,7 @@
                 </ul>
                 <div class="luna-welcome-amber">
                     <span>@L["Luna.Why.Footer"]</span>
-                    @if (LunaUi.PublicAiBlockAvailable)
-                    {
-                        <a class="btn btn-ghost" href="/websites">@L["Luna.Child.OpenWebsites"]</a>
-                    }
-                    else
-                    {
-                        <button type="button" class="btn btn-ghost" disabled>@L["Luna.Common.ComingSoon"]</button>
-                    }
+                    <a class="btn btn-ghost" href="/websites#category-ai">@L["Luna.Child.OpenWebsites"]</a>
                 </div>
                 <label class="check-row">
                     <input type="checkbox" @bind="_dontShow" @bind:after="SaveDontShowAsync" data-autofocus />

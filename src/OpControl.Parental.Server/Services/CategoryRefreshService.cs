@@ -57,6 +57,15 @@ public sealed class CategoryRefreshService : BackgroundService
         var client = _httpFactory.CreateClient("categories");
         client.Timeout = TimeSpan.FromMinutes(2);
 
+        try
+        {
+            await RefreshAiAsync(db, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "AI category refresh failed; keeping the previous version");
+        }
+
         foreach (var (key, name, url) in Sources)
         {
             List<string> domains;
@@ -117,6 +126,15 @@ public sealed class CategoryRefreshService : BackgroundService
             await db.SaveChangesAsync(ct);
             _logger.LogInformation("Category {Category} v{Version}: {Active} domains (+{Added} / -{Removed})", key, newVersion, target.Count, added, removed);
         }
+    }
+
+    private async Task RefreshAiAsync(ParentalDbContext db, CancellationToken ct)
+    {
+        var build = AiCategoryCatalog.BuildDefault();
+        var version = await AiCategoryCatalog.ApplyAsync(db, build, AiCategoryCatalog.Current.Version, ct);
+        _logger.LogInformation(
+            "Category {Category} v{Version}: {Active} domains from {Entries} entries ({Excluded} excluded)",
+            AiCategoryCatalog.Key, version, build.Domains.Count, build.Entries.Count, build.Excluded.Count);
     }
 
     private static List<string> ParseHosts(string text)

@@ -11,6 +11,7 @@ public static class CategoryText
         "gambling" => AppText.Get("Category.Gambling", language),
         "social" => AppText.Get("Category.Social", language),
         "fakenews" => AppText.Get("Category.FakeNews", language),
+        "ai" => AppText.Get("Category.Ai", language),
         _ => fallback
     };
 }
