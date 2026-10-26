@@ -125,6 +125,18 @@ public class Job185HotfixTests
         Assert.False(LunaProcessPolicy.ShouldStop(moon, 2), "processes in another session are not ours");
         Assert.False(LunaProcessPolicy.IsKidCommandLine(null));
         Assert.True(LunaProcessPolicy.IsMoonCommandLine(null));
+
+        // Both modes running at the same time: the moon is running, the kid
+        // window is untouched, and only the moon is a stop target.
+        var both = new[] { moon, kid, other };
+        Assert.True(both.Any(p => LunaProcessPolicy.CountsAsRunningMoon(p, 1)));
+        var targets = both.Where(p => LunaProcessPolicy.ShouldStop(p, 1)).ToList();
+        Assert.Single(targets);
+        Assert.Equal(moon, targets[0]);
+        Assert.DoesNotContain(both.Where(p => p != moon),
+            p => LunaProcessPolicy.CountsAsRunningMoon(p, 1));
+        Assert.DoesNotContain(new[] { kid }, p => LunaProcessPolicy.CountsAsRunningMoon(p, 1));
+        Assert.Empty(new[] { kid }.Where(p => LunaProcessPolicy.ShouldStop(p, 1)));
     }
 
     [Fact]
