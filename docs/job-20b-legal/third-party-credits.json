@@ -1,0 +1,558 @@
+{
+  "generatedFrom": "project.assets.json",
+  "components": [
+    {
+      "name": "Avalonia",
+      "version": "12.1.4",
+      "license": "MIT",
+      "copyright": "Copyright 2013-2026 \u00A9 The AvaloniaUI Project",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Avalonia.Angle.Windows.Natives",
+      "version": "2.1.27548.20260419",
+      "license": "BSD-3-Clause",
+      "copyright": "Copyright 2013-2026 \u00A9 The AvaloniaUI Project",
+      "licenseUrl": "https://aka.ms/deprecateLicenseUrl"
+    },
+    {
+      "name": "Avalonia.Desktop",
+      "version": "12.1.4",
+      "license": "MIT",
+      "copyright": "Copyright 2013-2026 \u00A9 The AvaloniaUI Project",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Avalonia.FreeDesktop",
+      "version": "12.1.4",
+      "license": "MIT",
+      "copyright": "Copyright 2013-2026 \u00A9 The AvaloniaUI Project",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Avalonia.FreeDesktop.AtSpi",
+      "version": "12.1.4",
+      "license": "MIT",
+      "copyright": "Copyright 2013-2026 \u00A9 The AvaloniaUI Project",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Avalonia.HarfBuzz",
+      "version": "12.1.4",
+      "license": "MIT",
+      "copyright": "Copyright 2013-2026 \u00A9 The AvaloniaUI Project",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Avalonia.Native",
+      "version": "12.1.4",
+      "license": "MIT",
+      "copyright": "Copyright 2013-2026 \u00A9 The AvaloniaUI Project",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Avalonia.Remote.Protocol",
+      "version": "12.1.4",
+      "license": "MIT",
+      "copyright": "Copyright 2013-2026 \u00A9 The AvaloniaUI Project",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Avalonia.Skia",
+      "version": "12.1.4",
+      "license": "MIT",
+      "copyright": "Copyright 2013-2026 \u00A9 The AvaloniaUI Project",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Avalonia.Themes.Fluent",
+      "version": "12.1.4",
+      "license": "MIT",
+      "copyright": "Copyright 2013-2026 \u00A9 The AvaloniaUI Project",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Avalonia.Win32",
+      "version": "12.1.4",
+      "license": "MIT",
+      "copyright": "Copyright 2013-2026 \u00A9 The AvaloniaUI Project",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Avalonia.X11",
+      "version": "12.1.4",
+      "license": "MIT",
+      "copyright": "Copyright 2013-2026 \u00A9 The AvaloniaUI Project",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Fredoka (font)",
+      "version": "",
+      "license": "SIL OFL 1.1",
+      "copyright": null,
+      "licenseUrl": "https://openfontlicense.org"
+    },
+    {
+      "name": "HarfBuzzSharp",
+      "version": "8.3.1.3",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "HarfBuzzSharp.NativeAssets.Linux",
+      "version": "8.3.1.3",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "HarfBuzzSharp.NativeAssets.macOS",
+      "version": "8.3.1.3",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "HarfBuzzSharp.NativeAssets.WebAssembly",
+      "version": "8.3.1.3",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "HarfBuzzSharp.NativeAssets.Win32",
+      "version": "8.3.1.3",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "IBM Plex Mono (font)",
+      "version": "",
+      "license": "SIL OFL 1.1",
+      "copyright": null,
+      "licenseUrl": "https://openfontlicense.org"
+    },
+    {
+      "name": "LiveMarkdown.Avalonia",
+      "version": "2.5.1",
+      "license": "Apache-2.0",
+      "copyright": "Copyright 2025-2026 DearVa",
+      "licenseUrl": "https://licenses.nuget.org/Apache-2.0"
+    },
+    {
+      "name": "LiveMarkdown.Avalonia.Math",
+      "version": "2.5.1",
+      "license": "Apache-2.0",
+      "copyright": "Copyright 2025-2026 DearVa",
+      "licenseUrl": "https://licenses.nuget.org/Apache-2.0"
+    },
+    {
+      "name": "Manrope (font)",
+      "version": "",
+      "license": "SIL OFL 1.1",
+      "copyright": null,
+      "licenseUrl": "https://openfontlicense.org"
+    },
+    {
+      "name": "Markdig",
+      "version": "1.1.2",
+      "license": "BSD-2-Clause",
+      "copyright": "Alexandre Mutel",
+      "licenseUrl": "https://licenses.nuget.org/BSD-2-Clause"
+    },
+    {
+      "name": "MicroCom.Runtime",
+      "version": "0.11.6",
+      "license": "MIT",
+      "copyright": "Copyright 2021 \u00A9 Nikita Tsukanov",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.AspNetCore.Connections.Abstractions",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.AspNetCore.Http.Connections.Client",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.AspNetCore.Http.Connections.Common",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.AspNetCore.SignalR.Client",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.AspNetCore.SignalR.Client.Core",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.AspNetCore.SignalR.Common",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.AspNetCore.SignalR.Protocols.Json",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Configuration",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Configuration.Abstractions",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Configuration.Binder",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Configuration.CommandLine",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Configuration.EnvironmentVariables",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Configuration.FileExtensions",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Configuration.Json",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Configuration.UserSecrets",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.DependencyInjection",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.DependencyInjection.Abstractions",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Diagnostics",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Diagnostics.Abstractions",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Features",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.FileProviders.Abstractions",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.FileProviders.Physical",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.FileSystemGlobbing",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Hosting",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Hosting.Abstractions",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Hosting.WindowsServices",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Http",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Logging",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Logging.Abstractions",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Logging.Configuration",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Logging.Console",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Logging.Debug",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Logging.EventLog",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Logging.EventSource",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Options",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Options.ConfigurationExtensions",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Microsoft.Extensions.Primitives",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Nunito (font)",
+      "version": "",
+      "license": "SIL OFL 1.1",
+      "copyright": null,
+      "licenseUrl": "https://openfontlicense.org"
+    },
+    {
+      "name": "Onigwrap",
+      "version": "1.0.9",
+      "license": "MIT",
+      "copyright": "Copyright (c) 2024 Aikawa Yataro",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "OpenCvSharp4",
+      "version": "4.10.0.20241108",
+      "license": "Apache-2.0",
+      "copyright": "Copyright 2008-2020",
+      "licenseUrl": "https://licenses.nuget.org/Apache-2.0"
+    },
+    {
+      "name": "OpenCvSharp4.runtime.win",
+      "version": "4.10.0.20241108",
+      "license": "Apache-2.0",
+      "copyright": "Copyright 2008-2020",
+      "licenseUrl": "https://licenses.nuget.org/Apache-2.0"
+    },
+    {
+      "name": "RaTeX",
+      "version": "1.0.0",
+      "license": "MIT",
+      "copyright": "Copyright (c) 2026 Sylinko",
+      "licenseUrl": "https://aka.ms/deprecateLicenseUrl"
+    },
+    {
+      "name": "RaTeX.Avalonia",
+      "version": "1.0.0",
+      "license": "MIT",
+      "copyright": "Copyright (c) 2026 Sylinko",
+      "licenseUrl": "https://aka.ms/deprecateLicenseUrl"
+    },
+    {
+      "name": "SkiaSharp",
+      "version": "3.119.4",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "SkiaSharp.NativeAssets.Linux",
+      "version": "3.119.4",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "SkiaSharp.NativeAssets.macOS",
+      "version": "3.119.4",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "SkiaSharp.NativeAssets.WebAssembly",
+      "version": "3.119.4",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "SkiaSharp.NativeAssets.Win32",
+      "version": "3.119.4",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "System.CodeDom",
+      "version": "10.0.0",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "System.Diagnostics.EventLog",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "System.Management",
+      "version": "10.0.0",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "System.ServiceProcess.ServiceController",
+      "version": "10.0.13",
+      "license": "MIT",
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "TextMateSharp",
+      "version": "2.0.0",
+      "license": "MIT",
+      "copyright": "Daniel Pe\u00F1alba",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "TextMateSharp.Grammars",
+      "version": "2.0.0",
+      "license": "MIT",
+      "copyright": "Daniel Pe\u00F1alba",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    },
+    {
+      "name": "Tmds.DBus.Protocol",
+      "version": "0.94.1",
+      "license": "MIT",
+      "copyright": "Tom Deseyn",
+      "licenseUrl": "https://licenses.nuget.org/MIT"
+    }
+  ]
+}
