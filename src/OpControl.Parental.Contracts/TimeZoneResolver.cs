@@ -34,6 +34,14 @@ public static class TimeZoneResolver
         if (string.Equals(value, "UTC", StringComparison.OrdinalIgnoreCase)
             || string.Equals(value, "Etc/UTC", StringComparison.OrdinalIgnoreCase))
             return "UTC";
+        // Windows Mexico zones cover several IANA zones; pin the stable choice
+        // so Linux hosts with different tzdata versions agree.
+        switch (value)
+        {
+            case "US Mountain Standard Time": return "America/Phoenix";
+            case "Mountain Standard Time (Mexico)": return "America/Chihuahua";
+            case "Central Standard Time (Mexico)": return "America/Mexico_City";
+        }
         if (TimeZoneInfo.TryConvertWindowsIdToIanaId(value, out var iana) && !string.IsNullOrWhiteSpace(iana))
             return iana;
         try { return TimeZoneInfo.FindSystemTimeZoneById(value).Id; }
