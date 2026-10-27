@@ -24,7 +24,8 @@ Graphics 520, driver 20.19.15.4474):
   **2026-10-27 01:30 UTC** (2026-10-26 18:30 PDT), `OpControlParental-0.17.13.msi`,
   `msiexec` exit 0, service healthy. There is no 0.17.14/0.17.15/0.17.16 entry.
 - Job 19i (the in-place kid-view refresh) published **2026-10-27 15:34 UTC**, so
-  the Yoga never received that fix. It was 7 hours late at the time of the report.
+  the Yoga's last update predates that fix by about 14 hours and it never
+  received it.
 - Processes at the time of the check: one Client (session 0), one Helper and one
   Luna (session 1), all started at 01:30 UTC from the 0.17.13 install; a second
   Luna existed only while a My OpControl kid window was open at 20:48 UTC. No
