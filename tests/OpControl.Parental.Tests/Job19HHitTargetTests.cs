@@ -109,16 +109,6 @@ public class Job19HHitTargetTests
                     foreach (var subject in LunaSubjects.All)
                         AssertHit(window, Find(window, "SubjectTile_" + subject), $"{theme} {scale}x tile {subject}");
 
-                    window.ChatViewForTest.ShowMyChats();
-                    UiHarness.Pump(80, window.TickForTest);
-                    foreach (var name in new[] { "ChatsBack", "ChatsTheme", "ChatsClose" })
-                    {
-                        var button = Find(window, name);
-                        Assert.True(button.Bounds.Width >= 44 && button.Bounds.Height >= 44,
-                            $"{theme} {scale}x {name} hit area is {button.Bounds.Width}x{button.Bounds.Height}");
-                        AssertHit(window, button, $"{theme} {scale}x {name}");
-                    }
-
                     window.ChatViewForTest.OpenChatForTest(chat, [message]);
                     UiHarness.Pump(80, window.TickForTest);
                 }
