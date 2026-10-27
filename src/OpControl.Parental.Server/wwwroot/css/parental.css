@@ -976,3 +976,17 @@ body:has(.legal-text) .auth-card { width: min(880px, 100%); }
     .remote-actions { justify-content: flex-start; }
     .device-gauges-faded { justify-content: space-between; gap: 8px; }
 }
+
+@media (max-width: 900px) {
+    .remote-device-card {
+        display: grid;
+        grid-template-columns: 40px minmax(0, 1fr);
+        grid-template-areas: "icon main" "actions actions";
+        align-items: center;
+        row-gap: 10px;
+    }
+    .remote-device-card > .device-icon { grid-area: icon; }
+    .remote-device-card > .device-main { grid-area: main; }
+    .remote-device-card > .remote-actions { grid-area: actions; margin-left: 0; justify-content: stretch; }
+    .remote-device-card > .remote-actions .btn { flex: 1 1 0; }
+}
