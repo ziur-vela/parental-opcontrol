@@ -99,6 +99,8 @@ public class ParentalDbContext : IdentityDbContext<ParentUser, IdentityRole<Guid
             e.Property(x => x.Platform).HasConversion<string>().HasMaxLength(16);
             e.Property(x => x.OsVersion).HasMaxLength(120);
             e.Property(x => x.TimeZoneId).HasMaxLength(80).IsRequired();
+            e.Property(x => x.ReportedTimeZoneId).HasMaxLength(80);
+            e.Property(x => x.TimeZoneOverrideId).HasMaxLength(80);
             e.Property(x => x.CameraNoticeEnabled).HasDefaultValue(true);
             e.Property(x => x.NotifyOffline).HasDefaultValue(true);
             e.Property(x => x.ClientLanguage).HasMaxLength(16);
@@ -322,6 +324,7 @@ public class ParentalDbContext : IdentityDbContext<ParentUser, IdentityRole<Guid
             e.Property(x => x.SmtpPasswordProtected).HasMaxLength(1024);
             e.Property(x => x.FromAddress).HasMaxLength(255);
             e.Property(x => x.NoticeText).HasMaxLength(80).IsRequired().HasDefaultValue("Parent's watching you");
+            e.Property(x => x.TimeZoneId).HasMaxLength(80);
             e.Property(x => x.RepeatedBlockAlertHours).HasDefaultValue(6);
         });
 

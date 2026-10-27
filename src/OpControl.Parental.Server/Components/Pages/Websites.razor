@@ -625,8 +625,7 @@ else
 
             var childId = child.Id;
             var childName = child.Name;
-            var timeZoneId = await db.Devices.AsNoTracking()
-                .Where(d => d.ChildId == childId).Select(d => d.TimeZoneId).FirstOrDefaultAsync() ?? "UTC";
+            var timeZoneId = (await DashboardTime.FamilyZoneInfoAsync(db, _familyId)).Zone.Id;
             var tz = ResolveTimeZone(timeZoneId);
             if (_date == default)
             {

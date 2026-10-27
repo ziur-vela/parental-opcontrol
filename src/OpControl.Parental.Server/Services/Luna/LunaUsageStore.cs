@@ -21,15 +21,8 @@ public sealed class LunaUsageStore
     public static DateOnly LocalDate(DateTime utcNow, TimeZoneInfo tz) =>
         DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utcNow, tz));
 
-    public async Task<string?> FamilyTimeZoneIdAsync(Guid familyId, Guid childId, CancellationToken ct = default) =>
-        await _db.Devices.AsNoTracking()
-            .Where(d => d.FamilyId == familyId && d.ChildId == childId)
-            .Select(d => d.TimeZoneId)
-            .FirstOrDefaultAsync(ct)
-        ?? await _db.Devices.AsNoTracking()
-            .Where(d => d.FamilyId == familyId)
-            .Select(d => d.TimeZoneId)
-            .FirstOrDefaultAsync(ct);
+    public Task<string?> FamilyTimeZoneIdAsync(Guid familyId, Guid childId, CancellationToken ct = default) =>
+        DashboardTime.FamilyZoneIdAsync(_db, familyId, ct);
 
     public async Task<LunaUsageDay> EnsureAsync(Guid familyId, Guid childId, DateOnly date, CancellationToken ct = default)
     {

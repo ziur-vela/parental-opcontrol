@@ -351,7 +351,7 @@ else
         _state = await locks.GetStateAsync(_familyId, _childId, null);
         _hasPin = await locks.HasPinAsync(_familyId, _childId);
 
-        _timeZoneId = await db.Devices.AsNoTracking().Where(d => d.ChildId == _childId).Select(d => d.TimeZoneId).FirstOrDefaultAsync() ?? "UTC";
+        _timeZoneId = (await DashboardTime.FamilyZoneInfoAsync(db, _familyId)).Zone.Id;
         var tz = TimeZoneResolver.Resolve(_timeZoneId);
         var now = DateTime.UtcNow;
         var daily = await usage.BuildDailyLimitAsync(_familyId, _childId, tz, now);

@@ -56,6 +56,8 @@ public class Device
     public DevicePlatform Platform { get; set; } = DevicePlatform.Windows;
     public string? OsVersion { get; set; }
     public string TimeZoneId { get; set; } = "UTC";
+    public string? ReportedTimeZoneId { get; set; }
+    public string? TimeZoneOverrideId { get; set; }
     public DateTime EnrolledUtc { get; set; } = DateTime.UtcNow;
     public DateTime? LastSeenUtc { get; set; }
     public string? CredentialHash { get; set; }
@@ -368,6 +370,7 @@ public class FamilySettings
     public int InstallLinkMinutes { get; set; } = 1440;
     public int RepeatedBlockAlertHours { get; set; } = 6;
     public string NoticeText { get; set; } = "Parent's watching you";
+    public string? TimeZoneId { get; set; }
     public DateTime UpdatedUtc { get; set; } = DateTime.UtcNow;
 }
 

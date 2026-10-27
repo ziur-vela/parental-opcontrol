@@ -47,18 +47,25 @@
     }
     else
     {
-        <div class="device-list">
+        <div class="device-list remote-device-list">
             @foreach (var device in _devices)
             {
-                <div class="device-row">
-                    <span class="status-dot @(device.Online ? "online" : "offline")"></span>
+                <div class="device-card remote-device-card" @key="device.DeviceId">
+                    <DeviceIcon Platform="@device.Platform" Online="@device.Online" />
                     <div class="device-main">
-                        <div class="device-name">@device.Name</div>
+                        <div class="device-name-row">
+                            <span class="device-name">@device.Name</span>
+                            <span class="os-label">@DevicePresentation.OsLabel(device.Platform)</span>
+                        </div>
                         <div class="muted tiny">@device.ChildName · @(device.Online ? L["Common.Online"] : L["Common.Offline"])</div>
                     </div>
-                    <div class="device-meta">
-                        <button class="btn btn-ghost" disabled="@(!device.Online || _starting)" @onclick="() => StartAsync(device, RemoteSessionKind.Screen)">@L["Remote.ViewScreen"]</button>
-                        <button class="btn btn-ghost" disabled="@(!device.Online || _starting)" @onclick="() => StartAsync(device, RemoteSessionKind.Camera)">@L["Remote.ViewCamera"]</button>
+                    <div class="device-meta remote-actions">
+                        <button class="btn btn-ghost" disabled="@(!DevicePresentation.CanStartRemote(device.Online) || _starting)"
+                                title="@(device.Online ? null : L["Remote.DeviceOffline"].Value)"
+                                @onclick="() => StartAsync(device, RemoteSessionKind.Screen)">@L["Remote.ViewScreen"]</button>
+                        <button class="btn btn-ghost" disabled="@(!DevicePresentation.CanStartRemote(device.Online) || _starting)"
+                                title="@(device.Online ? null : L["Remote.DeviceOffline"].Value)"
+                                @onclick="() => StartAsync(device, RemoteSessionKind.Camera)">@L["Remote.ViewCamera"]</button>
                     </div>
                 </div>
             }
@@ -105,7 +112,7 @@
 }
 
 @code {
-    private sealed record DeviceRow(Guid DeviceId, string Name, string ChildName, bool Online);
+    private sealed record DeviceRow(Guid DeviceId, string Name, string ChildName, DevicePlatform Platform, bool Online);
     private sealed record ConsentStatus(bool Accepted, int Version, string Text);
     private List<DeviceRow> _devices = [];
     private bool _active;
@@ -128,9 +135,9 @@
         var rows = await db.Devices.AsNoTracking()
             .Where(d => d.FamilyId == familyId)
             .OrderBy(d => d.Name)
-            .Join(db.Children.AsNoTracking(), d => d.ChildId, c => c.Id, (d, c) => new { d.Id, d.Name, ChildName = c.Name })
+            .Join(db.Children.AsNoTracking(), d => d.ChildId, c => c.Id, (d, c) => new { d.Id, d.Name, d.Platform, ChildName = c.Name })
             .ToListAsync();
-        _devices = rows.Select(d => new DeviceRow(d.Id, d.Name, d.ChildName, Presence.IsOnline(d.Id))).ToList();
+        _devices = rows.Select(d => new DeviceRow(d.Id, d.Name, d.ChildName, d.Platform, Presence.IsOnline(d.Id))).ToList();
         try
         {
             var status = await JS.InvokeAsync<ConsentStatus>("ocpRemote.getConsent");

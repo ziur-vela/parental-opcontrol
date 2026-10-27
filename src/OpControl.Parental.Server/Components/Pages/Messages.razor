@@ -195,11 +195,7 @@ else
                 .Where(c => c.Id == _childId && c.FamilyId == _familyId)
                 .Select(c => c.Name)
                 .FirstOrDefaultAsync() ?? "";
-            _timeZoneId = await db.Devices.AsNoTracking()
-                .Where(d => d.FamilyId == _familyId && d.ChildId == _childId)
-                .OrderBy(d => d.EnrolledUtc)
-                .Select(d => d.TimeZoneId)
-                .FirstOrDefaultAsync() ?? "UTC";
+            _timeZoneId = (await DashboardTime.FamilyZoneInfoAsync(db, _familyId)).Zone.Id;
             _devices = await db.Devices.AsNoTracking()
                 .Where(d => d.FamilyId == _familyId && d.ChildId == _childId && !d.IsRevoked)
                 .OrderBy(d => d.Name)

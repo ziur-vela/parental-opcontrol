@@ -138,7 +138,7 @@ public class LocalizationTests
             "Luna.Model.Name.Haiku55", "Luna.Model.Name.Gpt56Luna",
             "Luna.Model.Name.Gemini35FlashLite", "Luna.Model.Name.Sonnet55",
             "Luna.Setup.Check.Chat", "Luna.Setup.Check.Ok", "Luna.Alias",
-            "Luna.Welcome.How.Windows"
+            "Luna.Welcome.How.Windows", "Device.Icon.Aria", "Devices.Cpu", "Devices.Ram"
         };
         Assert.All(identical, key => Assert.Contains(key, allowed));
     }

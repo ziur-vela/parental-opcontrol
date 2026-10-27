@@ -1506,4 +1506,24 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Websites.SubdomainMany" xml:space="preserve"><value>{0} subdominios</value></data>
   <data name="Websites.HideSubdomains" xml:space="preserve"><value>Ocultar subdominios</value></data>
   <data name="Devices.NotifyOffline" xml:space="preserve"><value>Avisarme cuando este dispositivo se desconecte</value></data>
+  <data name="Device.Icon.Laptop" xml:space="preserve"><value>Portátil</value></data>
+  <data name="Device.Icon.Phone" xml:space="preserve"><value>Teléfono</value></data>
+  <data name="Device.Icon.Aria" xml:space="preserve"><value>{0}, {1}</value></data>
+  <data name="Devices.TimeZoneAutomatic" xml:space="preserve"><value>Automática · desde el dispositivo: {0}</value></data>
+  <data name="Devices.SystemResources" xml:space="preserve"><value>Recursos del sistema</value></data>
+  <data name="Common.ComingSoon" xml:space="preserve"><value>Próximamente</value></data>
+  <data name="Devices.Cpu" xml:space="preserve"><value>CPU</value></data>
+  <data name="Devices.Ram" xml:space="preserve"><value>RAM</value></data>
+  <data name="Devices.Storage" xml:space="preserve"><value>Almacenamiento</value></data>
+  <data name="Devices.UpdateUpToDate" xml:space="preserve"><value>actualización al día</value></data>
+  <data name="Remote.DeviceOffline" xml:space="preserve"><value>El dispositivo está desconectado</value></data>
+  <data name="Settings.FamilyTimeZone" xml:space="preserve"><value>Zona horaria de la familia</value></data>
+  <data name="Settings.FamilyTimeZoneBadge" xml:space="preserve"><value>Límites del día</value></data>
+  <data name="Settings.FamilyTimeZoneHelp" xml:space="preserve"><value>Los límites del día y las horas del panel usan esta zona. Automática sigue el dispositivo visto más recientemente.</value></data>
+  <data name="Settings.FamilyTimeZoneAutomatic" xml:space="preserve"><value>Automática · desde {0}: {1}</value></data>
+  <data name="Settings.FamilyTimeZoneUsed" xml:space="preserve"><value>Se usa para días y horas</value></data>
+  <data name="Settings.FamilyTimeZoneUsedAuto" xml:space="preserve"><value>Usando automática: {0} (desde {1})</value></data>
+  <data name="Settings.FamilyTimeZoneUsedExplicit" xml:space="preserve"><value>Usando explícita: {0}</value></data>
+  <data name="Device.Icon.Online" xml:space="preserve"><value>en línea</value></data>
+  <data name="Device.Icon.Offline" xml:space="preserve"><value>desconectado</value></data>
 </root>

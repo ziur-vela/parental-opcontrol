@@ -1598,10 +1598,9 @@ app.MapPost("/api/devices/{deviceId:guid}/timezone", async (Guid deviceId, Devic
     await family.RequireAsync(ParentPermissions.ManageDevices, ct);
     var device = await db.Devices.FirstOrDefaultAsync(d => d.Id == deviceId && d.FamilyId == family.FamilyId, ct);
     if (device is null) return Results.NotFound(new { error = AppText.Get("Error.DeviceNotFoundFamily") });
-    var zone = TimeZoneResolver.Resolve(request.TimeZoneId);
-    device.TimeZoneId = zone.Id;
+    DeviceTimeZonePolicy.ApplyOverride(device, request.TimeZoneId);
     await db.SaveChangesAsync(ct);
-    return Results.Ok(new { ok = true, timeZoneId = zone.Id });
+    return Results.Ok(new { ok = true, timeZoneId = device.TimeZoneId, overrideId = device.TimeZoneOverrideId });
 }).RequireAuthorization();
 
 app.Run();
@@ -1644,7 +1643,7 @@ public sealed record CoParentInviteRequest(string? Email, ParentPermissions Perm
 public sealed record ServerInviteRequest(string? Email, string? FamilyName);
 public sealed record DeleteFamilyRequest(string? FamilyName, string? Confirmation);
 public sealed record ServerSmtpRequest(string? Host, int Port, bool UseSsl, string? Username, string? Password, string? FromAddress, string? FromName);
-public sealed record DeviceTimeZoneRequest(string TimeZoneId);
+public sealed record DeviceTimeZoneRequest(string? TimeZoneId);
 public sealed record DeviceNoticeRequest(bool ScreenNotice, bool CameraNotice, bool HasCameraLightOrShutter);
 public sealed record RemoteSessionCreateRequest(Guid DeviceId, RemoteSessionKind Kind);
 public sealed record CameraConsentAcceptRequest(bool Accepted, int Version);

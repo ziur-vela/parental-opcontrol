@@ -127,7 +127,7 @@ else
         if (child is null) { _childId = Guid.Empty; return; }
         _childId = child.Id;
         _childName = child.Name;
-        _timeZoneId = await db.Devices.AsNoTracking().Where(d => d.ChildId == child.Id).Select(d => d.TimeZoneId).FirstOrDefaultAsync() ?? "UTC";
+        _timeZoneId = (await DashboardTime.FamilyZoneInfoAsync(db, _familyId)).Zone.Id;
         var alerts = scope.ServiceProvider.GetRequiredService<AlertService>();
         _unread = await alerts.UnreadCountAsync(_familyId, _childId);
         _alerts = await alerts.GetAlertsAsync(_familyId, _childId, 200, _unreadOnly);

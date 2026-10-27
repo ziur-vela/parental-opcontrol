@@ -805,11 +805,19 @@ namespace OpControl.Parental.Server.Data.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
+                    b.Property<string>("ReportedTimeZoneId")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
                     b.Property<bool>("ScreenNoticeEnabled")
                         .HasColumnType("boolean");
 
                     b.Property<string>("TimeZoneId")
                         .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("TimeZoneOverrideId")
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
 
@@ -1038,6 +1046,10 @@ namespace OpControl.Parental.Server.Data.Migrations
                     b.Property<string>("SmtpUsername")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
+
+                    b.Property<string>("TimeZoneId")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
 
                     b.Property<DateTime>("UpdatedUtc")
                         .HasColumnType("timestamp with time zone");

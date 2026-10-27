@@ -102,8 +102,7 @@ public sealed class DevicePresenceService
         var deviceUtc = utc.Kind == DateTimeKind.Utc ? utc : utc.ToUniversalTime();
         var skew = deviceUtc - DateTime.UtcNow;
         device.LastSeenUtc = deviceUtc;
-        if (!string.IsNullOrWhiteSpace(timeZoneId) && device.TimeZoneId != timeZoneId)
-            device.TimeZoneId = timeZoneId!;
+        DeviceTimeZonePolicy.ApplyReported(device, timeZoneId);
         if (!string.IsNullOrWhiteSpace(clientVersion) && device.ClientVersion != clientVersion)
             device.ClientVersion = clientVersion;
         await db.SaveChangesAsync();

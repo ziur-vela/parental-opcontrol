@@ -304,7 +304,7 @@ public sealed class PushService
     {
         var pref = await _db.AlertPreferences.AsNoTracking().FirstOrDefaultAsync(p => p.FamilyId == familyId, ct);
         if (pref is null || pref.QuietStartMinutes == pref.QuietEndMinutes) return false;
-        var tzId = await _db.Devices.AsNoTracking().Where(d => d.FamilyId == familyId).Select(d => d.TimeZoneId).FirstOrDefaultAsync(ct);
+        var tzId = await DashboardTime.FamilyZoneIdAsync(_db, familyId, ct);
         var local = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneResolver.Resolve(tzId));
         var minutes = local.Hour * 60 + local.Minute;
         return pref.QuietStartMinutes < pref.QuietEndMinutes

@@ -932,3 +932,45 @@ body:has(.legal-text) .auth-card { width: min(880px, 100%); }
 .subdomain-toggle:hover { color: var(--ink); }
 .rule-row.subdomain-row { padding-left: 20px; border-left: 2px solid var(--line-2); }
 .rule-row.subdomain-row .rule-title { font-weight: 500; }
+
+/* Job 19k: device icons, tidy device cards, gauges and remote rows */
+.device-list { gap: 12px; }
+.device-card { border: 1px solid var(--line); background: var(--panel-2); padding: 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.device-card-head { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.device-icon { width: 40px; height: 40px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid; flex: 0 0 40px; }
+.device-icon.online { color: #3ddc97; background: rgba(61, 220, 151, .12); border-color: rgba(61, 220, 151, .45); }
+.device-icon.offline { color: #ff8f80; background: rgba(255, 143, 128, .12); border-color: rgba(255, 143, 128, .45); }
+.device-head-main { flex: 1; min-width: 0; }
+.device-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.os-label { font-family: var(--mono); font-size: 9px; letter-spacing: .14em; border: 1px solid var(--line-2); padding: 2px 6px; color: var(--muted); white-space: nowrap; }
+.device-subline { display: flex; flex-wrap: wrap; gap: 4px; font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: .02em; margin-top: 4px; }
+.device-head-status { text-align: right; margin-left: auto; white-space: nowrap; }
+.state-online { color: #3ddc97; font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+.state-offline { color: #ff8f80; font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+.device-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.device-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+.system-resources { border: 1px dashed var(--line-2); padding: 14px; }
+.system-resources-head { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 10px; }
+.pill-amber { display: inline-flex; align-items: center; border: 1px solid color-mix(in srgb, var(--warn) 55%, var(--line)); background: var(--warn-soft); color: var(--warn); border-radius: 0; padding: 2px 7px; font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; }
+.device-gauges-faded { display: flex; gap: 20px; flex-wrap: wrap; opacity: .5; }
+.device-gauge { text-align: center; min-width: 96px; }
+.device-gauge-ring { position: relative; width: 96px; height: 96px; margin: 0 auto; }
+.device-gauge-ring svg { display: block; }
+.device-gauge-track { fill: none; stroke: #1f3a33; stroke-width: 9; stroke-linecap: round; }
+.device-gauge-value { fill: none; stroke: #3ddc97; stroke-width: 9; stroke-linecap: round; }
+.device-gauge-value.amber { stroke: var(--warn); }
+.device-gauge-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-weight: 600; font-size: 16px; color: var(--text); }
+.device-gauge-label { font-family: var(--mono); font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+.device-gauge-caption { font-size: 10px; color: var(--muted); }
+.device-card-foot { display: flex; gap: 8px; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 12px; flex-wrap: wrap; }
+.remote-device-card { flex-direction: row; align-items: center; gap: 12px; }
+.remote-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.remote-actions .btn:disabled { opacity: .45; }
+@media (max-width: 700px) {
+    .device-card-grid, .device-checks { grid-template-columns: 1fr; }
+    .device-card-head { flex-wrap: wrap; }
+    .device-head-status { margin-left: 0; text-align: left; }
+    .remote-device-card { flex-wrap: wrap; }
+    .remote-actions { justify-content: flex-start; }
+    .device-gauges-faded { justify-content: space-between; gap: 8px; }
+}

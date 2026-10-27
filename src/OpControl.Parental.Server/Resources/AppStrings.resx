@@ -1506,4 +1506,24 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Websites.SubdomainMany" xml:space="preserve"><value>{0} subdomains</value></data>
   <data name="Websites.HideSubdomains" xml:space="preserve"><value>Hide subdomains</value></data>
   <data name="Devices.NotifyOffline" xml:space="preserve"><value>Notify me when this device goes offline</value></data>
+  <data name="Device.Icon.Laptop" xml:space="preserve"><value>Laptop</value></data>
+  <data name="Device.Icon.Phone" xml:space="preserve"><value>Phone</value></data>
+  <data name="Device.Icon.Aria" xml:space="preserve"><value>{0}, {1}</value></data>
+  <data name="Devices.TimeZoneAutomatic" xml:space="preserve"><value>Automatic · from device: {0}</value></data>
+  <data name="Devices.SystemResources" xml:space="preserve"><value>System resources</value></data>
+  <data name="Common.ComingSoon" xml:space="preserve"><value>Coming soon</value></data>
+  <data name="Devices.Cpu" xml:space="preserve"><value>CPU</value></data>
+  <data name="Devices.Ram" xml:space="preserve"><value>RAM</value></data>
+  <data name="Devices.Storage" xml:space="preserve"><value>Storage</value></data>
+  <data name="Devices.UpdateUpToDate" xml:space="preserve"><value>update up to date</value></data>
+  <data name="Remote.DeviceOffline" xml:space="preserve"><value>Device is offline</value></data>
+  <data name="Settings.FamilyTimeZone" xml:space="preserve"><value>Family time zone</value></data>
+  <data name="Settings.FamilyTimeZoneBadge" xml:space="preserve"><value>Day boundaries</value></data>
+  <data name="Settings.FamilyTimeZoneHelp" xml:space="preserve"><value>Day boundaries and times across the dashboard use this zone. Automatic follows the device that was seen most recently.</value></data>
+  <data name="Settings.FamilyTimeZoneAutomatic" xml:space="preserve"><value>Automatic · from {0}: {1}</value></data>
+  <data name="Settings.FamilyTimeZoneUsed" xml:space="preserve"><value>Used for days and times</value></data>
+  <data name="Settings.FamilyTimeZoneUsedAuto" xml:space="preserve"><value>Using automatic: {0} (from {1})</value></data>
+  <data name="Settings.FamilyTimeZoneUsedExplicit" xml:space="preserve"><value>Using explicit: {0}</value></data>
+  <data name="Device.Icon.Online" xml:space="preserve"><value>online</value></data>
+  <data name="Device.Icon.Offline" xml:space="preserve"><value>offline</value></data>
 </root>

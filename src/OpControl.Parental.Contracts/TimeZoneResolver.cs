@@ -25,4 +25,30 @@ public static class TimeZoneResolver
         }
         return TimeZoneInfo.Utc;
     }
+
+    /// <summary>Converts a Windows zone id to IANA (e.g. US Mountain Standard Time -> America/Phoenix).</summary>
+    public static string ToIanaId(string? id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return "UTC";
+        var value = id.Trim();
+        if (string.Equals(value, "UTC", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "Etc/UTC", StringComparison.OrdinalIgnoreCase))
+            return "UTC";
+        if (TimeZoneInfo.TryConvertWindowsIdToIanaId(value, out var iana) && !string.IsNullOrWhiteSpace(iana))
+            return iana;
+        try { return TimeZoneInfo.FindSystemTimeZoneById(value).Id; }
+        catch { return "UTC"; }
+    }
+
+    /// <summary>The Windows/system display name for a reported id, used by the Automatic option.</summary>
+    public static string DisplayName(string? id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return "UTC";
+        var value = id.Trim();
+        try { return TimeZoneInfo.FindSystemTimeZoneById(value).DisplayName; }
+        catch { }
+        var iana = ToIanaId(value);
+        try { return TimeZoneInfo.FindSystemTimeZoneById(iana).DisplayName; }
+        catch { return value; }
+    }
 }

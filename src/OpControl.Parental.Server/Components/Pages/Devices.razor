@@ -43,71 +43,97 @@
         <div class="device-list">
             @foreach (var device in _devices)
             {
-                <div class="device-row">
-                    <span class="status-dot @(device.Online ? "online" : "offline")"></span>
-                    <div class="device-main">
-                        <div class="device-name">@device.Name</div>
-                        <div class="muted tiny">@PlatformName(device.Platform) · @(device.TimeZoneId ?? "UTC") · @(device.OsAccountName ?? L["Common.AccountNotReported"])</div>
-                        <div class="muted tiny">
-                            @(string.IsNullOrWhiteSpace(device.ClientVersion) ? L["Common.VersionUnknown"] : L["Home.ClientVersion", device.ClientVersion])
-                            @if (_currentRelease is not null) { <span>· @L["Devices.Latest", _currentRelease]</span> }
-                            @if (device.Platform == DevicePlatform.Windows && _currentRelease is not null && IsOutdatedCurrent(device))
-                            {
-                                <span class="badge-soft warn">@L["Devices.UpdateAvailable"]</span>
-                            }
+                var updateStatus = _updateStatuses.GetValueOrDefault(device.DeviceId);
+                var updateText = !string.IsNullOrWhiteSpace(updateStatus)
+                    ? L["Devices.UpdateStatus", UpdateStatusText(updateStatus)].Value
+                    : IsOutdatedCurrent(device) ? L["Devices.UpdateAvailable"].Value : L["Devices.UpdateUpToDate"].Value;
+                var automaticZone = _reportedZoneDisplay.GetValueOrDefault(device.DeviceId) ?? TimeZoneResolver.DisplayName(device.TimeZoneId);
+                <section class="device-card" @key="device.DeviceId">
+                    <div class="device-card-head">
+                        <DeviceIcon Platform="@device.Platform" Online="@device.Online" />
+                        <div class="device-head-main">
+                            <div class="device-name-row">
+                                <span class="device-name">@device.Name</span>
+                                <span class="os-label">@OsLabel(device.Platform)</span>
+                            </div>
+                            <div class="device-subline">
+                                <span>@ChildName(device.ChildId)</span>
+                                <span>·</span>
+                                <span>@(string.IsNullOrWhiteSpace(device.ClientVersion) ? L["Common.VersionUnknown"].Value : L["Home.ClientVersion", device.ClientVersion].Value)</span>
+                                @if (_currentRelease is not null) { <span>· @L["Devices.Latest", _currentRelease]</span> }
+                                <span>· @updateText</span>
+                                @if (device.Platform == DevicePlatform.Windows && _currentRelease is not null && IsOutdatedCurrent(device))
+                                {
+                                    <span class="badge-soft warn">@L["Devices.UpdateAvailable"]</span>
+                                }
+                            </div>
                         </div>
-                        <div class="muted tiny">
-                            @L["Devices.TimeZone"]:
-                            <select value="@device.TimeZoneId" @onchange="e => SetTimeZoneAsync(device, e.Value?.ToString())">
+                        <div class="device-head-status">
+                            <div class="@(device.Online ? "state-online" : "state-offline")">@(device.Online ? L["Common.Online"] : L["Common.Offline"])</div>
+                            <div class="muted tiny">@(device.LastSeenUtc is { } seen ? Formats.CompactDateTime(DashboardTime.Convert(seen, device.TimeZoneId)) : L["Common.Never"])</div>
+                        </div>
+                    </div>
+
+                    <div class="device-card-grid">
+                        <label class="field">
+                            <span>@L["Devices.TimeZone"]</span>
+                            <select value="@(_timeZoneOverrides.GetValueOrDefault(device.DeviceId) ?? "")" @onchange="e => SetTimeZoneAsync(device, e.Value?.ToString())">
+                                <option value="">@L["Devices.TimeZoneAutomatic", automaticZone]</option>
                                 @foreach (var zone in TimeZones)
                                 {
                                     <option value="@zone.Id">@zone.DisplayName</option>
                                 }
                             </select>
-                        </div>
-                        <div class="muted tiny">
-                            @L["Devices.ClientLanguage"]:
+                        </label>
+                        <label class="field">
+                            <span>@L["Devices.ClientLanguage"]</span>
                             <select value="@(_deviceLanguages.GetValueOrDefault(device.DeviceId) ?? "")" @onchange="e => SetLanguageAsync(device, e.Value?.ToString())">
                                 <option value="">@L["Devices.FollowFamily", FamilyLanguageLabel]</option>
                                 <option value="en">@L["Language.English"]</option>
                                 <option value="es-MX">@L["Language.Spanish"]</option>
                             </select>
-                        </div>
-                        @if (_notifyOffline.TryGetValue(device.DeviceId, out var notifyOffline))
-                        {
-                            <div class="notice-settings">
-                                <label class="check"><input type="checkbox" checked="@notifyOffline" @onchange="e => SetNotifyOfflineAsync(device.DeviceId, (bool)(e.Value ?? false))" /> @L["Devices.NotifyOffline"]</label>
-                            </div>
-                        }
+                        </label>
+                    </div>
+
+                    <div class="device-checks">
                         @if (_isOwner && _noticeSettings.TryGetValue(device.DeviceId, out var notice))
                         {
-                            <div class="notice-settings">
-                                <label class="check"><input type="checkbox" checked="@notice.Screen" @onchange="e => SaveNoticeAsync(device.DeviceId, (bool)(e.Value ?? false), notice.Camera, notice.Light)" /> @L["Devices.NoticeScreen"]</label>
-                                <label class="check"><input type="checkbox" checked="@notice.Camera" @onchange="e => SaveNoticeAsync(device.DeviceId, notice.Screen, (bool)(e.Value ?? false), notice.Light)" /> @L["Devices.NoticeCamera"]</label>
-                                <label class="check"><input type="checkbox" checked="@notice.Light" @onchange="e => SaveNoticeAsync(device.DeviceId, notice.Screen, !(bool)(e.Value ?? false), (bool)(e.Value ?? false))" /> @L["Devices.CameraLight"]</label>
-                            </div>
+                            <label class="check"><input type="checkbox" checked="@notice.Screen" @onchange="e => SaveNoticeAsync(device.DeviceId, (bool)(e.Value ?? false), notice.Camera, notice.Light)" /> @L["Devices.NoticeScreen"]</label>
+                            <label class="check"><input type="checkbox" checked="@notice.Camera" @onchange="e => SaveNoticeAsync(device.DeviceId, notice.Screen, (bool)(e.Value ?? false), notice.Light)" /> @L["Devices.NoticeCamera"]</label>
+                            <label class="check"><input type="checkbox" checked="@notice.Light" @onchange="e => SaveNoticeAsync(device.DeviceId, notice.Screen, !(bool)(e.Value ?? false), (bool)(e.Value ?? false))" /> @L["Devices.CameraLight"]</label>
                         }
-                        @if (_updateStatuses.TryGetValue(device.DeviceId, out var updateStatus) && !string.IsNullOrWhiteSpace(updateStatus))
+                        @if (_notifyOffline.TryGetValue(device.DeviceId, out var notifyOffline))
                         {
-                            <div class="muted tiny">@L["Devices.UpdateStatus", UpdateStatusText(updateStatus)]</div>
+                            <label class="check"><input type="checkbox" checked="@notifyOffline" @onchange="e => SetNotifyOfflineAsync(device.DeviceId, (bool)(e.Value ?? false))" /> @L["Devices.NotifyOffline"]</label>
                         }
+                    </div>
+
+                    <div class="system-resources">
+                        <div class="system-resources-head">
+                            <span class="eyebrow">@L["Devices.SystemResources"]</span>
+                            <span class="pill-amber">@L["Common.ComingSoon"]</span>
+                        </div>
+                        <div class="device-gauges-faded">
+                            <DeviceGauge Label="@L["Devices.Cpu"]" Percent="42" Caption="42%" />
+                            <DeviceGauge Label="@L["Devices.Ram"]" Percent="61" Caption="4.9 / 8 GB" />
+                            <DeviceGauge Label="@L["Devices.Storage"]" Percent="78" Caption="195 / 250 GB" Amber="true" />
+                        </div>
+                    </div>
+
+                    <div class="device-card-foot">
                         @if (_canMessage)
                         {
                             <details class="inline-message">
-                                <summary class="ghost-btn">@L["Devices.Message"]</summary>
+                                <summary class="btn btn-ghost">@L["Devices.Message"]</summary>
                                 <MessageComposer ChildId="device.ChildId" DeviceId="device.DeviceId" Compact="true" />
                             </details>
                         }
-                    </div>
-                    <div class="device-meta">
-                        <div class="small">@(device.Online ? L["Common.Online"] : L["Common.Offline"])</div>
-                        <div class="muted tiny">@(device.LastSeenUtc is { } seen ? Formats.CompactDateTime(DashboardTime.Convert(seen, device.TimeZoneId)) : L["Common.Never"])</div>
                         @if (device.Platform == DevicePlatform.Windows && _currentRelease is not null && IsOutdatedCurrent(device))
                         {
                             <button type="button" class="ghost-btn" onclick="ocpRequestUpdate(this, '@device.DeviceId')">@L["Devices.UpdateNow"]</button>
                         }
                     </div>
-                </div>
+                </section>
             }
         </div>
     }
@@ -122,6 +148,9 @@
     private Dictionary<Guid, NoticeSettings> _noticeSettings = new();
     private Dictionary<Guid, string?> _deviceLanguages = [];
     private Dictionary<Guid, bool> _notifyOffline = [];
+    private Dictionary<Guid, string> _childNames = [];
+    private Dictionary<Guid, string?> _timeZoneOverrides = [];
+    private Dictionary<Guid, string> _reportedZoneDisplay = [];
     private string _familyLanguage = AppCulture.English;
 
     private string FamilyLanguageLabel => _familyLanguage == AppCulture.Spanish ? L["Language.Spanish"] : L["Language.English"];
@@ -133,13 +162,9 @@
         return translated.ResourceNotFound ? status : status.Replace(value, translated.Value);
     }
 
-    private static string PlatformName(DevicePlatform platform) => platform switch
-    {
-        DevicePlatform.Windows => "Windows",
-        DevicePlatform.Linux => "Linux",
-        DevicePlatform.Android => "Android",
-        _ => platform.ToString()
-    };
+    private static string OsLabel(DevicePlatform platform) => platform.ToString().ToUpperInvariant();
+
+    private string ChildName(Guid childId) => _childNames.GetValueOrDefault(childId, "—");
 
     private async Task SetLanguageAsync(DeviceStatusDto device, string? language)
     {
@@ -176,18 +201,18 @@
 
     private async Task SetTimeZoneAsync(DeviceStatusDto device, string? zoneId)
     {
-        if (string.IsNullOrWhiteSpace(zoneId)) return;
         try
         {
             using var scope = Scopes.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
             var row = await db.Devices.FirstOrDefaultAsync(d => d.Id == device.DeviceId && d.FamilyId == _familyId);
             if (row is null) return;
-            row.TimeZoneId = TimeZoneResolver.Resolve(zoneId).Id;
+            DeviceTimeZonePolicy.ApplyOverride(row, zoneId);
             await db.SaveChangesAsync();
+            _error = null;
             await RefreshAsync();
         }
-        catch { }
+        catch (Exception ex) { _error = ex.Message; }
     }
 
     private bool IsOutdatedCurrent(DeviceStatusDto device)
@@ -227,6 +252,11 @@
         _noticeSettings = devices.ToDictionary(d => d.Id, d => new NoticeSettings(d.ScreenNoticeEnabled, d.CameraNoticeEnabled, d.HasCameraLightOrShutter));
         _deviceLanguages = devices.ToDictionary(d => d.Id, d => d.ClientLanguage);
         _notifyOffline = devices.ToDictionary(d => d.Id, d => d.NotifyOffline);
+        _timeZoneOverrides = devices.ToDictionary(d => d.Id, d => d.TimeZoneOverrideId);
+        _reportedZoneDisplay = devices.ToDictionary(d => d.Id, d => TimeZoneResolver.DisplayName(d.ReportedTimeZoneId ?? d.TimeZoneId));
+        _childNames = await db.Children.AsNoTracking()
+            .Where(c => c.FamilyId == _familyId)
+            .ToDictionaryAsync(c => c.Id, c => c.Name);
         _familyLanguage = AppCulture.Normalize(await db.Families.AsNoTracking().Where(f => f.Id == _familyId).Select(f => f.DefaultLanguage).FirstOrDefaultAsync());
     }
 

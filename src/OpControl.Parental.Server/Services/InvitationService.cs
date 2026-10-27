@@ -245,8 +245,7 @@ public sealed class InvitationService
             .Select(u => u.DisplayName)
             .FirstOrDefaultAsync(ct);
         var timeZoneId = invitation.FamilyId is { } familyId
-            ? await _db.Devices.AsNoTracking().Where(d => d.FamilyId == familyId)
-                .Select(d => d.TimeZoneId).FirstOrDefaultAsync(ct)
+            ? await DashboardTime.FamilyZoneIdAsync(_db, familyId, ct)
             : null;
         var rendered = invitation.Kind == InvitationKind.NewFamily
             ? _renderer.RenderInviteNewFamily(language, link, invitation.FamilyName, inviterName, invitation.ExpiresUtc, timeZoneId)

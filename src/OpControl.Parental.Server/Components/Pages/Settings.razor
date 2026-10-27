@@ -64,6 +64,30 @@
     <p class="muted tiny">@L["Settings.FamilyLanguageHelp"]</p>
 </div>
 
+<section class="card">
+    <div class="card-title-row">
+        <h2>@L["Settings.FamilyTimeZone"]</h2>
+        <span class="pill-soft">@L["Settings.FamilyTimeZoneBadge"]</span>
+    </div>
+    <p class="muted small">@L["Settings.FamilyTimeZoneHelp"]</p>
+    <div class="grid-2">
+        <label class="field">
+            <span>@L["Settings.FamilyTimeZone"]</span>
+            <select value="@(_familyZoneExplicitId ?? "")" disabled="@(!_isOwner)" @onchange="SetFamilyTimeZoneAsync">
+                <option value="">@L["Settings.FamilyTimeZoneAutomatic", _familyZoneAutoDevice, _familyZoneDisplay]</option>
+                @foreach (var zone in FamilyTimeZones)
+                {
+                    <option value="@zone.Id">@zone.DisplayName</option>
+                }
+            </select>
+        </label>
+        <div class="field">
+            <span>@L["Settings.FamilyTimeZoneUsed"]</span>
+            <div class="muted">@FamilyZoneUsedText</div>
+        </div>
+    </div>
+</section>
+
 <NotificationSettings FamilyId="_familyId" ParentId="_parentId" />
 
 <section class="card">
@@ -211,6 +235,15 @@
     private Guid _parentId;
     private string _myLanguage = AppCulture.English;
     private string _familyLanguage = AppCulture.English;
+    private string? _familyZoneExplicitId;
+    private string _familyZoneAutoDevice = "";
+    private string _familyZoneDisplay = "UTC";
+    private bool _familyZoneAutomatic = true;
+    private static readonly IReadOnlyList<TimeZoneInfo> FamilyTimeZones = TimeZoneInfo.GetSystemTimeZones();
+
+    private string FamilyZoneUsedText => _familyZoneAutomatic
+        ? L["Settings.FamilyTimeZoneUsedAuto", _familyZoneDisplay, _familyZoneAutoDevice].Value
+        : L["Settings.FamilyTimeZoneUsedExplicit", _familyZoneDisplay].Value;
 
     protected override async Task OnInitializedAsync()
     {
@@ -225,6 +258,11 @@
         _familyLanguage = AppCulture.Normalize(await dbLanguages.Families.AsNoTracking().Where(f => f.Id == _familyId).Select(f => f.DefaultLanguage).FirstOrDefaultAsync());
         var alerts = scope.ServiceProvider.GetRequiredService<AlertService>();
         var settings = await alerts.EnsureSettingsAsync(_familyId);
+        var familyZone = await DashboardTime.FamilyZoneInfoAsync(dbLanguages, _familyId);
+        _familyZoneExplicitId = familyZone.ExplicitId;
+        _familyZoneAutomatic = familyZone.Automatic;
+        _familyZoneAutoDevice = familyZone.DeviceName ?? "";
+        _familyZoneDisplay = TimeZoneResolver.DisplayName(familyZone.Zone.Id);
         _enabled = settings.AlertEmailsEnabled;
         _host = settings.SmtpHost;
         _port = settings.SmtpPort;
@@ -314,6 +352,35 @@
         _myLanguage = language;
         await JS.InvokeVoidAsync("ocpSetLanguageCookie", language);
         Nav.NavigateTo(Nav.Uri, forceLoad: true);
+    }
+
+    private async Task SetFamilyTimeZoneAsync(ChangeEventArgs e)
+    {
+        if (!_isOwner) return;
+        _error = null;
+        _saved = false;
+        try
+        {
+            using var scope = Scopes.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
+            var settings = await db.FamilySettings.FirstOrDefaultAsync(s => s.FamilyId == _familyId);
+            if (settings is null)
+            {
+                settings = new FamilySettings { FamilyId = _familyId };
+                db.FamilySettings.Add(settings);
+            }
+            var value = e.Value?.ToString();
+            settings.TimeZoneId = string.IsNullOrWhiteSpace(value) ? null : TimeZoneResolver.ToIanaId(value);
+            settings.UpdatedUtc = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+            var info = await DashboardTime.FamilyZoneInfoAsync(db, _familyId);
+            _familyZoneExplicitId = info.ExplicitId;
+            _familyZoneAutomatic = info.Automatic;
+            _familyZoneAutoDevice = info.DeviceName ?? "";
+            _familyZoneDisplay = TimeZoneResolver.DisplayName(info.Zone.Id);
+            _saved = true;
+        }
+        catch (Exception ex) { _error = ex.Message; }
     }
 
     private async Task SetFamilyLanguageAsync(ChangeEventArgs e)
