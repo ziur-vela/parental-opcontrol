@@ -191,7 +191,8 @@ public class Job14RemoteTests
     }
 
     private static async Task<(ServiceProvider Provider, RemoteSessionRegistry Registry, RemoteSessionService Service,
-        ParentalDbContext Db, Family Family, Child Child, Device Device, ParentUser Parent)> BuildAsync()
+        ParentalDbContext Db, Family Family, Child Child, Device Device, ParentUser Parent)> BuildAsync(
+        TimeSpan? heartbeatTimeout = null, TimeSpan? watchdogInterval = null)
     {
         var db = NewDb();
         var family = new Family { Name = "Remote" };
@@ -206,7 +207,8 @@ public class Job14RemoteTests
 
         var holder = new ProviderHolder();
         var registry = new RemoteSessionRegistry(new LazyScopeFactory(() => holder.Provider),
-            NullLogger<RemoteSessionRegistry>.Instance, TimeSpan.FromMilliseconds(150), TimeSpan.FromMilliseconds(30));
+            NullLogger<RemoteSessionRegistry>.Instance,
+            heartbeatTimeout ?? TimeSpan.FromSeconds(5), watchdogInterval ?? TimeSpan.FromMilliseconds(30));
         var services = new ServiceCollection();
         services.AddSingleton(db);
         services.AddLogging();
@@ -279,7 +281,7 @@ public class Job14RemoteTests
     [Fact]
     public async Task Missing_viewer_heartbeat_ends_the_session()
     {
-        var ctx = await BuildAsync();
+        var ctx = await BuildAsync(TimeSpan.FromMilliseconds(150), TimeSpan.FromMilliseconds(30));
         await using var db = ctx.Db;
         var session = new RemoteSession
         {

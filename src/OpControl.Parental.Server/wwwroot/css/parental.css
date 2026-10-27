@@ -457,6 +457,7 @@ code { font-family: var(--mono); background: var(--panel-2); padding: 2px 5px; f
 
 /* OpControl logo in "Created by" footers (smaller than the HPB dashboard, 36px there) */
 .opc-logo { height: 24px; width: auto; opacity: .8; display: block; }
+.ai-credit { text-align: center; font-family: var(--sans); font-size: 11px; letter-spacing: 0; text-transform: none; color: var(--muted); padding: 0 12px 16px; }
 
 /* Job 11: parent and child messaging */
 .msg-composer { display: flex; flex-direction: column; gap: 10px; }

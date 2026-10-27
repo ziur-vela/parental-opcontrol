@@ -496,6 +496,7 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Language.Saved" xml:space="preserve"><value>Language saved.</value></data>
   <data name="Language.ServerDefault" xml:space="preserve"><value>Family default</value></data>
   <data name="Language.Spanish" xml:space="preserve"><value>Español</value></data>
+  <data name="Layout.BuiltWithAi" xml:space="preserve"><value>Built with AI assistance: Claude, OpenCode, DeepSeek</value></data>
   <data name="Layout.CreatedBy" xml:space="preserve"><value>Created by</value></data>
   <data name="Layout.English" xml:space="preserve"><value>English</value></data>
   <data name="Layout.FamilyDashboard" xml:space="preserve"><value>Family dashboard</value></data>

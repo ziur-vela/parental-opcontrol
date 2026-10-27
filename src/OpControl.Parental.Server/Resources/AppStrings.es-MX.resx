@@ -496,6 +496,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Language.Saved" xml:space="preserve"><value>Idioma guardado.</value></data>
   <data name="Language.ServerDefault" xml:space="preserve"><value>Predeterminado de la familia</value></data>
   <data name="Language.Spanish" xml:space="preserve"><value>Español</value></data>
+  <data name="Layout.BuiltWithAi" xml:space="preserve"><value>Construido con ayuda de IA: Claude, OpenCode, DeepSeek</value></data>
   <data name="Layout.CreatedBy" xml:space="preserve"><value>Creado por</value></data>
   <data name="Layout.English" xml:space="preserve"><value>English</value></data>
   <data name="Layout.FamilyDashboard" xml:space="preserve"><value>Panel familiar</value></data>

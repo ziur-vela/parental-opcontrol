@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -292,7 +293,9 @@ public sealed class MyOpControlWindow : Window
             BorderThickness = new Thickness(0),
             CornerRadius = new CornerRadius(14),
             Padding = new Thickness(12, 9),
-            HorizontalContentAlignment = HorizontalAlignment.Center
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 16)
         };
         message.Click += (_, _) => ShowScreen(Screen.Messages);
         bottom.Children.Add(message);
@@ -405,6 +408,7 @@ public sealed class MyOpControlWindow : Window
             _loaded = true;
             UpdateSidebarDevice();
             var languageChanged = !string.Equals(Loc.Language, _renderedLanguage, StringComparison.OrdinalIgnoreCase);
+            if (languageChanged) BuildRoot();
             if (_screen == Screen.About)
             {
                 if (languageChanged) RenderCurrent();
@@ -622,7 +626,7 @@ public sealed class MyOpControlWindow : Window
         var stack = new StackPanel { Spacing = 14, Margin = new Thickness(22, 6, 22, 22) };
         stack.Children.Add(ScreenTitle(Loc.T("Client.Kid.About.Eyebrow"), Loc.T("Client.Kid.About.Title")));
 
-        var brandRow = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
+        var brandRow = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") };
         brandRow.Children.Add(Logo(60));
         var brand = new StackPanel
         {
@@ -634,15 +638,21 @@ public sealed class MyOpControlWindow : Window
         brand.Children.Add(Text(AboutContent.CreatedByLine, 12.5, _palette.Text, FontWeight.SemiBold));
         Grid.SetColumn(brand, 1);
         brandRow.Children.Add(brand);
+        var opcLogo = OpControlLogo(40);
+        Grid.SetColumn(opcLogo, 2);
+        opcLogo.HorizontalAlignment = HorizontalAlignment.Right;
+        opcLogo.VerticalAlignment = VerticalAlignment.Center;
+        brandRow.Children.Add(opcLogo);
         stack.Children.Add(Card(brandRow));
 
         var version = new StackPanel { Spacing = 8 };
         version.Children.Add(Text(Loc.T("Client.Kid.About.Version"), 14, _palette.Text, FontWeight.Bold, LunaThemes.Display));
-        _aboutClientValue = VersionValue(about.ClientVersion, about.ClientBuildDate);
+        _aboutClientValue = VersionValue(NormalizeVersion(about.ClientVersion), about.ClientBuildDate);
         InfoRow(version, Loc.T("Client.Kid.About.Client"), _aboutClientValue);
-        _aboutServerValue = string.IsNullOrWhiteSpace(about.ServerVersion)
+        var serverVersion = NormalizeVersion(about.ServerVersion);
+        _aboutServerValue = string.IsNullOrWhiteSpace(serverVersion)
             ? Loc.T("Client.Kid.About.ServerUnavailable")
-            : VersionValue("v" + about.ServerVersion, about.ServerBuildDate);
+            : VersionValue("v" + serverVersion, about.ServerBuildDate);
         InfoRow(version, Loc.T("Client.Kid.About.Server"), _aboutServerValue);
         stack.Children.Add(Card(version));
 
@@ -659,6 +669,8 @@ public sealed class MyOpControlWindow : Window
         var credits = new StackPanel { Spacing = 8 };
         credits.Children.Add(Text(Loc.T("Client.Kid.About.Credits"), 14, _palette.Text, FontWeight.Bold, LunaThemes.Display));
         credits.Children.Add(Text(AboutContent.CreatedByLine, 12.5, _palette.Text, FontWeight.SemiBold));
+        credits.Children.Add(Text(Loc.T("Client.Kid.About.BuiltWithAiTitle"), 12, _palette.Text, FontWeight.Bold));
+        credits.Children.Add(RichText(Loc.T("Client.Kid.About.BuiltWithAi"), 11.5, _palette.Muted));
         credits.Children.Add(Text(Loc.T("Client.Kid.About.ThirdPartyHint"), 11.5, _palette.Muted));
         credits.Children.Add(Text(Loc.T("Client.Kid.About.ThirdParty"), 12, _palette.Text, FontWeight.Bold));
         var components = AboutContent.Credits.Components;
@@ -703,6 +715,56 @@ public sealed class MyOpControlWindow : Window
             Background = LunaBrushes.B(_palette.Surface2)
         };
     }
+
+    private Control OpControlLogo(double height)
+    {
+        try
+        {
+            var size = AboutContent.OpControlLogoPixelSize();
+            using var stream = AboutContent.OpenOpControlLogo();
+            if (stream is not null && size is { } pixelSize && pixelSize.Height > 0)
+            {
+                var bitmap = new Bitmap(stream);
+                var width = height * pixelSize.Width / pixelSize.Height;
+                return new Image
+                {
+                    Name = "OpControlLogo",
+                    Source = bitmap,
+                    Width = width,
+                    Height = height,
+                    Stretch = Stretch.Uniform,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+            }
+        }
+        catch { }
+        return new Border { Width = 0, Height = 0 };
+    }
+
+    private TextBlock RichText(string text, double size, Color color)
+    {
+        var block = new TextBlock
+        {
+            FontFamily = LunaThemes.Body,
+            FontSize = size,
+            Foreground = LunaBrushes.B(color),
+            TextWrapping = TextWrapping.Wrap
+        };
+        var parts = text.Split("**");
+        for (var index = 0; index < parts.Length; index++)
+        {
+            if (parts[index].Length == 0) continue;
+            block.Inlines!.Add(new Run(parts[index])
+            {
+                FontWeight = index % 2 == 1 ? FontWeight.Bold : FontWeight.Normal
+            });
+        }
+        return block;
+    }
+
+    private static string NormalizeVersion(string? version) =>
+        (version ?? string.Empty).Trim().TrimStart('v', 'V');
 
     private string VersionValue(string version, string? buildDate) =>
         string.IsNullOrWhiteSpace(buildDate) || string.Equals(buildDate, "unknown", StringComparison.OrdinalIgnoreCase)

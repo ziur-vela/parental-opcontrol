@@ -49,7 +49,7 @@ public sealed class AboutInfoService
             var client = BuildMetadata.Read(typeof(AboutInfoService).Assembly);
             _cached = client with
             {
-                ServerVersion = server?.Version ?? previous?.ServerVersion,
+                ServerVersion = NormalizeVersion(server?.Version) ?? previous?.ServerVersion,
                 ServerBuildDate = server?.BuildDate ?? previous?.ServerBuildDate,
                 ServerDisplayVersion = server?.DisplayVersion ?? previous?.ServerDisplayVersion
             };
@@ -60,6 +60,12 @@ public sealed class AboutInfoService
         {
             _gate.Release();
         }
+    }
+
+    private static string? NormalizeVersion(string? version)
+    {
+        var trimmed = version?.Trim().TrimStart('v', 'V');
+        return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
     }
 
     private AboutInfoDto Local()

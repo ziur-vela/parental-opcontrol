@@ -231,6 +231,17 @@ The service stores the device credential in `C:\ProgramData\OpControlParental\pr
 with an ACL that grants access to SYSTEM and Administrators only. The user-session helper reads
 only `state.json` (Users read) and never sees the credential.
 
+## Credits
+
+Parental OpControl was designed, directed and tested by Ziur, and built with AI
+assistance: design, planning and code review with **Claude** (by Anthropic), and
+code written by **OC**, an AI coding agent built on **OpenCode**, running
+**DeepSeek** models. Every change was reviewed and tested by a person before
+release.
+
+Created by Ziur · OpControl IT. Third-party components, fonts and data sources
+are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
 ## License
 
 Parental OpControl is free for personal and other non-commercial use under the

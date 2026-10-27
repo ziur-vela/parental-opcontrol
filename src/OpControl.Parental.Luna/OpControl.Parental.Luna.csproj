@@ -32,6 +32,7 @@
     <EmbeddedResource Include="..\OpControl.Parental.Localization\es-MX.json" LogicalName="OpControl.Parental.Loc.es-MX.json" />
     <EmbeddedResource Include="..\..\LICENSE" LogicalName="OpControl.Parental.Legal.LICENSE.txt" />
     <EmbeddedResource Include="..\OpControl.Parental.Client.Windows.Helper\brand\icon-color-128.png" LogicalName="OpControl.Parental.Brand.icon-color-128.png" />
+    <EmbeddedResource Include="Assets\opcontrol-logo.png" LogicalName="OpControl.Parental.Brand.opcontrol-logo.png" />
   </ItemGroup>
   <!-- The About credits come from the real dependency graph, not a hand-written list. -->
   <Target Name="GenerateThirdPartyCredits"
