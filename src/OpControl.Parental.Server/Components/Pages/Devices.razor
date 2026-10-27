@@ -62,10 +62,6 @@
                                 <span>@(string.IsNullOrWhiteSpace(device.ClientVersion) ? L["Common.VersionUnknown"].Value : L["Home.ClientVersion", device.ClientVersion].Value)</span>
                                 @if (_currentRelease is not null) { <span>· @L["Devices.Latest", _currentRelease]</span> }
                                 <span>· @updateText</span>
-                                @if (device.Platform == DevicePlatform.Windows && _currentRelease is not null && IsOutdatedCurrent(device))
-                                {
-                                    <span class="badge-soft warn">@L["Devices.UpdateAvailable"]</span>
-                                }
                             </div>
                         </div>
                         <div class="device-head-status">
