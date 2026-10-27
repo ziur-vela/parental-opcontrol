@@ -349,5 +349,9 @@ public class Job19IMessageFlickerTests
         public Task MarkSeenAsync(Guid messageId, CancellationToken ct) => Task.CompletedTask;
         public Task MarkAcknowledgedAsync(Guid messageId, CancellationToken ct) => Task.CompletedTask;
         public Task SetThemeAsync(string theme, CancellationToken ct) => Task.CompletedTask;
+
+        public Task<AboutInfoDto> GetAboutAsync(CancellationToken ct) =>
+            Task.FromResult(new AboutInfoDto("0.17.17", "2026-10-27", "test", "0.17.17", "2026-10-27",
+                "v0.17.17"));
     }
 }

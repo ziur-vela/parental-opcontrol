@@ -26,7 +26,7 @@ public sealed record KidWindowOptions(
 
 public sealed class MyOpControlWindow : Window
 {
-    private enum Screen { Home, Schedule, Rules, Activity, Messages }
+    private enum Screen { Home, Schedule, Rules, Activity, Messages, About }
 
     private readonly IKidDataSource _data;
     private readonly KidWindowOptions _options;
@@ -54,6 +54,13 @@ public sealed class MyOpControlWindow : Window
     private TextBlock? _homeTimeLeft;
     private TextBlock? _homeUsed;
     private ProgressBar? _homeProgress;
+    private TextBlock? _sidebarDevice;
+    private AboutInfoDto? _about;
+    private bool _aboutLoading;
+    private int _renderCount;
+    private string _aboutClientValue = string.Empty;
+    private string _aboutServerValue = string.Empty;
+    private IReadOnlyList<string> _aboutCreditNames = [];
     private string _snapshotSignature = string.Empty;
     private string _renderedLanguage = string.Empty;
     private bool _suppressEnterText;
@@ -80,7 +87,7 @@ public sealed class MyOpControlWindow : Window
         _palette = LunaThemes.From(_themeKey);
         _language = options.Language;
         _screen = ParseScreen(options.Tab);
-        if (options.MessagesOnly) _screen = Screen.Messages;
+        if (options.MessagesOnly && _screen != Screen.About) _screen = Screen.Messages;
 
         Title = _options.Preview ? " " : Loc.T("Client.Kid.WindowTitle");
         WindowDecorations = WindowDecorations.None;
@@ -96,6 +103,7 @@ public sealed class MyOpControlWindow : Window
         {
             SizeToScreen();
             await LoadAsync();
+            if (_screen == Screen.About) await LoadAboutAsync();
 #if LUNA_DEV
             if (!string.IsNullOrWhiteSpace(App.KidScreenshotPath))
             {
@@ -288,6 +296,24 @@ public sealed class MyOpControlWindow : Window
         };
         message.Click += (_, _) => ShowScreen(Screen.Messages);
         bottom.Children.Add(message);
+
+        _sidebarDevice = Text(DeviceLineText(), 10.5, _palette.Muted, FontWeight.SemiBold, wrap: false);
+        _sidebarDevice.Name = "SidebarDevice";
+        _sidebarDevice.HorizontalAlignment = HorizontalAlignment.Center;
+        bottom.Children.Add(_sidebarDevice);
+
+        var about = new Button
+        {
+            Name = "AboutLink",
+            Content = Text(Loc.T("Client.Kid.About.Link"), 11, _palette.Muted, FontWeight.SemiBold, wrap: false),
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Padding = new Thickness(8, 2),
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        about.Click += async (_, _) => await ShowAboutAsync();
+        bottom.Children.Add(about);
+
         Grid.SetRow(bottom, 1);
         grid.Children.Add(bottom);
 
@@ -370,14 +396,20 @@ public sealed class MyOpControlWindow : Window
             if (string.IsNullOrWhiteSpace(_language) && !string.IsNullOrWhiteSpace(snapshot.Language))
                 _language = snapshot.Language;
             if (!string.IsNullOrWhiteSpace(_language)) Loc.SetLanguage(_language);
-            var local = KidThemeStore.ReadLocal();
+            var local = _options.Preview ? null : KidThemeStore.ReadLocal();
             if (local is not null && !string.Equals(local, _themeKey, StringComparison.OrdinalIgnoreCase))
             {
                 _themeKey = local;
                 _palette = LunaThemes.From(_themeKey);
             }
             _loaded = true;
+            UpdateSidebarDevice();
             var languageChanged = !string.Equals(Loc.Language, _renderedLanguage, StringComparison.OrdinalIgnoreCase);
+            if (_screen == Screen.About)
+            {
+                if (languageChanged) RenderCurrent();
+                return;
+            }
             if (_screen == Screen.Messages && _messagesPanel is not null && !languageChanged)
             {
                 UpdateMessagesInPlace();
@@ -484,6 +516,7 @@ public sealed class MyOpControlWindow : Window
 
     private void SyncTheme()
     {
+        if (_options.Preview) return;
         var local = KidThemeStore.ReadLocal();
         if (local is null || string.Equals(local, _themeKey, StringComparison.OrdinalIgnoreCase)) return;
         _themeKey = local;
@@ -509,9 +542,38 @@ public sealed class MyOpControlWindow : Window
         RenderCurrent();
     }
 
+    private async Task ShowAboutAsync()
+    {
+        _screen = Screen.About;
+        UpdateNavSelection();
+        RenderCurrent();
+        await LoadAboutAsync();
+    }
+
+    private async Task LoadAboutAsync()
+    {
+        if (_aboutLoading) return;
+        _aboutLoading = true;
+        try
+        {
+            _about = await _data.GetAboutAsync(CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            LunaLog.Exception("kid-about", ex);
+        }
+        finally
+        {
+            _about ??= Contracts.BuildMetadata.Read(typeof(MyOpControlWindow).Assembly);
+            _aboutLoading = false;
+            if (_screen == Screen.About) RenderCurrent();
+        }
+    }
+
     private void RenderCurrent()
     {
         if (_content is null) return;
+        _renderCount++;
         _content.Children.Clear();
         _messagesPanel = null;
         _messagesScroll = null;
@@ -526,9 +588,151 @@ public sealed class MyOpControlWindow : Window
             Screen.Rules => BuildRules(),
             Screen.Activity => BuildActivity(),
             Screen.Messages => BuildMessages(),
+            Screen.About => BuildAbout(),
             _ => BuildHome()
         });
         _renderedLanguage = Loc.Language;
+    }
+
+    private string DeviceLineText()
+    {
+        var name = _snapshot.Summary?.DeviceName;
+        return string.IsNullOrWhiteSpace(name) ? Loc.T("Client.Kid.About.ThisDevice") : name;
+    }
+
+    private void UpdateSidebarDevice()
+    {
+        if (_sidebarDevice is null) return;
+        var text = DeviceLineText();
+        if (!string.Equals(_sidebarDevice.Text, text, StringComparison.Ordinal))
+            _sidebarDevice.Text = text;
+    }
+
+    private Control BuildAbout()
+    {
+        if (_about is null)
+        {
+            _ = LoadAboutAsync();
+            var loading = new StackPanel { Spacing = 6, Margin = new Thickness(22), MaxWidth = 520 };
+            loading.Children.Add(Text(Loc.T("Client.Kid.About.Loading"), 13, _palette.Muted));
+            return Scroll(loading);
+        }
+
+        var about = _about;
+        var stack = new StackPanel { Spacing = 14, Margin = new Thickness(22, 6, 22, 22) };
+        stack.Children.Add(ScreenTitle(Loc.T("Client.Kid.About.Eyebrow"), Loc.T("Client.Kid.About.Title")));
+
+        var brandRow = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
+        brandRow.Children.Add(Logo(60));
+        var brand = new StackPanel
+        {
+            Spacing = 2,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(14, 0, 0, 0)
+        };
+        brand.Children.Add(Text(Loc.T("Client.Kid.WindowTitle"), 24, _palette.Text, FontWeight.Bold, LunaThemes.Display));
+        brand.Children.Add(Text(AboutContent.CreatedByLine, 12.5, _palette.Text, FontWeight.SemiBold));
+        Grid.SetColumn(brand, 1);
+        brandRow.Children.Add(brand);
+        stack.Children.Add(Card(brandRow));
+
+        var version = new StackPanel { Spacing = 8 };
+        version.Children.Add(Text(Loc.T("Client.Kid.About.Version"), 14, _palette.Text, FontWeight.Bold, LunaThemes.Display));
+        _aboutClientValue = VersionValue(about.ClientVersion, about.ClientBuildDate);
+        InfoRow(version, Loc.T("Client.Kid.About.Client"), _aboutClientValue);
+        _aboutServerValue = string.IsNullOrWhiteSpace(about.ServerVersion)
+            ? Loc.T("Client.Kid.About.ServerUnavailable")
+            : VersionValue("v" + about.ServerVersion, about.ServerBuildDate);
+        InfoRow(version, Loc.T("Client.Kid.About.Server"), _aboutServerValue);
+        stack.Children.Add(Card(version));
+
+        var license = new StackPanel { Spacing = 8 };
+        license.Children.Add(Text(Loc.T("Client.Kid.About.License"), 14, _palette.Text, FontWeight.Bold, LunaThemes.Display));
+        license.Children.Add(Text(AboutContent.LicenseName, 12.5, _palette.Text, FontWeight.SemiBold));
+        license.Children.Add(Text(Loc.T("Client.Kid.About.LicenseSummary"), 12, _palette.Muted));
+        var read = ActionButton(Loc.T("Client.Kid.About.ReadFullLicense"),
+            () => _ = new LicenseWindow(_palette).ShowDialog(this), primary: false);
+        read.HorizontalAlignment = HorizontalAlignment.Left;
+        license.Children.Add(read);
+        stack.Children.Add(Card(license));
+
+        var credits = new StackPanel { Spacing = 8 };
+        credits.Children.Add(Text(Loc.T("Client.Kid.About.Credits"), 14, _palette.Text, FontWeight.Bold, LunaThemes.Display));
+        credits.Children.Add(Text(AboutContent.CreatedByLine, 12.5, _palette.Text, FontWeight.SemiBold));
+        credits.Children.Add(Text(Loc.T("Client.Kid.About.ThirdPartyHint"), 11.5, _palette.Muted));
+        credits.Children.Add(Text(Loc.T("Client.Kid.About.ThirdParty"), 12, _palette.Text, FontWeight.Bold));
+        var components = AboutContent.Credits.Components;
+        _aboutCreditNames = components.Select(component => component.Name).ToList();
+        if (components.Count == 0)
+        {
+            credits.Children.Add(Text(Loc.T("Client.Kid.About.ThirdPartyEmpty"), 11.5, _palette.Muted));
+        }
+        else
+        {
+            foreach (var component in components)
+                CreditRow(credits, component);
+        }
+        stack.Children.Add(Card(credits));
+        stack.Children.Add(Text(AboutContent.CopyrightLine, 10.5, _palette.Muted));
+        return Scroll(stack);
+    }
+
+    private Control Logo(double size)
+    {
+        try
+        {
+            using var stream = AboutContent.OpenLogo();
+            if (stream is not null)
+            {
+                return new Image
+                {
+                    Source = new Bitmap(stream),
+                    Width = size,
+                    Height = size,
+                    Stretch = Stretch.Uniform,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+            }
+        }
+        catch { }
+        return new Border
+        {
+            Width = size,
+            Height = size,
+            CornerRadius = new CornerRadius(size / 2),
+            Background = LunaBrushes.B(_palette.Surface2)
+        };
+    }
+
+    private string VersionValue(string version, string? buildDate) =>
+        string.IsNullOrWhiteSpace(buildDate) || string.Equals(buildDate, "unknown", StringComparison.OrdinalIgnoreCase)
+            ? version
+            : $"{version} · {Loc.T("Client.Kid.About.Build")} {buildDate}";
+
+    private void InfoRow(StackPanel parent, string label, string value)
+    {
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
+        row.Children.Add(Text(label, 11.5, _palette.Muted, FontWeight.Bold, wrap: false));
+        var text = Text(value, 12.5, _palette.Text, FontWeight.SemiBold);
+        text.Margin = new Thickness(14, 0, 0, 0);
+        Grid.SetColumn(text, 1);
+        row.Children.Add(text);
+        parent.Children.Add(row);
+    }
+
+    private void CreditRow(StackPanel parent, ThirdPartyCreditDto component)
+    {
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        var name = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        name.Children.Add(Text(component.Name, 12, _palette.Text, FontWeight.SemiBold, wrap: false));
+        if (!string.IsNullOrWhiteSpace(component.Version))
+            name.Children.Add(Text(component.Version, 10.5, _palette.Muted, wrap: false));
+        row.Children.Add(name);
+        var license = Text(component.License, 10.5, _palette.Muted, wrap: false);
+        license.VerticalAlignment = VerticalAlignment.Center;
+        Grid.SetColumn(license, 1);
+        row.Children.Add(license);
+        parent.Children.Add(row);
     }
 
     private Control BuildHome()
@@ -1417,6 +1621,14 @@ public sealed class MyOpControlWindow : Window
     }
 
     internal string CurrentScreenName => _screen.ToString();
+    internal int RenderCountForTest => _renderCount;
+    internal string? HomeTimeLeftForTest => _homeTimeLeft?.Text;
+    internal AboutInfoDto? AboutForTest => _about;
+    internal string AboutClientValueForTest => _aboutClientValue;
+    internal string AboutServerValueForTest => _aboutServerValue;
+    internal IReadOnlyList<string> AboutCreditNamesForTest => _aboutCreditNames;
+    internal string LicenseTextForTest => AboutContent.LicenseText;
+    internal string CreditsJsonForTest => string.Join("|", AboutContent.Credits.Components.Select(component => component.Name));
     internal Task RefreshForTestAsync() => LoadAsync();
     internal TextBox? ComposerForTest => _input;
     internal int MessageRowCountForTest => _messageRows.Count;
@@ -1437,6 +1649,7 @@ public sealed class MyOpControlWindow : Window
         "rules" => Screen.Rules,
         "activity" => Screen.Activity,
         "messages" => Screen.Messages,
+        "about" => Screen.About,
         _ => Screen.Home
     };
 }

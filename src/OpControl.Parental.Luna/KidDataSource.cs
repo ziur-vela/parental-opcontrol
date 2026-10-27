@@ -23,6 +23,7 @@ public interface IKidDataSource
     Task MarkSeenAsync(Guid messageId, CancellationToken ct);
     Task MarkAcknowledgedAsync(Guid messageId, CancellationToken ct);
     Task SetThemeAsync(string theme, CancellationToken ct);
+    Task<AboutInfoDto> GetAboutAsync(CancellationToken ct);
 }
 
 public sealed class PipeKidDataSource : IKidDataSource
@@ -52,6 +53,14 @@ public sealed class PipeKidDataSource : IKidDataSource
 
     public Task SetThemeAsync(string theme, CancellationToken ct) =>
         SendAsync(new PinPipeRequest("set-theme", Theme: theme), ct);
+
+    public async Task<AboutInfoDto> GetAboutAsync(CancellationToken ct)
+    {
+        var response = await SendAsync(new PinPipeRequest("about"), ct);
+        return response.Ok && response.About is not null
+            ? response.About
+            : BuildMetadata.Read(typeof(PipeKidDataSource).Assembly);
+    }
 
     private static async Task<PinPipeResponse> SendAsync(PinPipeRequest request, CancellationToken ct,
         int timeoutSeconds = 5)

@@ -32,6 +32,7 @@ public sealed class HelperContext : ApplicationContext
     private ToolStripMenuItem? _trayOpenItem;
     private ToolStripMenuItem? _trayMessageItem;
     private ToolStripMenuItem? _trayLunaItem;
+    private ToolStripMenuItem? _trayAboutItem;
     private Icon? _trayIcon;
     private Bitmap? _trayBitmap;
     private string _trayLanguage = Loc.Language;
@@ -215,6 +216,8 @@ public sealed class HelperContext : ApplicationContext
             _trayMessageItem.Click += (_, _) => ShowMyOpControl("messages");
             _trayLunaItem = new ToolStripMenuItem(Loc.T("Client.Kid.LunaOpen")) { Padding = new Padding(6, 6, 6, 6) };
             _trayLunaItem.Click += (_, _) => OpenLuna();
+            _trayAboutItem = new ToolStripMenuItem(Loc.T("Client.Kid.About.Link")) { Padding = new Padding(6, 6, 6, 6) };
+            _trayAboutItem.Click += (_, _) => ShowMyOpControl("about", messagesOnly: false, aboveLock: false);
 
             _trayMenu = new ContextMenuStrip
             {
@@ -230,6 +233,8 @@ public sealed class HelperContext : ApplicationContext
             _trayMenu.Items.Add(_trayOpenItem);
             _trayMenu.Items.Add(_trayMessageItem);
             _trayMenu.Items.Add(_trayLunaItem);
+            _trayMenu.Items.Add(new ToolStripSeparator());
+            _trayMenu.Items.Add(_trayAboutItem);
             _trayMenu.Opening += (_, _) => UpdateTrayMenu();
             _tray = new NotifyIcon
             {
@@ -331,7 +336,7 @@ public sealed class HelperContext : ApplicationContext
 
     private void UpdateTrayMenu()
     {
-        if (_trayOpenItem is null || _trayMessageItem is null || _trayLunaItem is null || _trayHeader is null) return;
+        if (_trayOpenItem is null || _trayMessageItem is null || _trayLunaItem is null || _trayAboutItem is null || _trayHeader is null) return;
         var state = HelperPaths.ReadState();
         var local = KidThemeStore.ReadLocal();
         var theme = local ?? LunaThemes.Normalize(state?.Theme ?? _trayTheme);
@@ -351,6 +356,7 @@ public sealed class HelperContext : ApplicationContext
         _trayLunaItem.Text = Loc.T("Client.Kid.LunaOpen");
         _trayLunaItem.Visible = KidTrayPolicy.ShowOpenLuna(lunaEnabled);
         _trayLunaItem.Enabled = lunaEnabled;
+        _trayAboutItem.Text = Loc.T("Client.Kid.About.Link");
     }
 
     private static int UnreadCount()

@@ -24,12 +24,14 @@ public sealed class PinPipeServer : BackgroundService
     private readonly LunaTokenBroker _lunaTokens;
     private readonly ChildThemeReporter _themes;
     private readonly ChildSummarySyncService _summaries;
+    private readonly AboutInfoService _about;
     private readonly ILogger<PinPipeServer> _logger;
     private readonly ConcurrentDictionary<string, DateTime> _tickets = new();
 
     public PinPipeServer(LockRuntime runtime, LockoutStore lockout, OverrideSync overrides, ClientSettings settings,
         DataSyncService sync, MessageSyncService messages, LunaTokenBroker lunaTokens,
-        ChildThemeReporter themes, ChildSummarySyncService summaries, ILogger<PinPipeServer> logger)
+        ChildThemeReporter themes, ChildSummarySyncService summaries, AboutInfoService about,
+        ILogger<PinPipeServer> logger)
     {
         _runtime = runtime;
         _lockout = lockout;
@@ -40,6 +42,7 @@ public sealed class PinPipeServer : BackgroundService
         _lunaTokens = lunaTokens;
         _themes = themes;
         _summaries = summaries;
+        _about = about;
         _logger = logger;
     }
 
@@ -155,6 +158,8 @@ public sealed class PinPipeServer : BackgroundService
                 return new PinPipeResponse(true, State: _runtime.Current,
                     Summary: ChildSummaryCache.Read(ClientPaths.SummaryFile),
                     Messages: await _messages.GetThreadAsync(ct), Online: ReadOnline());
+            case "about":
+                return new PinPipeResponse(true, About: await _about.GetAsync(ct));
             case "message-send":
                 _logger.LogInformation("message-send received length={Length}", request.Text?.Length ?? 0);
                 if (string.IsNullOrWhiteSpace(request.Text))

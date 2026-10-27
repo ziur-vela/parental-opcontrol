@@ -29,6 +29,9 @@
         <Directory Id="CLIENTDIR" Name="Client" />
         <Directory Id="HELPERDIR" Name="Helper" />
         <Directory Id="LUNADIR" Name="Luna" />
+        <Directory Id="LEGALDIR" Name="legal">
+          <Directory Id="LEGALFONTS" Name="fonts" />
+        </Directory>
       </Directory>
     </StandardDirectory>
 
@@ -37,6 +40,7 @@
       <ComponentGroupRef Id="HelperComponents" />
       <ComponentGroupRef Id="LunaComponents" />
       <ComponentGroupRef Id="BrandComponents" />
+      <ComponentGroupRef Id="LegalComponents" />
     </Feature>
 
     <ComponentGroup Id="ClientComponents">
@@ -84,6 +88,27 @@
     <ComponentGroup Id="LunaComponents">
       <Component Id="LunaExe" Guid="*" Directory="LUNADIR">
         <File Id="LunaExeFile" Source="$(var.LunaDir)/OpControl.Parental.Luna.exe" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <ComponentGroup Id="LegalComponents">
+      <Component Id="LegalLicense" Guid="2c009b6e-b134-4383-b6c7-2ba6dcda47e9" Directory="LEGALDIR">
+        <File Id="LicenseFile" Source="$(var.LegalDir)\LICENSE" KeyPath="yes" />
+      </Component>
+      <Component Id="LegalNotices" Guid="18db0528-c3c5-46df-8d0f-47885018fe6a" Directory="LEGALDIR">
+        <File Id="ThirdPartyNoticesFile" Source="$(var.LegalDir)\THIRD-PARTY-NOTICES.md" KeyPath="yes" />
+      </Component>
+      <Component Id="LegalFontFredoka" Guid="f648a3c5-7303-4844-bf03-f1b491d7b56d" Directory="LEGALFONTS">
+        <File Id="OflFredoka" Source="$(var.LegalDir)\fonts\OFL-Fredoka.txt" KeyPath="yes" />
+      </Component>
+      <Component Id="LegalFontNunito" Guid="c00b8132-6e7e-45ff-b0d1-ea4d655a6dbe" Directory="LEGALFONTS">
+        <File Id="OflNunito" Source="$(var.LegalDir)\fonts\OFL-Nunito.txt" KeyPath="yes" />
+      </Component>
+      <Component Id="LegalFontIbmPlexMono" Guid="5ecf764b-8b03-45f1-abc4-89a212270e2c" Directory="LEGALFONTS">
+        <File Id="OflIbmPlexMono" Source="$(var.LegalDir)\fonts\OFL-IBM-Plex-Mono.txt" KeyPath="yes" />
+      </Component>
+      <Component Id="LegalFontManrope" Guid="286a0e82-5e93-4164-bc3a-cb83244beb0d" Directory="LEGALFONTS">
+        <File Id="OflManrope" Source="$(var.LegalDir)\fonts\OFL-Manrope.txt" KeyPath="yes" />
       </Component>
     </ComponentGroup>
 

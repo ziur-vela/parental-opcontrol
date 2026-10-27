@@ -136,6 +136,17 @@ public sealed class KidPreviewDataSource : IKidDataSource
         _theme = theme;
         return Task.CompletedTask;
     }
+
+    public Task<AboutInfoDto> GetAboutAsync(CancellationToken ct)
+    {
+        var local = BuildMetadata.Read(typeof(MyOpControlWindow).Assembly);
+        return Task.FromResult(local with
+        {
+            ServerVersion = local.ClientVersion,
+            ServerBuildDate = local.ClientBuildDate,
+            ServerDisplayVersion = $"v{local.ClientVersion} · build {local.ClientBuildDate}"
+        });
+    }
 }
 
 #endif

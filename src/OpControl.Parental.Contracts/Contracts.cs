@@ -572,7 +572,8 @@ public sealed record PinPipeResponse(
     DateTime? ExpiresUtc = null,
     string? ServerUrl = null,
     ChildSummaryDto? Summary = null,
-    bool? Online = null);
+    bool? Online = null,
+    AboutInfoDto? About = null);
 
 public sealed record InvitationCreatedDto(
     Guid Id,
@@ -613,6 +614,26 @@ public sealed record VersionInfoDto(
     string DisplayVersion,
     string Commit,
     string BuildDate);
+
+/// <summary>Read-only version information for the kid view's About screen.</summary>
+public sealed record AboutInfoDto(
+    string ClientVersion,
+    string ClientBuildDate,
+    string? ClientCommit,
+    string? ServerVersion,
+    string? ServerBuildDate,
+    string? ServerDisplayVersion);
+
+public sealed record ThirdPartyCreditDto(
+    string Name,
+    string Version,
+    string License,
+    string? Copyright,
+    string? LicenseUrl);
+
+public sealed record ThirdPartyCreditsDto(
+    string GeneratedFrom,
+    IReadOnlyList<ThirdPartyCreditDto> Components);
 
 public sealed record AlertPreferencesDto(
     bool MutedNewApp,

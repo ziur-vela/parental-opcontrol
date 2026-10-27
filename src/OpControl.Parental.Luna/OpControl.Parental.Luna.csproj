@@ -30,5 +30,17 @@
     <Compile Include="..\OpControl.Parental.Localization\Loc.cs" Link="Localization\Loc.cs" />
     <EmbeddedResource Include="..\OpControl.Parental.Localization\en.json" LogicalName="OpControl.Parental.Loc.en.json" />
     <EmbeddedResource Include="..\OpControl.Parental.Localization\es-MX.json" LogicalName="OpControl.Parental.Loc.es-MX.json" />
+    <EmbeddedResource Include="..\..\LICENSE" LogicalName="OpControl.Parental.Legal.LICENSE.txt" />
+    <EmbeddedResource Include="..\OpControl.Parental.Client.Windows.Helper\brand\icon-color-128.png" LogicalName="OpControl.Parental.Brand.icon-color-128.png" />
   </ItemGroup>
+  <!-- The About credits come from the real dependency graph, not a hand-written list. -->
+  <Target Name="GenerateThirdPartyCredits"
+          BeforeTargets="AssignTargetPaths"
+          Inputs="$(ProjectAssetsFile);$(MSBuildProjectDirectory)/../../tools/generate-third-party-credits.cs"
+          Outputs="$(IntermediateOutputPath)credits/third-party-credits.json;$(IntermediateOutputPath)credits/third-party-credits.md">
+    <Exec Command="&quot;$(DOTNET_HOST_PATH)&quot; run --file &quot;$(MSBuildProjectDirectory)/../../tools/generate-third-party-credits.cs&quot; -- &quot;$(ProjectAssetsFile)&quot; &quot;$(NuGetPackageRoot)&quot; &quot;$(TargetFramework)&quot; &quot;$(MSBuildProjectDirectory)&quot; &quot;$(MSBuildProjectDirectory)/../..&quot; &quot;$(IntermediateOutputPath)credits&quot;" />
+    <ItemGroup>
+      <EmbeddedResource Include="$(IntermediateOutputPath)credits/third-party-credits.json" LogicalName="OpControl.Parental.ThirdPartyCredits.json" />
+    </ItemGroup>
+  </Target>
 </Project>

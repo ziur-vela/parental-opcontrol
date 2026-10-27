@@ -23,7 +23,8 @@ public static class LunaPipePolicy
         "message-seen",
         "message-ack",
         "set-theme",
-        "state"
+        "state",
+        "about"
     };
 
     public static bool IsImage(string? imagePath, string expectedPath) =>

@@ -1611,7 +1611,9 @@ public sealed class LunaAppView : UserControl
             _messagesPanel.Children.Remove(_emptyLabel);
             _emptyLabel = null;
         }
-        _messagesPanel.Children.Add(ChildBubble(string.IsNullOrWhiteSpace(question) ? "What's a volcano?" : question, flagged: false));
+        _messagesPanel.Children.Add(ChildBubble(
+            string.IsNullOrWhiteSpace(question) ? "What's a volcano?" : question, flagged: false,
+            DateTime.UtcNow, string.Empty, out _));
         _messagesPanel.Children.Add(new ThinkingView(_palette));
         ScrollToEndSoon();
     }

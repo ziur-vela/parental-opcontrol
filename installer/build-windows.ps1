@@ -31,24 +31,44 @@ $helper = Join-Path $publish "helper"
 $luna = Join-Path $publish "luna"
 $msi = Join-Path $artifacts "OpControlParental-$Version.msi"
 $setupDir = Join-Path $artifacts "setup-$Version"
-New-Item -ItemType Directory -Force $artifacts, $client, $helper, $luna, $setupDir | Out-Null
+$legal = Join-Path $publish "legal"
+$buildDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
+New-Item -ItemType Directory -Force $artifacts, $client, $helper, $luna, $legal, $setupDir | Out-Null
 
 Write-Host "Publishing client $Version..."
-& $dotnet publish (Join-Path $RepoRoot "src\OpControl.Parental.Client.Windows") -c Release -r win-x64 -o $client -p:Version=$Version
+& $dotnet publish (Join-Path $RepoRoot "src\OpControl.Parental.Client.Windows") -c Release -r win-x64 -o $client -p:Version=$Version -p:BuildDate=$buildDate
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 Write-Host "Publishing helper $Version..."
-& $dotnet publish (Join-Path $RepoRoot "src\OpControl.Parental.Client.Windows.Helper") -c Release -r win-x64 -o $helper -p:Version=$Version
+& $dotnet publish (Join-Path $RepoRoot "src\OpControl.Parental.Client.Windows.Helper") -c Release -r win-x64 -o $helper -p:Version=$Version -p:BuildDate=$buildDate
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 Write-Host "Publishing Luna $Version..."
-& $dotnet publish (Join-Path $RepoRoot "src\OpControl.Parental.Luna") -c Release -r win-x64 -o $luna -p:Version=$Version -p:PublishSingleFile=true -p:SelfContained=true -p:IncludeNativeLibrariesForSelfExtract=true
+& $dotnet publish (Join-Path $RepoRoot "src\OpControl.Parental.Luna") -c Release -r win-x64 -o $luna -p:Version=$Version -p:BuildDate=$buildDate -p:PublishSingleFile=true -p:SelfContained=true -p:IncludeNativeLibrariesForSelfExtract=true
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host "Generating third-party notices..."
+$assetsList = @(
+    (Join-Path $RepoRoot "src\OpControl.Parental.Client.Windows\obj\project.assets.json"),
+    (Join-Path $RepoRoot "src\OpControl.Parental.Client.Windows.Helper\obj\project.assets.json"),
+    (Join-Path $RepoRoot "src\OpControl.Parental.Luna\obj\project.assets.json")
+)
+foreach ($assets in $assetsList) { if (-not (Test-Path $assets)) { throw "Missing $assets" } }
+$tfms = "net10.0-windows10.0.19041.0;net10.0-windows;net10.0"
+& $dotnet run --file (Join-Path $RepoRoot "tools\generate-third-party-credits.cs") -- `
+    ($assetsList -join ";") $env:NUGET_PACKAGES $tfms `
+    (Join-Path $RepoRoot "src\OpControl.Parental.Luna") $RepoRoot $legal
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+Copy-Item (Join-Path $RepoRoot "LICENSE") $legal -Force
+Copy-Item (Join-Path $legal "third-party-credits.md") (Join-Path $legal "THIRD-PARTY-NOTICES.md") -Force
+$fontLegal = Join-Path $legal "fonts"
+New-Item -ItemType Directory -Force $fontLegal | Out-Null
+Copy-Item (Join-Path $RepoRoot "src\OpControl.Parental.Client.Windows.Helper\fonts\OFL-*.txt") $fontLegal -Force
 
 Write-Host "Building MSI..."
 & powershell -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot "build-msi-windows.ps1") -Version $Version -PublishRoot $publish -OutFile $msi -InstallerDir $PSScriptRoot -WixTool $WixTool -DotnetRoot $DotnetRoot
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path $msi)) { throw "MSI build failed" }
 
 Write-Host "Building setup bootstrapper..."
-& $dotnet publish (Join-Path $RepoRoot "src\OpControl.Parental.Setup") -c Release -r win-x64 -o $setupDir -p:Version=$Version -p:MsiPath=$msi
+& $dotnet publish (Join-Path $RepoRoot "src\OpControl.Parental.Setup") -c Release -r win-x64 -o $setupDir -p:Version=$Version -p:BuildDate=$buildDate -p:MsiPath=$msi
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 $setup = Join-Path $artifacts "OpControlParental-Setup-$Version.exe"
 Copy-Item (Join-Path $setupDir "OpControl.Parental.Setup.exe") $setup -Force
