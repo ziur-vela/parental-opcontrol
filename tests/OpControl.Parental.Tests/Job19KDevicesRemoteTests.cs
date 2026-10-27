@@ -33,7 +33,7 @@ public class Job19KDevicesRemoteTests
     {
         var name = TimeZoneResolver.DisplayName("US Mountain Standard Time");
         Assert.False(string.IsNullOrWhiteSpace(name));
-        Assert.Contains("Mountain", name, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Arizona", name, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -947,8 +947,9 @@ body:has(.legal-text) .auth-card { width: min(880px, 100%); }
 .device-head-status { text-align: right; margin-left: auto; white-space: nowrap; }
 .state-online { color: #3ddc97; font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
 .state-offline { color: #ff8f80; font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
-.device-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.device-card-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(180px, 1fr); gap: 12px; }
 .device-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+.device-card-grid .field:first-child select { font-size: 13px; }
 .system-resources { border: 1px dashed var(--line-2); padding: 14px; }
 .system-resources-head { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 10px; }
 .pill-amber { display: inline-flex; align-items: center; border: 1px solid color-mix(in srgb, var(--warn) 55%, var(--line)); background: var(--warn-soft); color: var(--warn); border-radius: 0; padding: 2px 7px; font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; }
