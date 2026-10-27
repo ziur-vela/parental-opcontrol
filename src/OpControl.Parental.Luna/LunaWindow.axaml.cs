@@ -708,6 +708,7 @@ public partial class LunaWindow : Window
         _bubbleOpacity = 0;
         _bubbleTargetOn = false;
         _bubbleScale = 1;
+        _sleepLayer.IsHitTestVisible = true;
         _bob = 0;
         _blob.IsVisible = false;
         SetBlobChrome(true);
@@ -839,6 +840,8 @@ public partial class LunaWindow : Window
 
     internal bool ChatRootVisibleForTest => _chatRoot.IsVisible && _blob.IsVisible;
     internal string ModeForTest => _mode.ToString();
+    internal LunaAppView ChatViewForTest => _chat;
+    internal bool SleepLayerHitTestForTest => _sleepLayer.IsHitTestVisible;
     internal double BubbleOpacityForTest => _bubbleOpacity;
     internal double BubbleScaleForTest => _bubbleScale;
     internal LunaGreetingBubble GreetingForTest => _greeting;
@@ -1114,6 +1117,11 @@ public partial class LunaWindow : Window
         _moonSlide.Opacity = moonHidden
             ? (_mode == Mode.MorphOpen ? Math.Max(0, 1 - Math.Max(0, (now - _morphStart) / 0.08)) : 0)
             : 1;
+        // Opacity 0 does not remove a visual from hit testing. While the chat is
+        // open the invisible moon/Z layer sits above ChatRoot and used to swallow
+        // clicks on the top-left buttons.
+        _sleepLayer.IsHitTestVisible = !moonHidden;
+        _zLayer.IsHitTestVisible = false;
 
         var sleepScaleNow = Lerp(_sleepScale, 1, Math.Clamp(slide, 0, 1));
         _sleepTransform.ScaleX = sleepScaleNow;

@@ -366,6 +366,7 @@ public sealed class LunaAppView : UserControl
         stack.Children.Add(Text(Loc.T("Luna.Subject." + SubjectKey(subject)), 16, style.Ink, FontWeight.SemiBold, display: true));
         var tile = new Button
         {
+            Name = "SubjectTile_" + subject,
             Content = stack,
             Height = 86,
             HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -578,6 +579,7 @@ public sealed class LunaAppView : UserControl
             Margin = new Thickness(12, 12, 12, 6)
         };
         var back = IconButton(BackIcon(), Loc.T("Luna.Common.Back"));
+        back.Name = "ChatBack";
         back.Click += (_, _) => ShowHome();
         Grid.SetColumn(back, 0);
         header.Children.Add(back);
@@ -592,15 +594,18 @@ public sealed class LunaAppView : UserControl
         Grid.SetColumn(titles, 2);
         header.Children.Add(titles);
         var theme = IconButton(ThemeIcon(), Loc.T("Luna.Theme.Pick"));
+        theme.Name = "ChatTheme";
         theme.Click += (_, _) => _ = ToggleThemeAsync();
         Grid.SetColumn(theme, 3);
         header.Children.Add(theme);
         var rename = IconButton(MoreIcon(), Loc.T("Luna.Chat.Options"));
+        rename.Name = "ChatMenu";
         rename.Click += (_, _) => ShowChatMenu(rename);
         rename.Margin = new Thickness(8, 0, 0, 0);
         Grid.SetColumn(rename, 4);
         header.Children.Add(rename);
         var close = IconButton(CloseIcon(), Loc.T("Luna.Common.Close"));
+        close.Name = "ChatClose";
         close.Click += (_, _) => CloseRequested?.Invoke(this, EventArgs.Empty);
         close.Margin = new Thickness(8, 0, 0, 0);
         Grid.SetColumn(close, 5);
@@ -631,6 +636,7 @@ public sealed class LunaAppView : UserControl
         var root = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,*,Auto") };
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto"), Margin = new Thickness(12, 14, 12, 6) };
         var back = IconButton(BackIcon(), Loc.T("Luna.Common.Back"));
+        back.Name = "ChatsBack";
         back.Click += (_, _) => ShowHome();
         header.Children.Add(back);
         var title = Text(Loc.T("Luna.Home.MyChats"), 24, _palette.Text, FontWeight.SemiBold, display: true);
@@ -639,10 +645,12 @@ public sealed class LunaAppView : UserControl
         Grid.SetColumn(title, 1);
         header.Children.Add(title);
         var theme = IconButton(ThemeIcon(), Loc.T("Luna.Theme.Pick"));
+        theme.Name = "ChatsTheme";
         theme.Click += (_, _) => _ = ToggleThemeAsync();
         Grid.SetColumn(theme, 2);
         header.Children.Add(theme);
         var close = IconButton(CloseIcon(), Loc.T("Luna.Common.Close"));
+        close.Name = "ChatsClose";
         close.Click += (_, _) => CloseRequested?.Invoke(this, EventArgs.Empty);
         close.Margin = new Thickness(8, 0, 0, 0);
         Grid.SetColumn(close, 3);
@@ -1659,6 +1667,7 @@ public sealed class LunaAppView : UserControl
     {
         var grip = new Border
         {
+            Name = "ResizeGrip",
             Width = 18,
             Height = 18,
             Background = Brushes.Transparent,
@@ -1975,6 +1984,16 @@ public sealed class LunaAppView : UserControl
         ? _messagesPanel.Children[^1] as Control : null;
 
     internal void MarkInitializedForTest() => _initialized = true;
+
+    internal void SetThemeForTest(string theme)
+    {
+        _palette = LunaThemes.From(theme);
+        ApplyThemeVariant(_palette);
+        ApplyMarkdownResources(_palette);
+        _root.Background = LunaBrushes.B(_palette.Bg);
+        _root.BorderBrush = LunaBrushes.B(_palette.Border);
+        RenderCurrent();
+    }
 
     internal async Task InitializeForTestAsync() => await InitAsync();
 
