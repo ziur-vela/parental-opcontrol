@@ -31,7 +31,9 @@ public sealed class LockMessagesForm : Form
     private readonly Button _send;
     private readonly System.Windows.Forms.Timer _poll;
     private readonly IReadOnlyList<ChildMessageDto>? _demo;
+    private readonly Dictionary<Guid, Control> _rows = new();
     private List<ChildMessageDto> _messages = [];
+    private Control? _empty;
     private bool _sending;
     private bool _loading;
     private bool _firstLoad = true;
@@ -185,6 +187,9 @@ public sealed class LockMessagesForm : Form
         };
         _input.KeyDown += async (_, e) =>
         {
+            // IME composition reports ProcessKey/229; committing a candidate with
+            // Enter must not send the message (accents, dead keys, Spanish ñ).
+            if (e.KeyCode == Keys.ProcessKey) return;
             if (e.KeyCode == Keys.Enter && !e.Shift)
             {
                 e.SuppressKeyPress = true;
@@ -253,13 +258,13 @@ public sealed class LockMessagesForm : Form
     {
         if (_demo is not null)
         {
-            _messages = _demo.Where(m => !m.Deleted).OrderBy(m => m.CreatedUtc).ToList();
+            _messages = MessageThreadDiff.Normalize(_demo).ToList();
             RebuildThread(scrollToEnd: true);
             return;
         }
         var cached = MessageThreadCache.Read();
         if (cached is null) return;
-        _messages = cached.Where(m => !m.Deleted).OrderBy(m => m.CreatedUtc).ToList();
+        _messages = MessageThreadDiff.Normalize(cached).ToList();
         RebuildThread(scrollToEnd: true);
     }
 
@@ -271,17 +276,44 @@ public sealed class LockMessagesForm : Form
         if (!quiet) _status.Text = Loc.T("Client.Messages.Loading");
         try
         {
+            IReadOnlyList<ChildMessageDto> next = _messages;
             var response = await PinPipeClient.GetThreadAsync(CancellationToken.None);
             if (response.Ok && response.Messages is not null)
-                _messages = response.Messages.Where(m => !m.Deleted).OrderBy(m => m.CreatedUtc).ToList();
+            {
+                next = response.Messages;
+            }
             else
             {
                 var cached = MessageThreadCache.Read();
-                if (cached is not null)
-                    _messages = cached.Where(m => !m.Deleted).OrderBy(m => m.CreatedUtc).ToList();
+                if (cached is not null) next = cached;
             }
+
+            var delta = MessageThreadDiff.Compare(_messages, next);
+            var wasAtBottom = IsThreadAtBottom();
             _status.Text = "";
-            RebuildThread(scrollToEnd: quiet || _firstLoad);
+            if (delta.Changed)
+            {
+                var hadRows = _thread.Controls.Count > 0 && _messages.Count > 0;
+                if (!hadRows || delta.OrderChanged || delta.Removed.Count > 0)
+                {
+                    _messages = delta.Final.ToList();
+                    RebuildThread(scrollToEnd: wasAtBottom || _firstLoad);
+                }
+                else
+                {
+                    _messages = delta.Final.ToList();
+                    foreach (var message in delta.Updated)
+                        UpdateThreadRow(message);
+                    foreach (var message in delta.Added)
+                        AppendThreadRow(message);
+                    if (delta.Added.Count > 0 && wasAtBottom)
+                        ScrollThreadToEnd();
+                }
+            }
+            else
+            {
+                _messages = delta.Final.ToList();
+            }
             _firstLoad = false;
             if (markSeen)
                 foreach (var message in _messages.Where(m => m.Direction == MessageDirection.ParentToChild && m.SeenUtc is null))
@@ -304,9 +336,11 @@ public sealed class LockMessagesForm : Form
         _thread.Controls.Clear();
         _thread.RowStyles.Clear();
         _thread.RowCount = 0;
+        _rows.Clear();
+        _empty = null;
         if (_messages.Count == 0)
         {
-            var empty = new Label
+            _empty = new Label
             {
                 Text = Loc.T("Client.Messages.Empty"),
                 AutoSize = true,
@@ -314,15 +348,49 @@ public sealed class LockMessagesForm : Form
                 Font = Theme.Body(12f),
                 Margin = new Padding(4, 8, 4, 8)
             };
-            AddThreadRow(empty);
+            AddThreadRow(_empty);
         }
         foreach (var message in _messages)
-            AddThreadRow(BuildRow(message));
+        {
+            var row = BuildRow(message);
+            _rows[message.Id] = row;
+            AddThreadRow(row);
+        }
         _thread.Width = Math.Max(200, _threadHost.ClientSize.Width - 24);
         _thread.ResumeLayout(true);
         if (scrollToEnd)
-            _threadHost.ScrollControlIntoView(_thread.Controls.Count > 0 ? _thread.Controls[^1] : _thread);
+            ScrollThreadToEnd();
     }
+
+    private void AppendThreadRow(ChildMessageDto message)
+    {
+        if (_rows.ContainsKey(message.Id)) return;
+        var row = BuildRow(message);
+        _rows[message.Id] = row;
+        AddThreadRow(row);
+    }
+
+    private void UpdateThreadRow(ChildMessageDto message)
+    {
+        if (!_rows.TryGetValue(message.Id, out var old)) return;
+        var index = _thread.GetRow(old);
+        _thread.SuspendLayout();
+        _thread.Controls.Remove(old);
+        old.Dispose();
+        var row = BuildRow(message);
+        _thread.Controls.Add(row, 0, index);
+        _rows[message.Id] = row;
+        _thread.ResumeLayout(true);
+    }
+
+    private bool IsThreadAtBottom()
+    {
+        var scroll = _threadHost.VerticalScroll;
+        return scroll.Maximum - scroll.LargeChange - scroll.Value <= 8;
+    }
+
+    private void ScrollThreadToEnd() =>
+        _threadHost.ScrollControlIntoView(_thread.Controls.Count > 0 ? _thread.Controls[^1] : _thread);
 
     private void AddThreadRow(Control row)
     {

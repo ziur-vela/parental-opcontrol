@@ -845,6 +845,15 @@ public partial class LunaWindow : Window
     internal double BubbleOpacityForTest => _bubbleOpacity;
     internal double BubbleScaleForTest => _bubbleScale;
     internal LunaGreetingBubble GreetingForTest => _greeting;
+    internal double SleepScaleForTest => _sleepScale;
+    internal bool SleepHitForTest(double x, double y) => LunaSleepGeometry.IsInsideSliver(x, y, _sleepScale);
+    internal void SetSleepScaleForTest(double value)
+    {
+        _sleepScale = Math.Clamp(value, MinSleepScale, MaxSleepScale);
+        _sleepTransform.ScaleX = _sleepScale;
+        _sleepTransform.ScaleY = _sleepScale;
+        UpdateRegion();
+    }
 
     internal void OpenChatForTest() => OpenChat();
 
@@ -1201,10 +1210,7 @@ public partial class LunaWindow : Window
         var s = RenderScaling;
         var x = (screenX - Position.X) / s;
         var y = (screenY - Position.Y) / s;
-        var k = _sleepScale;
-        var dx = x + 20 * k;
-        var dy = y + 20 * k;
-        return dx * dx + dy * dy <= 48 * k * 48 * k;
+        return LunaSleepGeometry.IsInsideSliver(x, y, _sleepScale);
     }
 
     private bool IsCursorOverMoon()
@@ -1226,8 +1232,9 @@ public partial class LunaWindow : Window
 
         if (_mode == Mode.Sleep)
         {
-            var k = _sleepScale;
-            return x >= -4 * k && x <= 44 * k && y >= -4 * k && y <= 44 * k;
+            // Only the visible yellow quarter circle wakes Luna. The old square
+            // [-4k,44k] woke her over the browser Back button and the Z's.
+            return LunaSleepGeometry.IsInsideSliver(x, y, _sleepScale);
         }
 
         var cx = -20 + _slide * SlideDistance;
@@ -1332,10 +1339,11 @@ public partial class LunaWindow : Window
         switch (_mode)
         {
             case Mode.Sleep:
+                // The OS region is the visible yellow quarter circle, not the
+                // 48k square that used to include the Z's and the dead corner
+                // over the browser Back button. Anything outside is not ours.
                 shape = "sliver";
-                x1 = 0; y1 = 0;
-                x2 = (int)Math.Ceiling(SleepRegionSize * _sleepScale * s);
-                y2 = (int)Math.Ceiling(SleepRegionSize * _sleepScale * s);
+                (x1, y1, x2, y2) = LunaSleepGeometry.EllipseBounds(_sleepScale, s);
                 break;
 
             case Mode.Waking:
@@ -1425,10 +1433,10 @@ public partial class LunaWindow : Window
         _lastRgnBubbleY2 = by2;
 
         IntPtr region;
-        if (shape == "moon")
+        if (shape is "moon" or "sliver")
         {
             region = Win32.CreateEllipticRgn(x1, y1, x2, y2);
-            if (bubbleVisible)
+            if (shape == "moon" && bubbleVisible)
             {
                 var bubble = Win32.CreateRectRgn(bx1, by1, bx2, by2);
                 if (bubble != IntPtr.Zero)

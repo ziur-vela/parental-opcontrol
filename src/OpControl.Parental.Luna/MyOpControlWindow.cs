@@ -1,8 +1,10 @@
 using System.Globalization;
+using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -46,6 +48,28 @@ public sealed class MyOpControlWindow : Window
     private DispatcherTimer? _themeTimer;
     private string? _language;
     private readonly Dictionary<Screen, Button> _navButtons = new();
+    private readonly Dictionary<Guid, MessageRow> _messageRows = new();
+    private readonly HashSet<Guid> _seenRequested = new();
+    private Control? _messagesEmpty;
+    private TextBlock? _homeTimeLeft;
+    private TextBlock? _homeUsed;
+    private ProgressBar? _homeProgress;
+    private string _snapshotSignature = string.Empty;
+    private string _renderedLanguage = string.Empty;
+    private bool _suppressEnterText;
+    private int _messageListBuilds;
+    private int _messageRowAdds;
+
+    private sealed class MessageRow
+    {
+        public required Guid Id { get; init; }
+        public required StackPanel Root { get; init; }
+        public required TextBlock Body { get; init; }
+        public required TextBlock Header { get; init; }
+        public required StackPanel Meta { get; init; }
+        public ChildMessageDto Message { get; set; } = null!;
+        public int Index { get; set; }
+    }
 
     public MyOpControlWindow(IKidDataSource data, KidWindowOptions options)
     {
@@ -353,14 +377,109 @@ public sealed class MyOpControlWindow : Window
                 _palette = LunaThemes.From(_themeKey);
             }
             _loaded = true;
-            var keepEditor = _screen == Screen.Messages && _input is { } editor
-                             && (editor.IsFocused || !string.IsNullOrWhiteSpace(editor.Text));
-            if (!keepEditor) RenderCurrent();
+            var languageChanged = !string.Equals(Loc.Language, _renderedLanguage, StringComparison.OrdinalIgnoreCase);
+            if (_screen == Screen.Messages && _messagesPanel is not null && !languageChanged)
+            {
+                UpdateMessagesInPlace();
+                return;
+            }
+
+            var signature = SnapshotSignature(snapshot);
+            if (languageChanged || !string.Equals(signature, _snapshotSignature, StringComparison.Ordinal))
+            {
+                _snapshotSignature = signature;
+                RenderCurrent();
+            }
+            else
+            {
+                UpdateVolatileHomeValues();
+            }
         }
         catch (Exception ex)
         {
             LunaLog.Exception("kid-load", ex);
         }
+    }
+
+    /// <summary>
+    /// Everything that changes a screen's structure. The live countdown and the
+    /// runtime UpdatedUtc tick every poll, so they are updated in place instead of
+    /// forcing a rebuild.
+    /// </summary>
+    private static string SnapshotSignature(KidSnapshot snapshot)
+    {
+        var summary = snapshot.Summary;
+        var state = snapshot.State;
+        return JsonSerializer.Serialize(new
+        {
+            snapshot.Online,
+            snapshot.Error,
+            Language = snapshot.Language,
+            Theme = snapshot.ThemeKey,
+            Summary = summary is null ? null : new
+            {
+                summary.ChildId,
+                summary.ChildName,
+                summary.DeviceName,
+                summary.GeneratedUtc,
+                summary.ScreenTimeEnabled,
+                summary.TodayLimitMinutes,
+                summary.UsedTodaySeconds,
+                summary.UsedWeekSeconds,
+                summary.Weekdays,
+                summary.Schedules,
+                summary.Categories,
+                summary.Websites,
+                summary.Apps,
+                summary.AppsToday,
+                summary.AppsWeek,
+                summary.Visits,
+                summary.History,
+                summary.UnreadMessages,
+                summary.Theme,
+                Recent = summary.RecentMessages.Select(message => new
+                {
+                    message.Id,
+                    message.Text,
+                    message.SenderName,
+                    message.CreatedUtc,
+                    Status = (int)message.Status
+                })
+            },
+            State = state is null ? null : new
+            {
+                state.ChildId,
+                state.ChildName,
+                state.ParentDisplayName,
+                state.IsLocked,
+                state.Reason,
+                state.ScheduleName,
+                state.EndsUtc,
+                state.NextLockUtc,
+                state.BonusUntilUtc,
+                state.BonusMinutes,
+                state.DailyLimitMinutes,
+                state.SpokenWarnings,
+                state.Language,
+                state.UnlockScheduleName,
+                state.LunaEnabled,
+                state.Theme
+            }
+        });
+    }
+
+    private void UpdateVolatileHomeValues()
+    {
+        if (_screen != Screen.Home || _homeTimeLeft is null) return;
+        var summary = _snapshot.Summary;
+        var state = _snapshot.State;
+        if (summary is null || !summary.ScreenTimeEnabled) return;
+        var left = state?.DailyLimitRemainingSeconds is { } seconds
+            ? Math.Max(0, seconds)
+            : Math.Max(0, summary.TodayLimitMinutes * 60 - summary.UsedTodaySeconds);
+        var text = FormatDuration(left);
+        if (!string.Equals(_homeTimeLeft.Text, text, StringComparison.Ordinal))
+            _homeTimeLeft.Text = text;
     }
 
     private void SyncTheme()
@@ -394,6 +513,13 @@ public sealed class MyOpControlWindow : Window
     {
         if (_content is null) return;
         _content.Children.Clear();
+        _messagesPanel = null;
+        _messagesScroll = null;
+        _messagesEmpty = null;
+        _messageRows.Clear();
+        _homeTimeLeft = null;
+        _homeUsed = null;
+        _homeProgress = null;
         _content.Children.Add(_screen switch
         {
             Screen.Schedule => BuildSchedule(),
@@ -402,6 +528,7 @@ public sealed class MyOpControlWindow : Window
             Screen.Messages => BuildMessages(),
             _ => BuildHome()
         });
+        _renderedLanguage = Loc.Language;
     }
 
     private Control BuildHome()
@@ -455,12 +582,13 @@ public sealed class MyOpControlWindow : Window
             : Math.Max(0, limit * 60 - summary.UsedTodaySeconds);
         var stack = new StackPanel { Spacing = 6 };
         stack.Children.Add(Text(Loc.T("Client.Kid.TimeLeft"), 11, _palette.Muted, FontWeight.Bold));
-        stack.Children.Add(Text(summary.ScreenTimeEnabled ? FormatDuration(left) : Loc.T("Client.Kid.NoLimit"),
-            34, summary.ScreenTimeEnabled ? HighlightColor : _palette.Muted, FontWeight.Bold, LunaThemes.Display));
+        _homeTimeLeft = Text(summary.ScreenTimeEnabled ? FormatDuration(left) : Loc.T("Client.Kid.NoLimit"),
+            34, summary.ScreenTimeEnabled ? HighlightColor : _palette.Muted, FontWeight.Bold, LunaThemes.Display);
+        stack.Children.Add(_homeTimeLeft);
         if (summary.ScreenTimeEnabled)
         {
             var used = Math.Max(0, Math.Min(limit * 60, summary.UsedTodaySeconds));
-            stack.Children.Add(new ProgressBar
+            _homeProgress = new ProgressBar
             {
                 Minimum = 0,
                 Maximum = Math.Max(1, limit * 60),
@@ -468,9 +596,11 @@ public sealed class MyOpControlWindow : Window
                 Height = 10,
                 Foreground = LunaBrushes.B(HighlightColor),
                 Background = LunaBrushes.B(_palette.Sunken)
-            });
-            stack.Children.Add(Text(Loc.T("Client.Kid.UsedOf", FormatDuration(summary.UsedTodaySeconds), FormatDuration(limit * 60)),
-                11.5, _palette.Muted));
+            };
+            stack.Children.Add(_homeProgress);
+            _homeUsed = Text(Loc.T("Client.Kid.UsedOf", FormatDuration(summary.UsedTodaySeconds), FormatDuration(limit * 60)),
+                11.5, _palette.Muted);
+            stack.Children.Add(_homeUsed);
         }
         else
         {
@@ -788,14 +918,8 @@ public sealed class MyOpControlWindow : Window
         grid.Children.Add(scroll);
         _messagesScroll = scroll;
 
-        var messages = _snapshot.Messages.OrderBy(m => m.CreatedUtc).ToList();
-        if (messages.Count == 0)
-            _messagesPanel.Children.Add(Text(Loc.T("Client.Messages.Empty"), 12, _palette.Muted));
-        foreach (var message in messages)
-            _messagesPanel.Children.Add(MessageBubble(message));
-
-        foreach (var message in messages.Where(m => m.Direction == MessageDirection.ParentToChild && m.SeenUtc is null))
-            _ = _data.MarkSeenAsync(message.Id, CancellationToken.None);
+        _messageListBuilds++;
+        RebuildMessageList(MessageThreadDiff.Normalize(_snapshot.Messages));
 
         var composer = new StackPanel { Spacing = 6, Margin = new Thickness(22, 4, 22, 18) };
         var quick = new WrapPanel { Orientation = Orientation.Horizontal };
@@ -840,14 +964,10 @@ public sealed class MyOpControlWindow : Window
             CornerRadius = new CornerRadius(12),
             Padding = new Thickness(10, 8)
         };
-        _input.KeyDown += async (_, e) =>
-        {
-            if (e.Key == Key.Enter && !e.KeyModifiers.HasFlag(KeyModifiers.Shift))
-            {
-                e.Handled = true;
-                await SendAsync();
-            }
-        };
+        // Tunnel so the TextBox's own Enter handling (newline) cannot swallow the
+        // send. Shift+Enter still gets a newline; IME composition never sends.
+        _input.AddHandler(KeyDownEvent, OnComposerKeyDown, RoutingStrategies.Tunnel);
+        _input.AddHandler(TextInputEvent, OnComposerTextInput, RoutingStrategies.Tunnel);
         row.Children.Add(_input);
         _sendButton = new Button
         {
@@ -872,7 +992,139 @@ public sealed class MyOpControlWindow : Window
         return grid;
     }
 
-    private Control MessageBubble(ChildMessageDto message)
+    private void OnComposerKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key is Key.ImeProcessed or Key.None) return;
+        if (e.Key != Key.Enter) return;
+        e.Handled = true;
+        _suppressEnterText = true;
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+            InsertComposerNewline();
+        else
+            _ = SendAsync();
+    }
+
+    private void OnComposerTextInput(object? sender, TextInputEventArgs e)
+    {
+        if (string.IsNullOrEmpty(e.Text)) return;
+        if (_suppressEnterText && (e.Text == "\r" || e.Text == "\n" || e.Text == "\r\n"))
+        {
+            e.Handled = true;
+            _suppressEnterText = false;
+            return;
+        }
+        _suppressEnterText = false;
+    }
+
+    private void InsertComposerNewline()
+    {
+        if (_input is null) return;
+        var text = _input.Text ?? string.Empty;
+        var start = Math.Clamp(_input.SelectionStart, 0, text.Length);
+        var end = Math.Clamp(_input.SelectionEnd, 0, text.Length);
+        if (start > end) (start, end) = (end, start);
+        if (text.Length - (end - start) >= _input.MaxLength) return;
+        _input.Text = text[..start] + "\n" + text[end..];
+        _input.CaretIndex = start + 1;
+        _input.SelectionStart = _input.CaretIndex;
+        _input.SelectionEnd = _input.CaretIndex;
+    }
+
+    private void RebuildMessageList(IReadOnlyList<ChildMessageDto> messages)
+    {
+        if (_messagesPanel is null) return;
+        _messagesPanel.Children.Clear();
+        _messageRows.Clear();
+        _messagesEmpty = null;
+        if (messages.Count == 0)
+        {
+            _messagesEmpty = Text(Loc.T("Client.Messages.Empty"), 12, _palette.Muted);
+            _messagesPanel.Children.Add(_messagesEmpty);
+        }
+        for (var index = 0; index < messages.Count; index++)
+        {
+            var row = CreateMessageRow(messages[index], index);
+            _messageRows[messages[index].Id] = row;
+            _messagesPanel.Children.Add(row.Root);
+        }
+        MarkSeen(messages);
+    }
+
+    private void UpdateMessagesInPlace()
+    {
+        if (_messagesPanel is null) return;
+        var previous = _messageRows.Values.OrderBy(row => row.Index).Select(row => row.Message).ToList();
+        var delta = MessageThreadDiff.Compare(previous, _snapshot.Messages);
+        if (!delta.Changed)
+        {
+            MarkSeen(delta.Final);
+            return;
+        }
+
+        var scroll = _messagesScroll;
+        var wasAtBottom = IsScrolledToBottom(scroll);
+        var offset = scroll?.Offset.Y ?? 0;
+        if (delta.OrderChanged || delta.Removed.Count > 0)
+        {
+            RebuildMessageList(delta.Final);
+        }
+        else
+        {
+            foreach (var message in delta.Updated)
+            {
+                if (_messageRows.TryGetValue(message.Id, out var row))
+                    UpdateMessageRow(row, message);
+            }
+            foreach (var message in delta.Added)
+                AddMessageRow(message);
+        }
+        MarkSeen(delta.Final);
+
+        if (scroll is null) return;
+        if (wasAtBottom)
+        {
+            ScrollMessagesToEnd();
+        }
+        else
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (_messagesScroll != scroll) return;
+                var max = Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height);
+                scroll.Offset = new Vector(scroll.Offset.X, Math.Min(offset, max));
+            }, DispatcherPriority.Background);
+        }
+    }
+
+    private static bool IsScrolledToBottom(ScrollViewer? scroll) =>
+        scroll is null || scroll.Extent.Height <= scroll.Viewport.Height + 1 ||
+        scroll.Extent.Height - scroll.Viewport.Height - scroll.Offset.Y <= 24;
+
+    private void ScrollMessagesToEnd() =>
+        Dispatcher.UIThread.Post(() => _messagesScroll?.ScrollToEnd(), DispatcherPriority.Background);
+
+    private void AddMessageRow(ChildMessageDto message)
+    {
+        if (_messagesPanel is null || _messageRows.ContainsKey(message.Id)) return;
+        if (_messagesEmpty is not null)
+        {
+            _messagesPanel.Children.Remove(_messagesEmpty);
+            _messagesEmpty = null;
+        }
+        var index = 0;
+        foreach (var row in _messageRows.Values.OrderBy(row => row.Index))
+        {
+            if (row.Message.CreatedUtc <= message.CreatedUtc) index = row.Index + 1;
+        }
+        var added = CreateMessageRow(message, index);
+        _messagesPanel.Children.Insert(Math.Min(index, _messagesPanel.Children.Count), added.Root);
+        foreach (var row in _messageRows.Values.Where(row => row.Index >= index))
+            row.Index++;
+        _messageRows[message.Id] = added;
+        _messageRowAdds++;
+    }
+
+    private MessageRow CreateMessageRow(ChildMessageDto message, int index)
     {
         var own = message.Direction == MessageDirection.ChildToParent;
         var stack = new StackPanel
@@ -881,23 +1133,62 @@ public sealed class MyOpControlWindow : Window
             HorizontalAlignment = own ? HorizontalAlignment.Right : HorizontalAlignment.Left,
             MaxWidth = 420
         };
-        stack.Children.Add(Text(own ? Loc.T("Client.Messages.SentByYou") : Loc.T("Client.Messages.YourParents"),
-            9.5, _palette.Muted, FontWeight.Bold, wrap: false));
+        var header = Text(own ? Loc.T("Client.Messages.SentByYou") : Loc.T("Client.Messages.YourParents"),
+            9.5, _palette.Muted, FontWeight.Bold, wrap: false);
+        stack.Children.Add(header);
+        var bubbleText = Text(message.Text, 13, _palette.Text);
         var bubble = new Border
         {
             Background = LunaBrushes.B(own ? _palette.ChildBubble : _palette.Surface2),
             BorderBrush = LunaBrushes.B(own ? _palette.ChildBubbleBorder : _palette.Surface2),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(own ? 14 : 14, 14, own ? 4 : 14, 14),
+            CornerRadius = new CornerRadius(14, 14, own ? 4 : 14, 14),
             Padding = new Thickness(12, 8),
-            Child = Text(message.Text, 13, _palette.Text)
+            Child = bubbleText
         };
         stack.Children.Add(bubble);
-        var status = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, HorizontalAlignment = own ? HorizontalAlignment.Right : HorizontalAlignment.Left };
+        var meta = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 4,
+            HorizontalAlignment = own ? HorizontalAlignment.Right : HorizontalAlignment.Left
+        };
+        stack.Children.Add(meta);
+        var row = new MessageRow
+        {
+            Id = message.Id,
+            Root = stack,
+            Body = bubbleText,
+            Header = header,
+            Meta = meta,
+            Message = message,
+            Index = index
+        };
+        FillMessageMeta(row);
+        return row;
+    }
+
+    private void UpdateMessageRow(MessageRow row, ChildMessageDto message)
+    {
+        row.Message = message;
+        row.Body.Text = message.Text;
+        row.Header.Text = message.Direction == MessageDirection.ChildToParent
+            ? Loc.T("Client.Messages.SentByYou")
+            : Loc.T("Client.Messages.YourParents");
+        FillMessageMeta(row);
+    }
+
+    private void FillMessageMeta(MessageRow row)
+    {
+        var message = row.Message;
+        var own = message.Direction == MessageDirection.ChildToParent;
+        row.Meta.Children.Clear();
         var when = message.CreatedUtc.ToLocalTime().ToString("t", CultureInfo.CurrentCulture);
-        status.Children.Add(Text(when, 9.5, _palette.Muted));
+        row.Meta.Children.Add(Text(when, 9.5, _palette.Muted));
         if (own)
-            status.Children.Add(Text(MessageStatusIcon(message), 10, _palette.Success));
+        {
+            row.Meta.Children.Add(Text(MessageStatusIcon(message), 10, _palette.Success));
+        }
         else if (message.RequireAck && message.AcknowledgedUtc is null)
         {
             var gotIt = new Button
@@ -909,10 +1200,18 @@ public sealed class MyOpControlWindow : Window
                 Padding = new Thickness(7, 3)
             };
             gotIt.Click += async (_, _) => await AcknowledgeAsync(message.Id);
-            status.Children.Add(gotIt);
+            row.Meta.Children.Add(gotIt);
         }
-        stack.Children.Add(status);
-        return stack;
+    }
+
+    private void MarkSeen(IReadOnlyList<ChildMessageDto> messages)
+    {
+        foreach (var message in messages.Where(message =>
+                     message.Direction == MessageDirection.ParentToChild && message.SeenUtc is null))
+        {
+            if (_seenRequested.Add(message.Id))
+                _ = _data.MarkSeenAsync(message.Id, CancellationToken.None);
+        }
     }
 
     private async Task AcknowledgeAsync(Guid messageId)
@@ -950,6 +1249,8 @@ public sealed class MyOpControlWindow : Window
             if (_sendStatus is not null)
                 _sendStatus.Text = result.Queued ? Loc.T("Client.Messages.Queued") : Loc.T("Client.Messages.Sent");
             await LoadAsync();
+            ScrollMessagesToEnd();
+            _input.Focus();
         }
         finally
         {
@@ -1117,6 +1418,18 @@ public sealed class MyOpControlWindow : Window
 
     internal string CurrentScreenName => _screen.ToString();
     internal Task RefreshForTestAsync() => LoadAsync();
+    internal TextBox? ComposerForTest => _input;
+    internal int MessageRowCountForTest => _messageRows.Count;
+    internal int MessageListBuildCountForTest => _messageListBuilds;
+    internal int MessageRowAddCountForTest => _messageRowAdds;
+    internal string MessageBodyForTest(Guid id) =>
+        _messageRows.TryGetValue(id, out var row) ? row.Body.Text ?? string.Empty : string.Empty;
+    internal string MessageStatusForTest(Guid id) =>
+        _messageRows.TryGetValue(id, out var row)
+            ? string.Join(" ", row.Meta.Children.OfType<TextBlock>().Select(text => text.Text ?? string.Empty))
+            : string.Empty;
+    internal Task SendForTestAsync() => SendAsync();
+    internal void ShowScreenForTest(string screen) => ShowScreen(ParseScreen(screen));
 
     private static Screen ParseScreen(string? tab) => (tab ?? "home").ToLowerInvariant() switch
     {
