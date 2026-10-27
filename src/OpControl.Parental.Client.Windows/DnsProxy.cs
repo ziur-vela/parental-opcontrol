@@ -207,7 +207,7 @@ public sealed class DnsProxy
         if (TryGetBlocked(query, out var blocked, out var question, out var reason))
         {
             if (question is not null && DomainUtil.GetRegistrableDomain(question.Name) is { } registrable)
-                _sync.RecordVisit(registrable, true, reason);
+                _sync.RecordVisit(question.Name, registrable, true, reason);
             return blocked;
         }
 
@@ -216,7 +216,7 @@ public sealed class DnsProxy
             if (Interlocked.Exchange(ref _loggedFirstQuery, 1) == 0)
                 _logger.LogInformation("DNS resolver handled first query for {Name} type {Type}", q.Name, q.Type);
             if (DomainUtil.GetRegistrableDomain(q.Name) is { } domain && DnsPacket.IsAddressType(q.Type))
-                _sync.RecordVisit(domain, false);
+                _sync.RecordVisit(q.Name, domain, false);
         }
 
         var forwarded = await ForwardUdpAsync(query, ct);

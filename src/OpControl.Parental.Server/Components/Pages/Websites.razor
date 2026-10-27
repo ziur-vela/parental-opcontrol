@@ -3,14 +3,17 @@
 
 @page "/websites"
 @attribute [Authorize(Policy = ParentalPolicies.WebsiteRules)]
+@implements IDisposable
 @rendermode InteractiveServer
 @using OpControl.Parental.Server.Auth
 @using Microsoft.EntityFrameworkCore
 @using OpControl.Parental.Contracts
 @using OpControl.Parental.Server.Data
 @using OpControl.Parental.Server.Services
+@using Microsoft.JSInterop
 @inject AuthenticationStateProvider AuthState
 @inject IServiceScopeFactory Scopes
+@inject IJSRuntime JS
 @inject IStringLocalizer<AppStrings> L
 
 <PageTitle>@L["Websites.PageTitle"]</PageTitle>
@@ -53,8 +56,9 @@ else
                 <h2>@L["Websites.VisitedSites"]</h2>
                 <div class="date-nav">
                     <button class="icon-btn" @onclick="() => ShiftDate(-1)" title="@L["Websites.PreviousDay"]">‹</button>
-                    <input type="date" class="mini-input" @bind="_date" @bind:after="RefreshAsync" />
+                    <input type="date" class="mini-input" @bind="_date" @bind:after="OnDateChangedAsync" />
                     <button class="icon-btn" @onclick="() => ShiftDate(1)" title="@L["Websites.NextDay"]">›</button>
+                    <button class="icon-btn" @onclick="() => _ = RefreshAsync()" title="@L["Common.Refresh"]" aria-label="@L["Common.Refresh"]">⟳</button>
                 </div>
             </div>
 
@@ -98,7 +102,7 @@ else
                     <div class="rule-list">
                         @foreach (var site in FilteredSites)
                         {
-                            <div class="rule-row">
+                            <div class="rule-row" @key="site.Domain">
                                 <div class="rule-main">
                                     <div class="rule-title">@site.Domain</div>
                                     <div class="muted tiny">
@@ -114,6 +118,16 @@ else
                                         @if (site.IsNewThisWeek)
                                         {
                                             <span class="pill-soft tiny-pill">@L["Websites.NewThisWeek"]</span>
+                                        }
+                                        @if (site.Subdomains.Count > 0)
+                                        {
+                                            <button type="button" class="subdomain-toggle" @onclick="() => ToggleSubdomains(site.Domain)">
+                                                @(IsExpanded(site.Domain)
+                                                    ? L["Websites.HideSubdomains"]
+                                                    : site.Subdomains.Count == 1
+                                                        ? L["Websites.SubdomainOne"]
+                                                        : L["Websites.SubdomainMany", site.Subdomains.Count])
+                                            </button>
                                         }
                                     </div>
                                 </div>
@@ -146,6 +160,52 @@ else
                                     }
                                 </div>
                             </div>
+                            @if (IsExpanded(site.Domain))
+                            {
+                                @foreach (var sub in site.Subdomains)
+                                {
+                                    <div class="rule-row compact subdomain-row" @key="sub.Host">
+                                        <div class="rule-main">
+                                            <div class="rule-title">@sub.Host</div>
+                                            <div class="muted tiny">
+                                                @L[sub.Count == 1 ? "Common.VisitCount" : "Common.VisitCountPlural", sub.Count] · @L["Websites.LastVisit", FormatLocal(sub.LastUtc)]
+                                                @if (sub.BlockedAttempts > 0)
+                                                {
+                                                    <span> · @(sub.IsAllowed ? EarlierBlockedAttempts(sub.BlockedAttempts) : BlockedAttempts(sub.BlockedAttempts))</span>
+                                                    @if (!sub.IsAllowed)
+                                                    {
+                                                        <span> · @BlockReasonText.Describe(sub.BlockReason)</span>
+                                                    }
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="rule-actions">
+                                            <button class="ghost-btn" @onclick="() => OpenReviewAsync(sub.Host, true)">@L["Website.Review.Button"]</button>
+                                            @if (sub.IsBlocked)
+                                            {
+                                                <span class="state-pill blocked">@L["Common.Blocked"]</span>
+                                                <button class="ghost-btn" @onclick="() => AllowSubdomainAsync(sub.Host)">
+                                                    @L[sub.HasOwnRule && RuleAvailability.CanUnblock(sub.RuleId) ? "Common.Allow" : "Websites.AllowException"]
+                                                </button>
+                                                @if (sub.HasOwnRule && RuleAvailability.CanUnblock(sub.RuleId))
+                                                {
+                                                    <button class="ghost-btn" @onclick="() => RemoveRuleAsync(sub.RuleId, sub.Host)">@L["Websites.Unblock"]</button>
+                                                }
+                                            }
+                                            else if (sub.IsAllowed)
+                                            {
+                                                <span class="state-pill allowed">@L["Common.Allowed"]</span>
+                                                <button class="ghost-btn" @onclick="() => BlockSubdomainAsync(sub.Host)">@L["Common.Block"]</button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-accent" @onclick="() => BlockSubdomainAsync(sub.Host)">@L["Common.Block"]</button>
+                                                <button class="ghost-btn" @onclick="() => AllowSubdomainAsync(sub.Host)">@L["Common.Allow"]</button>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            }
                         }
                     </div>
                 }
@@ -361,7 +421,7 @@ else
                     {
                         <a class="btn btn-ghost" href="@("https://" + _review.Domain)" target="_blank" rel="noopener noreferrer">@L["Website.Review.Visit"]</a>
                     }
-                    <button type="button" class="btn btn-accent" @onclick="() => BlockSiteAsync(_review.Domain, RuleMode.Always, null)">@L["Website.Review.BlockAlways"]</button>
+                    <button type="button" class="btn btn-accent" @onclick="() => BlockSiteAsync(_review.Domain, RuleMode.Always, null, _reviewExactHost)">@L["Website.Review.BlockAlways"]</button>
                     <div class="review-schedule">
                         <select class="mini-input" @bind="_reviewScheduleId">
                             <option value="">@L["Websites.SchedulePlaceholder"]</option>
@@ -373,7 +433,7 @@ else
                         <button type="button" class="ghost-btn" disabled="@(string.IsNullOrEmpty(_reviewScheduleId))"
                                 @onclick="BlockDuringScheduleAsync">@L["Website.Review.BlockSchedule"]</button>
                     </div>
-                    <button type="button" class="ghost-btn" @onclick="() => AllowDomainAsync(_review.Domain, true)">
+                    <button type="button" class="ghost-btn" @onclick="() => AllowDomainAsync(_review.Domain, true, _reviewExactHost)">
                         @L[_review.BlockReason?.StartsWith("category:", StringComparison.Ordinal) == true ? "Websites.AllowException" : "Common.Allow"]
                     </button>
                     @if (RuleAvailability.CanUnblock(_review.RuleId))
@@ -428,19 +488,6 @@ else
         public bool Selected { get; set; }
     }
 
-    private sealed class SiteRow
-    {
-        public string Domain { get; init; } = "";
-        public int Count { get; init; }
-        public DateTime LastUtc { get; init; }
-        public int BlockedAttempts { get; init; }
-        public string? BlockReason { get; init; }
-        public bool IsBlocked { get; init; }
-        public bool IsAllowed { get; init; }
-        public Guid RuleId { get; init; }
-        public bool IsNewThisWeek { get; init; }
-    }
-
     private Guid _familyId;
     private Guid _childId;
     private string _childName = "";
@@ -448,7 +495,12 @@ else
     private bool _loading = true;
     private string? _error;
     private string _filter = "all";
-    private DateTime _date = DateTime.Today;
+    private DateTime _date = default;
+    private readonly LatestRequestGate _refreshGate = new();
+    private readonly HashSet<string> _expanded = new(StringComparer.OrdinalIgnoreCase);
+    private readonly CancellationTokenSource _autoRefreshStop = new();
+    private bool _refreshing;
+    private double? _restoreScrollTop;
     private string _newDomain = "";
     private string _newAction = "block";
     private string _newMode = "always";
@@ -462,15 +514,16 @@ else
     private List<WebsiteRule> _rules = [];
     private List<CategoryToggleDto> _categories = [];
     private List<RuleHistoryDto> _history = [];
-    private List<SiteRow> _allSites = [];
-    private List<SiteRow> _filteredSites = [];
+    private List<WebsiteSiteRow> _allSites = [];
+    private List<WebsiteSiteRow> _filteredSites = [];
     private SiteReviewResult? _review;
+    private bool _reviewExactHost;
     private bool _reviewLoading;
     private bool _adultConfirmed;
     private string _reviewScheduleId = "";
     private string? _reportMailto;
 
-    private List<SiteRow> FilteredSites => _filteredSites;
+    private List<WebsiteSiteRow> FilteredSites => _filteredSites;
 
     protected override async Task OnInitializedAsync()
     {
@@ -481,9 +534,9 @@ else
             _error = L["Home.MissingFamilyScope"];
             return;
         }
-        _date = DateTime.Today;
         await RefreshAsync();
         _loading = false;
+        _ = AutoRefreshLoopAsync(_autoRefreshStop.Token);
     }
 
     private void SetFilter(string key)
@@ -494,116 +547,190 @@ else
 
     private void ShiftDate(int days)
     {
+        if (_date == default) return;
         _date = _date.AddDays(days);
         _ = RefreshAsync();
     }
 
-    private async Task RefreshAsync()
+    private Task OnDateChangedAsync() => RefreshAsync();
+
+    private void ToggleSubdomains(string domain)
     {
-        using var scope = Scopes.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
-        var child = await db.Children.AsNoTracking().Where(c => c.FamilyId == _familyId).OrderBy(c => c.CreatedUtc).FirstOrDefaultAsync();
-        if (child is null) { _childId = Guid.Empty; return; }
-        _childId = child.Id;
-        _childName = child.Name;
-        _timeZoneId = await db.Devices.AsNoTracking().Where(d => d.ChildId == child.Id).Select(d => d.TimeZoneId).FirstOrDefaultAsync() ?? "UTC";
+        if (!_expanded.Add(domain)) _expanded.Remove(domain);
+    }
 
-        var serverSettings = await db.ServerSettings.AsNoTracking().FirstOrDefaultAsync(s => s.Id == 1);
-        var reportEmail = serverSettings?.FromAddress;
-        if (string.IsNullOrWhiteSpace(reportEmail))
-            reportEmail = await db.Users.AsNoTracking()
-                .Where(u => u.IsServerAdmin && u.Email != null)
-                .Select(u => u.Email)
-                .FirstOrDefaultAsync();
-        _reportMailto = string.IsNullOrWhiteSpace(reportEmail)
-            ? null
-            : "mailto:" + reportEmail.Trim() + "?subject=" + Uri.EscapeDataString(L["Websites.Ai.ReportSubject"].Value);
+    private bool IsExpanded(string domain) => _expanded.Contains(domain);
 
-        _rules = await db.WebsiteRules.AsNoTracking()
-            .Where(r => r.FamilyId == _familyId && r.ChildId == child.Id)
-            .OrderBy(r => r.Domain)
-            .ToListAsync();
-        _schedules = await db.Schedules.AsNoTracking()
-            .Where(s => s.FamilyId == _familyId && s.ChildId == child.Id)
-            .OrderBy(s => s.Name)
-            .ToListAsync();
-
-        var rulesService = scope.ServiceProvider.GetRequiredService<RuleService>();
-        var policy = await rulesService.GetDevicePolicyAsync(_familyId, child.Id);
-        _categories = policy.Categories.ToList();
-        _history = await rulesService.GetHistoryAsync(_familyId, child.Id, 60);
-
-        var enabledKeys = _categories.Where(c => c.Enabled).Select(c => c.Key).ToList();
-        var allowedDomains = _rules.Where(r => !r.IsBlocked).Select(r => r.Domain).ToList();
-        _overrideByDomain = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        if (enabledKeys.Count > 0 && allowedDomains.Count > 0)
+    private async Task AutoRefreshLoopAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
+        try
         {
-            var matches = await db.CategoryDomains.AsNoTracking()
-                .Where(d => enabledKeys.Contains(d.CategoryKey) && d.RemovedVersion == null && allowedDomains.Contains(d.Domain))
-                .Select(d => new { d.Domain, d.CategoryKey })
-                .ToListAsync();
-            foreach (var match in matches) _overrideByDomain.TryAdd(match.Domain, match.CategoryKey);
-        }
-
-        var tz = ResolveTimeZone(_timeZoneId);
-        var date = DateOnly.FromDateTime(_date);
-        var startUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(date.ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified), tz);
-        var endUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(date.AddDays(1).ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified), tz);
-        var weekStart = DateTime.UtcNow.AddDays(-7);
-
-        var visits = await db.VisitRecords.AsNoTracking()
-            .Where(v => v.FamilyId == _familyId && v.ChildId == child.Id && v.VisitedUtc >= startUtc && v.VisitedUtc < endUtc)
-            .ToListAsync();
-        var firstSeen = await db.VisitRecords.AsNoTracking()
-            .Where(v => v.FamilyId == _familyId && v.ChildId == child.Id)
-            .GroupBy(v => v.Domain)
-            .Select(g => new { Domain = g.Key, First = g.Min(v => v.VisitedUtc) })
-            .ToDictionaryAsync(x => x.Domain, x => x.First);
-
-        var enabledCategories = _categories.Where(c => c.Enabled).Select(c => c.Key).ToList();
-        var candidates = visits.Select(v => v.Domain).Distinct().SelectMany(Parents).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var categoryDomains = enabledCategories.Count == 0
-            ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            : (await db.CategoryDomains.AsNoTracking()
-                .Where(d => enabledCategories.Contains(d.CategoryKey) && d.RemovedVersion == null && candidates.Contains(d.Domain))
-                .Select(d => d.Domain)
-                .ToListAsync()).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var rows = new List<SiteRow>();
-        foreach (var group in visits.GroupBy(v => v.Domain))
-        {
-            var domain = group.Key;
-            var rule = _rules.FirstOrDefault(r => r.Domain == domain);
-            var blocked = rule is { IsBlocked: true };
-            var allowed = rule is { IsBlocked: false };
-            if (!blocked && !allowed)
+            while (await timer.WaitForNextTickAsync(ct))
             {
-                foreach (var parent in Parents(domain))
+                await InvokeAsync(async () =>
                 {
-                    var parentRule = _rules.FirstOrDefault(r => r.Domain == parent);
-                    if (parentRule is { IsBlocked: true }) { blocked = true; rule = parentRule; break; }
-                    if (parentRule is { IsBlocked: false }) { allowed = true; rule = parentRule; break; }
-                }
+                    _restoreScrollTop = await ReadScrollTopAsync();
+                    await RefreshAsync(quiet: true);
+                    StateHasChanged();
+                });
             }
-            if (!blocked && !allowed)
-                blocked = Parents(domain).Any(p => categoryDomains.Contains(p));
-
-            rows.Add(new SiteRow
-            {
-                Domain = domain,
-                Count = group.Count(),
-                LastUtc = group.Max(v => v.VisitedUtc),
-                BlockedAttempts = group.Sum(v => v.BlockedLookups > 0 ? v.BlockedLookups : v.Blocked ? Math.Max(1, v.Lookups) : 0),
-                BlockReason = group.Where(v => v.Blocked).Select(v => v.BlockReason).FirstOrDefault(r => !string.IsNullOrWhiteSpace(r)),
-                IsBlocked = blocked,
-                IsAllowed = allowed,
-                RuleId = rule?.Id ?? Guid.Empty,
-                IsNewThisWeek = firstSeen.TryGetValue(domain, out var first) && first >= weekStart
-            });
         }
+        catch (OperationCanceledException) { }
+        catch { }
+    }
 
-        _allSites = rows.OrderByDescending(r => r.LastUtc).ToList();
-        ApplyFilter();
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_restoreScrollTop is not { } top) return;
+        _restoreScrollTop = null;
+        try { await JS.InvokeVoidAsync("ocpVisitsScrollSet", top); } catch { }
+    }
+
+    private async Task<double?> ReadScrollTopAsync()
+    {
+        try { return await JS.InvokeAsync<double>("ocpVisitsScrollTop"); }
+        catch { return null; }
+    }
+
+    public void Dispose()
+    {
+        _autoRefreshStop.Cancel();
+        _autoRefreshStop.Dispose();
+    }
+
+    private async Task RefreshAsync(bool quiet = false)
+    {
+        if (quiet && _refreshing) return;
+        if (!_loading && _restoreScrollTop is null)
+            _restoreScrollTop = await ReadScrollTopAsync();
+        var token = _refreshGate.Next();
+        _refreshing = true;
+        try
+        {
+            using var scope = Scopes.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
+            var child = await db.Children.AsNoTracking()
+                .Where(c => c.FamilyId == _familyId).OrderBy(c => c.CreatedUtc).FirstOrDefaultAsync();
+            if (child is null)
+            {
+                if (_refreshGate.IsCurrent(token))
+                {
+                    _childId = Guid.Empty;
+                    _allSites = [];
+                    ApplyFilter();
+                }
+                return;
+            }
+
+            var childId = child.Id;
+            var childName = child.Name;
+            var timeZoneId = await db.Devices.AsNoTracking()
+                .Where(d => d.ChildId == childId).Select(d => d.TimeZoneId).FirstOrDefaultAsync() ?? "UTC";
+            var tz = ResolveTimeZone(timeZoneId);
+            if (_date == default)
+            {
+                // "Today" is the family's local day, not the server's UTC day.
+                _date = DateTime.SpecifyKind(
+                    DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz)).ToDateTime(TimeOnly.MinValue),
+                    DateTimeKind.Unspecified);
+            }
+
+            var serverSettings = await db.ServerSettings.AsNoTracking().FirstOrDefaultAsync(s => s.Id == 1);
+            var reportEmail = serverSettings?.FromAddress;
+            if (string.IsNullOrWhiteSpace(reportEmail))
+                reportEmail = await db.Users.AsNoTracking()
+                    .Where(u => u.IsServerAdmin && u.Email != null)
+                    .Select(u => u.Email)
+                    .FirstOrDefaultAsync();
+            var reportMailto = string.IsNullOrWhiteSpace(reportEmail)
+                ? null
+                : "mailto:" + reportEmail.Trim() + "?subject=" + Uri.EscapeDataString(L["Websites.Ai.ReportSubject"].Value);
+
+            var rules = await db.WebsiteRules.AsNoTracking()
+                .Where(r => r.FamilyId == _familyId && r.ChildId == childId)
+                .OrderBy(r => r.Domain)
+                .ToListAsync();
+            var schedules = await db.Schedules.AsNoTracking()
+                .Where(s => s.FamilyId == _familyId && s.ChildId == childId)
+                .OrderBy(s => s.Name)
+                .ToListAsync();
+
+            var rulesService = scope.ServiceProvider.GetRequiredService<RuleService>();
+            var policy = await rulesService.GetDevicePolicyAsync(_familyId, childId);
+            var categories = policy.Categories.ToList();
+            var history = await rulesService.GetHistoryAsync(_familyId, childId, 60);
+
+            var enabledKeys = categories.Where(c => c.Enabled).Select(c => c.Key).ToList();
+            var allowedDomains = rules.Where(r => !r.IsBlocked).Select(r => r.Domain).ToList();
+            var overrideByDomain = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (enabledKeys.Count > 0 && allowedDomains.Count > 0)
+            {
+                var matches = await db.CategoryDomains.AsNoTracking()
+                    .Where(d => enabledKeys.Contains(d.CategoryKey) && d.RemovedVersion == null && allowedDomains.Contains(d.Domain))
+                    .Select(d => new { d.Domain, d.CategoryKey })
+                    .ToListAsync();
+                foreach (var match in matches) overrideByDomain.TryAdd(match.Domain, match.CategoryKey);
+            }
+
+            var date = DateOnly.FromDateTime(_date);
+            var (startUtc, endUtc) = UsageService.LocalDayBounds(tz, date);
+            var weekStart = DateTime.UtcNow.AddDays(-7);
+
+            var visits = await db.VisitRecords.AsNoTracking()
+                .Where(v => v.FamilyId == _familyId && v.ChildId == childId && v.VisitedUtc >= startUtc && v.VisitedUtc < endUtc)
+                .ToListAsync();
+            var firstSeen = await db.VisitRecords.AsNoTracking()
+                .Where(v => v.FamilyId == _familyId && v.ChildId == childId)
+                .GroupBy(v => v.Domain)
+                .Select(g => new { Domain = g.Key, First = g.Min(v => v.VisitedUtc) })
+                .ToDictionaryAsync(x => x.Domain, x => x.First);
+
+            var enabledCategories = categories.Where(c => c.Enabled).Select(c => c.Key).ToList();
+            var candidates = visits
+                .SelectMany(v => new[] { v.Domain, string.IsNullOrWhiteSpace(v.Host) ? v.Domain : v.Host })
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .SelectMany(Parents)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var categoryDomains = enabledCategories.Count == 0
+                ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                : (await db.CategoryDomains.AsNoTracking()
+                    .Where(d => enabledCategories.Contains(d.CategoryKey) && d.RemovedVersion == null && candidates.Contains(d.Domain))
+                    .Select(d => d.Domain)
+                    .ToListAsync()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var points = visits.Select(v => new WebsiteVisitPoint(
+                v.Domain,
+                string.IsNullOrWhiteSpace(v.Host) ? v.Domain : v.Host,
+                v.VisitedUtc,
+                v.Blocked,
+                v.BlockedLookups > 0 ? v.BlockedLookups : v.Blocked ? Math.Max(1, v.Lookups) : 0,
+                v.BlockReason)).ToList();
+            var rows = WebsiteDayView.Build(points, rules, categoryDomains, firstSeen, weekStart);
+
+            // An older response must not overwrite a newer selected day.
+            if (!_refreshGate.IsCurrent(token)) return;
+
+            _childId = childId;
+            _childName = childName;
+            _timeZoneId = timeZoneId;
+            _reportMailto = reportMailto;
+            _rules = rules;
+            _schedules = schedules;
+            _categories = categories;
+            _history = history;
+            _overrideByDomain = overrideByDomain;
+            _allSites = rows.ToList();
+            ApplyFilter();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _refreshing = false;
+        }
     }
 
     private void ApplyFilter()
@@ -630,33 +757,39 @@ else
         if (await BlockSiteAsync(_newDomain.Trim(), mode, scheduleId)) _newDomain = "";
     }
 
-    private async Task<bool> BlockSiteAsync(string domain, RuleMode mode, Guid? scheduleId)
+    private async Task<bool> BlockSiteAsync(string domain, RuleMode mode, Guid? scheduleId, bool exactHost = false)
     {
         var ok = await RunAsync(async (db, rules, parentId) =>
         {
-            await rules.UpsertWebsiteRuleAsync(_familyId, _childId, parentId, domain, blocked: true, mode, scheduleId);
+            await rules.UpsertWebsiteRuleAsync(_familyId, _childId, parentId, domain, blocked: true, mode, scheduleId,
+                exactHost: exactHost);
             await db.SaveChangesAsync();
         }, L["Websites.BlockedToast", domain]);
         if (ok && _review is not null && _review.Domain.Equals(domain, StringComparison.OrdinalIgnoreCase))
-            await OpenReviewAsync(domain);
+            await OpenReviewAsync(domain, exactHost);
         return ok;
     }
 
-    private async Task<bool> AllowDomainAsync(string domain, bool fromReview)
+    private async Task<bool> AllowDomainAsync(string domain, bool fromReview, bool exactHost = false)
     {
         var ok = await RunAsync(async (db, rules, parentId) =>
         {
-            await rules.UpsertWebsiteRuleAsync(_familyId, _childId, parentId, domain, blocked: false, RuleMode.Always, null);
+            await rules.UpsertWebsiteRuleAsync(_familyId, _childId, parentId, domain, blocked: false, RuleMode.Always, null,
+                exactHost: exactHost);
             await db.SaveChangesAsync();
         }, L["Websites.AllowedToast", domain]);
         if (ok)
         {
             if (fromReview && _review is not null && _review.Domain.Equals(domain, StringComparison.OrdinalIgnoreCase))
-                await OpenReviewAsync(domain);
-            OfferRelatedDomains(domain);
+                await OpenReviewAsync(domain, exactHost);
+            if (!exactHost) OfferRelatedDomains(domain);
         }
         return ok;
     }
+
+    private Task<bool> BlockSubdomainAsync(string host) => BlockSiteAsync(host, RuleMode.Always, null, exactHost: true);
+
+    private Task<bool> AllowSubdomainAsync(string host) => AllowDomainAsync(host, false, exactHost: true);
 
     private async Task RemoveRuleAsync(Guid ruleId, string domain)
     {
@@ -727,10 +860,11 @@ else
         }
     }
 
-    private async Task OpenReviewAsync(string domain)
+    private async Task OpenReviewAsync(string domain, bool exactHost = false)
     {
         _reviewLoading = true;
         _review = null;
+        _reviewExactHost = exactHost;
         _adultConfirmed = false;
         _reviewScheduleId = "";
         _error = null;
@@ -749,6 +883,7 @@ else
     {
         _review = null;
         _reviewLoading = false;
+        _reviewExactHost = false;
         _adultConfirmed = false;
     }
 
@@ -756,8 +891,8 @@ else
     {
         if (_review is null || !Guid.TryParse(_reviewScheduleId, out var scheduleId)) return;
         var domain = _review.Domain;
-        if (await BlockSiteAsync(domain, RuleMode.Scheduled, scheduleId))
-            await OpenReviewAsync(domain);
+        if (await BlockSiteAsync(domain, RuleMode.Scheduled, scheduleId, _reviewExactHost))
+            await OpenReviewAsync(domain, _reviewExactHost);
     }
 
     private async Task UnblockReviewAsync()

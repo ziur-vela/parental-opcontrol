@@ -21,8 +21,13 @@ public sealed class UsageService
     public static (DateTime StartUtc, DateTime EndUtc) LocalDayBounds(TimeZoneInfo tz, DateTime nowUtc)
     {
         var local = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, tz);
-        var startLocal = DateTime.SpecifyKind(local.Date, DateTimeKind.Unspecified);
-        var endLocal = DateTime.SpecifyKind(local.Date.AddDays(1), DateTimeKind.Unspecified);
+        return LocalDayBounds(tz, DateOnly.FromDateTime(local));
+    }
+
+    public static (DateTime StartUtc, DateTime EndUtc) LocalDayBounds(TimeZoneInfo tz, DateOnly date)
+    {
+        var startLocal = DateTime.SpecifyKind(date.ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified);
+        var endLocal = DateTime.SpecifyKind(date.AddDays(1).ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified);
         return (ToUtc(startLocal, tz), ToUtc(endLocal, tz));
     }
 

@@ -122,3 +122,13 @@
         lunaWelcomeReturnFocus = null;
     };
 })();
+
+// Job 19j: keep the visited-sites scroll position across the 30 s quiet refresh.
+window.ocpVisitsScrollTop = function () {
+    var el = document.querySelector('.visits-scroll');
+    return el ? el.scrollTop : 0;
+};
+window.ocpVisitsScrollSet = function (value) {
+    var el = document.querySelector('.visits-scroll');
+    if (el) el.scrollTop = value;
+};

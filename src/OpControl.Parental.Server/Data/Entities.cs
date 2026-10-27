@@ -65,6 +65,7 @@ public class Device
     public string? ClientVersion { get; set; }
     public bool ScreenNoticeEnabled { get; set; }
     public bool CameraNoticeEnabled { get; set; } = true;
+    public bool NotifyOffline { get; set; } = true;
     public bool HasCameraLightOrShutter { get; set; }
     public string? ClientLanguage { get; set; }
     public string? PreviousClientVersion { get; set; }
@@ -187,6 +188,7 @@ public class VisitRecord
     public Guid ChildId { get; set; }
     public Guid DeviceId { get; set; }
     public string Domain { get; set; } = "";
+    public string? Host { get; set; }
     public bool Blocked { get; set; }
     public string? BlockReason { get; set; }
     public int Lookups { get; set; } = 1;

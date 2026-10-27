@@ -37,12 +37,12 @@ public static class LunaDemoSeeder
         var anaDevice = new Device
         {
             FamilyId = family.Id, ChildId = ana.Id, Name = "Ana laptop", TimeZoneId = "UTC",
-            Platform = DevicePlatform.Windows, EnrolledUtc = now, LastSeenUtc = now, ClientVersion = "0.16.1"
+            Platform = DevicePlatform.Windows, NotifyOffline = false, EnrolledUtc = now, LastSeenUtc = now, ClientVersion = "0.16.1"
         };
         var leoDevice = new Device
         {
             FamilyId = family.Id, ChildId = leo.Id, Name = "Leo tablet", TimeZoneId = "UTC",
-            Platform = DevicePlatform.Windows, EnrolledUtc = now, LastSeenUtc = now, ClientVersion = "0.16.1"
+            Platform = DevicePlatform.Windows, NotifyOffline = false, EnrolledUtc = now, LastSeenUtc = now, ClientVersion = "0.16.1"
         };
         db.Families.Add(family);
         db.Children.AddRange(ana, leo);

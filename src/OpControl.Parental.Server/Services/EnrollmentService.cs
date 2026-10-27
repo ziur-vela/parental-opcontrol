@@ -69,6 +69,7 @@ public sealed class EnrollmentService
             ChildId = code.ChildId,
             Name = request.DeviceName.Trim(),
             Platform = request.Platform,
+            NotifyOffline = request.Platform == DevicePlatform.Android,
             OsVersion = request.OsVersion,
             TimeZoneId = string.IsNullOrWhiteSpace(request.TimeZoneId) ? "UTC" : request.TimeZoneId!,
             EnrolledUtc = now,

@@ -219,7 +219,8 @@ public sealed record VisitEventDto(
     DateTime VisitedUtc,
     bool Blocked,
     string? BlockReason = null,
-    int Lookups = 1);
+    int Lookups = 1,
+    string? Host = null);
 
 public sealed record VisitBatchRequest(
     IReadOnlyList<VisitEventDto> Visits);

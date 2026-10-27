@@ -1502,4 +1502,8 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Luna.Welcome.How.Windows" xml:space="preserve"><value>Windows</value></data>
   <data name="Luna.Welcome.How.Linux" xml:space="preserve"><value>Linux · coming soon</value></data>
   <data name="Luna.Welcome.How.Android" xml:space="preserve"><value>Android · coming soon</value></data>
+  <data name="Websites.SubdomainOne" xml:space="preserve"><value>1 subdomain</value></data>
+  <data name="Websites.SubdomainMany" xml:space="preserve"><value>{0} subdomains</value></data>
+  <data name="Websites.HideSubdomains" xml:space="preserve"><value>Hide subdomains</value></data>
+  <data name="Devices.NotifyOffline" xml:space="preserve"><value>Notify me when this device goes offline</value></data>
 </root>

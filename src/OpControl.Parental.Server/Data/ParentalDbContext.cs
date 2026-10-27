@@ -100,6 +100,7 @@ public class ParentalDbContext : IdentityDbContext<ParentUser, IdentityRole<Guid
             e.Property(x => x.OsVersion).HasMaxLength(120);
             e.Property(x => x.TimeZoneId).HasMaxLength(80).IsRequired();
             e.Property(x => x.CameraNoticeEnabled).HasDefaultValue(true);
+            e.Property(x => x.NotifyOffline).HasDefaultValue(true);
             e.Property(x => x.ClientLanguage).HasMaxLength(16);
             e.Property(x => x.CredentialHash).HasMaxLength(64);
             e.Property(x => x.ClientVersion).HasMaxLength(40);
@@ -184,6 +185,7 @@ public class ParentalDbContext : IdentityDbContext<ParentUser, IdentityRole<Guid
         {
             e.HasKey(x => x.Id);
             e.Property(x => x.Domain).HasMaxLength(255).IsRequired();
+            e.Property(x => x.Host).HasMaxLength(255);
             e.Property(x => x.BlockReason).HasMaxLength(120);
             e.Property(x => x.Lookups).HasDefaultValue(1);
             e.HasIndex(x => new { x.FamilyId, x.ChildId, x.VisitedUtc });

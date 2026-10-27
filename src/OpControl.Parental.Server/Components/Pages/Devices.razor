@@ -73,6 +73,12 @@
                                 <option value="es-MX">@L["Language.Spanish"]</option>
                             </select>
                         </div>
+                        @if (_notifyOffline.TryGetValue(device.DeviceId, out var notifyOffline))
+                        {
+                            <div class="notice-settings">
+                                <label class="check"><input type="checkbox" checked="@notifyOffline" @onchange="e => SetNotifyOfflineAsync(device.DeviceId, (bool)(e.Value ?? false))" /> @L["Devices.NotifyOffline"]</label>
+                            </div>
+                        }
                         @if (_isOwner && _noticeSettings.TryGetValue(device.DeviceId, out var notice))
                         {
                             <div class="notice-settings">
@@ -115,6 +121,7 @@
     private Dictionary<Guid, string?> _updateStatuses = [];
     private Dictionary<Guid, NoticeSettings> _noticeSettings = new();
     private Dictionary<Guid, string?> _deviceLanguages = [];
+    private Dictionary<Guid, bool> _notifyOffline = [];
     private string _familyLanguage = AppCulture.English;
 
     private string FamilyLanguageLabel => _familyLanguage == AppCulture.Spanish ? L["Language.Spanish"] : L["Language.English"];
@@ -150,6 +157,22 @@
     private bool _canMessage;
     private sealed record NoticeSettings(bool Screen, bool Camera, bool Light);
     private static readonly IReadOnlyList<TimeZoneInfo> TimeZones = TimeZoneInfo.GetSystemTimeZones();
+
+    private async Task SetNotifyOfflineAsync(Guid deviceId, bool enabled)
+    {
+        try
+        {
+            using var scope = Scopes.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
+            var row = await db.Devices.FirstOrDefaultAsync(d => d.Id == deviceId && d.FamilyId == _familyId);
+            if (row is null) return;
+            row.NotifyOffline = enabled;
+            await db.SaveChangesAsync();
+            _error = null;
+            await RefreshAsync();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
 
     private async Task SetTimeZoneAsync(DeviceStatusDto device, string? zoneId)
     {
@@ -203,6 +226,7 @@
         _updateStatuses = devices.ToDictionary(d => d.Id, d => d.UpdateStatus is null ? null : $"{d.UpdateStatus} {d.UpdateTargetVersion}".Trim());
         _noticeSettings = devices.ToDictionary(d => d.Id, d => new NoticeSettings(d.ScreenNoticeEnabled, d.CameraNoticeEnabled, d.HasCameraLightOrShutter));
         _deviceLanguages = devices.ToDictionary(d => d.Id, d => d.ClientLanguage);
+        _notifyOffline = devices.ToDictionary(d => d.Id, d => d.NotifyOffline);
         _familyLanguage = AppCulture.Normalize(await db.Families.AsNoTracking().Where(f => f.Id == _familyId).Select(f => f.DefaultLanguage).FirstOrDefaultAsync());
     }
 

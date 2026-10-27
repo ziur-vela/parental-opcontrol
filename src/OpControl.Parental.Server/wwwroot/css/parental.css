@@ -926,3 +926,9 @@ body:has(.legal-text) .auth-card { width: min(880px, 100%); }
         transition: none !important;
     }
 }
+
+/* Job 19j: visited-site subdomain rows */
+.subdomain-toggle { background: none; border: 0; padding: 0 2px 0 6px; color: var(--value); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.subdomain-toggle:hover { color: var(--ink); }
+.rule-row.subdomain-row { padding-left: 20px; border-left: 2px solid var(--line-2); }
+.rule-row.subdomain-row .rule-title { font-weight: 500; }

@@ -123,8 +123,9 @@ public sealed class UsageLimitService : BackgroundService
             .ToListAsync(ct);
         foreach (var device in devices)
         {
-            if (device.LastSeenUtc is { } seen && now - seen > threshold)
+            if (ShouldNotifyOffline(device, now, threshold))
             {
+                var seen = device.LastSeenUtc!.Value;
                 await alerts.AddAsync(familyId, childId, device.Id, "device-offline",
                     new AlertContent("Alert.DeviceOffline.Title", "Alert.DeviceOffline.Detail",
                         device.Name, seen.ToString("u")),
@@ -132,4 +133,15 @@ public sealed class UsageLimitService : BackgroundService
             }
         }
     }
+
+    /// <summary>
+    /// Only the time-since-last-seen offline alert is gated by the per-device
+    /// setting. Tamper alerts (service stopped, DNS changed, uninstall attempts)
+    /// come from the tamper endpoint and are never suppressed by this.
+    /// </summary>
+    public static bool ShouldNotifyOffline(Device device, DateTime now, TimeSpan threshold) =>
+        device.NotifyOffline
+        && !device.IsRevoked
+        && device.LastSeenUtc is { } seen
+        && now - seen > threshold;
 }

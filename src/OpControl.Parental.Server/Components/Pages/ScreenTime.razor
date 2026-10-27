@@ -252,7 +252,7 @@ else
     private bool _busy;
     private string? _error;
     private string _period = "day";
-    private DateTime _anchor = DateTime.Today;
+    private DateTime _anchor = default;
     private int _activeSeconds;
     private int _idleSeconds;
     private int _blockedAttempts;
@@ -302,7 +302,6 @@ else
             _error = L["Home.MissingFamilyScope"];
             return;
         }
-        _anchor = DateTime.Today;
         await RefreshAsync();
         _loading = false;
     }
@@ -310,12 +309,14 @@ else
     private async Task SetPeriod(string key)
     {
         _period = key;
-        _anchor = DateTime.Today;
+        _anchor = default;
         await RefreshAsync();
     }
 
     private async Task ShiftPeriod(int direction)
     {
+        if (_anchor == default)
+            _anchor = LocalToday(TimeZoneResolver.Resolve(_timeZoneId));
         _anchor = _period switch
         {
             "week" => _anchor.AddDays(7 * direction),
@@ -337,6 +338,7 @@ else
         _childName = child.Name;
         _timeZoneId = await db.Devices.AsNoTracking().Where(d => d.ChildId == child.Id).Select(d => d.TimeZoneId).FirstOrDefaultAsync() ?? "UTC";
         var tz = TimeZoneResolver.Resolve(_timeZoneId);
+        if (_anchor == default) _anchor = LocalToday(tz);
 
         ComputeRange();
         var startUtc = LocalToUtc(_rangeStart, tz);
@@ -553,6 +555,10 @@ else
 
     private static DateTime LocalToUtc(DateTime local, TimeZoneInfo tz) =>
         TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(local, DateTimeKind.Unspecified), tz);
+
+    private static DateTime LocalToday(TimeZoneInfo tz) =>
+        DateTime.SpecifyKind(DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz)).ToDateTime(TimeOnly.MinValue),
+            DateTimeKind.Unspecified);
 
     private static string FormatDuration(int seconds) => Formats.Duration(seconds);
 }

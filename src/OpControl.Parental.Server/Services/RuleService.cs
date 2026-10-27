@@ -33,6 +33,14 @@ public sealed class RuleService
 
     public static string NormalizeDomain(string input)
     {
+        var value = NormalizeHost(input);
+        if (value.StartsWith("www.", StringComparison.Ordinal)) value = value[4..];
+        return value;
+    }
+
+    /// <summary>Keeps the exact host (including www.) for a subdomain rule.</summary>
+    public static string NormalizeHost(string input)
+    {
         var value = (input ?? "").Trim().ToLowerInvariant();
         if (value.Length == 0) throw new InvalidOperationException(AppText.Get("Error.EnterDomain"));
         if (value.StartsWith("http://", StringComparison.Ordinal)) value = value[7..];
@@ -44,7 +52,6 @@ public sealed class RuleService
         var colon = value.IndexOf(':');
         if (colon >= 0) value = value[..colon];
         value = value.Trim('.');
-        if (value.StartsWith("www.", StringComparison.Ordinal)) value = value[4..];
         if (!DomainPattern.IsMatch(value))
             throw new InvalidOperationException(AppText.Get("Error.InvalidDomain"));
         return value;
@@ -89,11 +96,11 @@ public sealed class RuleService
         return (sites, apps, bonuses, categoryDtos);
     }
 
-    public async Task<WebsiteRule> UpsertWebsiteRuleAsync(Guid familyId, Guid childId, Guid? parentId, string domain, bool blocked, RuleMode mode, Guid? scheduleId, CancellationToken ct = default)
+    public async Task<WebsiteRule> UpsertWebsiteRuleAsync(Guid familyId, Guid childId, Guid? parentId, string domain, bool blocked, RuleMode mode, Guid? scheduleId, CancellationToken ct = default, bool exactHost = false)
     {
         try
         {
-            return await UpsertWebsiteRuleCoreAsync(familyId, childId, parentId, domain, blocked, mode, scheduleId, ct);
+            return await UpsertWebsiteRuleCoreAsync(familyId, childId, parentId, domain, blocked, mode, scheduleId, ct, exactHost);
         }
         catch (Exception ex)
         {
@@ -103,9 +110,9 @@ public sealed class RuleService
         }
     }
 
-    private async Task<WebsiteRule> UpsertWebsiteRuleCoreAsync(Guid familyId, Guid childId, Guid? parentId, string domain, bool blocked, RuleMode mode, Guid? scheduleId, CancellationToken ct)
+    private async Task<WebsiteRule> UpsertWebsiteRuleCoreAsync(Guid familyId, Guid childId, Guid? parentId, string domain, bool blocked, RuleMode mode, Guid? scheduleId, CancellationToken ct, bool exactHost)
     {
-        domain = NormalizeDomain(domain);
+        domain = exactHost ? NormalizeHost(domain) : NormalizeDomain(domain);
         if (!blocked && mode != RuleMode.Always)
             throw new InvalidOperationException(AppText.Get("Error.AllowNoSchedule"));
         if (mode == RuleMode.Scheduled && scheduleId is null)
@@ -372,13 +379,22 @@ public sealed class RuleService
         var now = DateTime.UtcNow;
         var incoming = request.Visits
             .Where(v => !string.IsNullOrWhiteSpace(v.Domain) && v.Domain.Length <= 255)
-            .Select(v => new
+            .Select(v =>
             {
-                Domain = DeviceText.Clean(v.Domain, 255).TrimEnd('.').ToLowerInvariant(),
-                VisitedUtc = v.VisitedUtc.Kind == DateTimeKind.Utc ? v.VisitedUtc : v.VisitedUtc.ToUniversalTime(),
-                v.Blocked,
-                BlockReason = DeviceText.CleanOptional(v.BlockReason, 120),
-                Lookups = Math.Clamp(v.Lookups, 1, 10_000)
+                var domain = DeviceText.Clean(v.Domain, 255).TrimEnd('.').ToLowerInvariant();
+                var host = string.IsNullOrWhiteSpace(v.Host)
+                    ? domain
+                    : DeviceText.Clean(v.Host, 255).TrimEnd('.').ToLowerInvariant();
+                if (host.Length == 0) host = domain;
+                return new
+                {
+                    Domain = domain,
+                    Host = host,
+                    VisitedUtc = v.VisitedUtc.Kind == DateTimeKind.Utc ? v.VisitedUtc : v.VisitedUtc.ToUniversalTime(),
+                    v.Blocked,
+                    BlockReason = DeviceText.CleanOptional(v.BlockReason, 120),
+                    Lookups = Math.Clamp(v.Lookups, 1, 10_000)
+                };
             })
             .Where(v => v.Domain.Length > 0 && !BackgroundDomains.IsBackground(v.Domain))
             .Take(5000)
@@ -386,18 +402,19 @@ public sealed class RuleService
         if (incoming.Count == 0) return;
 
         var touched = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var group in incoming.GroupBy(v => v.Domain, StringComparer.OrdinalIgnoreCase))
+        foreach (var group in incoming.GroupBy(v => v.Host, StringComparer.OrdinalIgnoreCase))
         {
-            var domain = group.Key;
+            var host = group.Key;
+            var domain = group.First().Domain;
             var last = await _db.VisitRecords
-                .Where(v => v.DeviceId == device.Id && v.Domain == domain)
+                .Where(v => v.DeviceId == device.Id && v.Host == host)
                 .OrderByDescending(v => v.VisitedUtc)
                 .FirstOrDefaultAsync(ct);
             foreach (var item in group.OrderBy(v => v.VisitedUtc))
             {
                 var reason = item.Blocked ? item.BlockReason : null;
                 if (item.Blocked && string.IsNullOrWhiteSpace(reason))
-                    reason = await ResolveBlockReasonAsync(device, domain, ct);
+                    reason = await ResolveBlockReasonAsync(device, host, ct);
                 if (last is not null && item.VisitedUtc >= last.VisitedUtc
                     && item.VisitedUtc - last.VisitedUtc < TimeSpan.FromMinutes(5))
                 {
@@ -417,6 +434,7 @@ public sealed class RuleService
                         ChildId = device.ChildId,
                         DeviceId = device.Id,
                         Domain = domain,
+                        Host = host,
                         Blocked = item.Blocked,
                         BlockReason = reason,
                         Lookups = item.Lookups,

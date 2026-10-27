@@ -787,6 +787,11 @@ namespace OpControl.Parental.Server.Data.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<bool>("NotifyOffline")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
                     b.Property<string>("OsVersion")
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
@@ -2380,6 +2385,10 @@ namespace OpControl.Parental.Server.Data.Migrations
 
                     b.Property<Guid>("FamilyId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Host")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<int>("Lookups")
                         .ValueGeneratedOnAdd()
