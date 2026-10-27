@@ -111,7 +111,12 @@ installer notices: **79 components** in this build. It writes
 - `Program Files\OpControlParental\legal\fonts\OFL-*.txt`
 
 The legal files are in the MSI component group `LegalComponents`. The release
-workflow and the local XPS MSI both built successfully with them.
+workflow and the local XPS MSI both built successfully with them. Verified after
+installation on both laptops: `C:\Program Files\OpControlParental\legal\`
+contains `LICENSE` (4,729 bytes, CRLF), `THIRD-PARTY-NOTICES.md` (27,652 bytes,
+SHA-256 `EAD151540B06E4AE57D1C5E2F3DC5AC29B6923446C8891E87DF9B03A80C28C46`)
+and the four `fonts/OFL-*.txt` files. The installed notices are byte-identical to
+the generated build output in `docs/job-20b-legal/`.
 
 ### Tests
 
@@ -198,8 +203,10 @@ immediately after the two requests; 0 temp users remain.
 | EMMA-YOGALAPTOP | 0.17.13 | **0.17.17** | 21:49:03 → 21:49:26 UTC, `msiexec` 0 | healthy, service Running/Auto, Client/Helper/Luna 0.17.17.0, one Luna, no old process |
 
 Both dashboard rows read **0.17.17 healthy** and the file versions are
-`0.17.17.0` (`ProductVersion 0.17.17+4241f53…`). The Yoga’s flicker is fixed by
-being on the 19i build; it could not be checked by eye remotely.
+`0.17.17.0` (`ProductVersion 0.17.17+4241f53…`). Both laptops also have the
+generated `legal/` folder described above, byte-identical to the build output.
+The Yoga’s flicker is fixed by being on the 19i build; it could not be checked
+by eye remotely.
 
 ## 5. What Ziur should check by hand
 
