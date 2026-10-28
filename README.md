@@ -234,10 +234,10 @@ only `state.json` (Users read) and never sees the credential.
 ## Credits
 
 Parental OpControl was designed, directed and tested by Ziur, and built with AI
-assistance: design, planning and code review with **Claude** (by Anthropic), and
-code written by **OC**, an AI coding agent built on **OpenCode**, running
-**DeepSeek** models. Every change was reviewed and tested by a person before
-release.
+assistance: design, planning and code review with **Claude** by Anthropic, and
+code written with **OpenCode**, the open-source AI coding agent, using
+**DeepSeek V4.1 Flash** by DeepSeek. Every change was reviewed and tested by a
+person before release.
 
 Created by Ziur · OpControl IT. Third-party components, fonts and data sources
 are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

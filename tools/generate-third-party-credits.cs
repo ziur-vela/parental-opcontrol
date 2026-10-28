@@ -31,13 +31,17 @@ var projectDir = argsList[3];
 var repoRoot = argsList[4];
 var outputDir = argsList[5];
 
-foreach (var path in assetsPaths)
+// The first graph is required. Extra graphs (for example the kid view when
+// generating the dashboard list) are optional so a partial build still works.
+for (var index = 0; index < assetsPaths.Length; index++)
 {
-    if (!File.Exists(path))
+    if (File.Exists(assetsPaths[index])) continue;
+    if (index == 0)
     {
-        Console.Error.WriteLine($"assets file not found: {path}");
+        Console.Error.WriteLine($"assets file not found: {assetsPaths[index]}");
         return 3;
     }
+    Console.Error.WriteLine($"warn: optional assets file not found, skipping: {assetsPaths[index]}");
 }
 
 Directory.CreateDirectory(outputDir);
@@ -46,11 +50,20 @@ Directory.CreateDirectory(outputDir);
 // RID-specific graph when publishing self-contained), so runtime packs are
 // included too. Several projects may feed the installer's notices.
 var usedPackages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-foreach (var assetsPath in assetsPaths)
+var frameworkNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+foreach (var assetsPath in assetsPaths.Where(File.Exists))
 {
     var assets = JsonNode.Parse(File.ReadAllText(assetsPath))!.AsObject();
     var libraries = assets["libraries"]?.AsObject() ?? new JsonObject();
     var targets = assets["targets"]?.AsObject() ?? new JsonObject();
+    var frameworks = assets["project"]?["frameworks"]?.AsObject() ?? new JsonObject();
+    foreach (var (frameworkName, frameworkValue) in frameworks)
+    {
+        if (!tfms.Any(tfm => frameworkName.Equals(tfm, StringComparison.OrdinalIgnoreCase) ||
+                             frameworkName.StartsWith(tfm + "/", StringComparison.OrdinalIgnoreCase))) continue;
+        if (frameworkValue?["frameworkReferences"] is not JsonObject references) continue;
+        foreach (var (reference, _) in references) frameworkNames.Add(reference);
+    }
     foreach (var (targetName, targetValue) in targets)
     {
         if (!tfms.Any(tfm => targetName.Equals(tfm, StringComparison.OrdinalIgnoreCase) ||
@@ -165,18 +178,43 @@ foreach (var (key, packagePath) in usedPackages.OrderBy(pair => pair.Key, String
     credits.Add(new Credit(id, version, license, copyright, licenseUrl, "NuGet"));
 }
 
+// Shared frameworks are not NuGet packages in the graph, but they are real
+// dependencies of the published server. Record the ones the project declares.
+var frameworkVersion = tfms
+    .Select(tfm => tfm.StartsWith("net", StringComparison.OrdinalIgnoreCase) ? tfm[3..] : null)
+    .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? "";
+foreach (var reference in frameworkNames)
+{
+    var (name, url) = reference switch
+    {
+        "Microsoft.AspNetCore.App" =>
+            ("ASP.NET Core", "https://github.com/dotnet/aspnetcore/blob/main/LICENSE.txt"),
+        "Microsoft.NETCore.App" =>
+            (".NET Runtime", "https://github.com/dotnet/runtime/blob/main/LICENSE.TXT"),
+        "Microsoft.WindowsDesktop.App" =>
+            (".NET Windows Desktop Runtime", "https://github.com/dotnet/wpf/blob/main/LICENSE.TXT"),
+        _ => (reference, (string?)null)
+    };
+    credits.Add(new Credit(name, frameworkVersion, "MIT", ".NET Foundation and Contributors", url, "Framework"));
+}
+
 // Bundled fonts.
 var fontDirs = new[]
 {
     Path.Combine(projectDir, "Assets", "Fonts"),
+    Path.Combine(repoRoot, "src", "OpControl.Parental.Luna", "Assets", "Fonts"),
     Path.Combine(repoRoot, "src", "OpControl.Parental.Client.Windows.Helper", "fonts"),
-    Path.Combine(repoRoot, "src", "OpControl.Parental.Setup", "fonts")
+    Path.Combine(repoRoot, "src", "OpControl.Parental.Setup", "fonts"),
+    Path.Combine(repoRoot, "src", "OpControl.Parental.Server", "wwwroot", "fonts")
 };
 var seenFonts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 foreach (var directory in fontDirs)
 {
     if (!Directory.Exists(directory)) continue;
-    foreach (var font in Directory.GetFiles(directory, "*.ttf").OrderBy(file => file, StringComparer.OrdinalIgnoreCase))
+    var fontFiles = Directory.GetFiles(directory, "*.ttf")
+        .Concat(Directory.GetFiles(directory, "*.woff2"))
+        .OrderBy(file => file, StringComparer.OrdinalIgnoreCase);
+    foreach (var font in fontFiles)
     {
         var family = FontFamilyName(Path.GetFileNameWithoutExtension(font));
         if (family is null || !seenFonts.Add(family)) continue;
@@ -278,8 +316,10 @@ static string? FontFamilyName(string file)
 {
     if (file.StartsWith("Fredoka", StringComparison.OrdinalIgnoreCase)) return "Fredoka";
     if (file.StartsWith("Nunito", StringComparison.OrdinalIgnoreCase)) return "Nunito";
-    if (file.StartsWith("IBMPlexMono", StringComparison.OrdinalIgnoreCase)) return "IBM Plex Mono";
-    if (file.StartsWith("Manrope", StringComparison.OrdinalIgnoreCase)) return "Manrope";
+    if (file.StartsWith("IBMPlexMono", StringComparison.OrdinalIgnoreCase) ||
+        file.Contains("ibm-plex-mono", StringComparison.OrdinalIgnoreCase)) return "IBM Plex Mono";
+    if (file.StartsWith("Manrope", StringComparison.OrdinalIgnoreCase) ||
+        file.Contains("manrope", StringComparison.OrdinalIgnoreCase)) return "Manrope";
     return null;
 }
 

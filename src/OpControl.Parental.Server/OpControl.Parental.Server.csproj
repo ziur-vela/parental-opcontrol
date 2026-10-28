@@ -28,6 +28,23 @@
     <EmbeddedResource Include="Resources\ai-category.json" LogicalName="ai-category.json" />
   </ItemGroup>
 
+  <!-- The dashboard About credits are generated from the real dependency graph:
+       the server packages plus the kid view's packages, licenses and fonts. -->
+  <PropertyGroup>
+    <AboutCreditsAssets>$(ProjectAssetsFile)</AboutCreditsAssets>
+    <KidViewAssetsFile>$(MSBuildProjectDirectory)/../OpControl.Parental.Luna/obj/project.assets.json</KidViewAssetsFile>
+    <AboutCreditsAssets Condition="Exists('$(KidViewAssetsFile)')">$(AboutCreditsAssets);$(KidViewAssetsFile)</AboutCreditsAssets>
+  </PropertyGroup>
+  <Target Name="GenerateAboutCredits"
+          BeforeTargets="AssignTargetPaths"
+          Inputs="$(AboutCreditsAssets);$(MSBuildProjectDirectory)/../../tools/generate-third-party-credits.cs"
+          Outputs="$(IntermediateOutputPath)credits/third-party-credits.json;$(IntermediateOutputPath)credits/third-party-credits.md">
+    <Exec Command="&quot;$(DOTNET_HOST_PATH)&quot; run --file &quot;$(MSBuildProjectDirectory)/../../tools/generate-third-party-credits.cs&quot; -- &quot;$(AboutCreditsAssets)&quot; &quot;$(NuGetPackageRoot)&quot; &quot;$(TargetFramework)&quot; &quot;$(MSBuildProjectDirectory)&quot; &quot;$(MSBuildProjectDirectory)/../..&quot; &quot;$(IntermediateOutputPath)credits&quot;" />
+    <ItemGroup>
+      <EmbeddedResource Include="$(IntermediateOutputPath)credits/third-party-credits.json" LogicalName="OpControl.Parental.Server.ThirdPartyCredits.json" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <Content Include="..\..\LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

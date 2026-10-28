@@ -1,0 +1,10 @@
+@* Copyright (c) 2026 Ziur / OpControl IT Solutions
+   SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 *@
+
+@page "/about"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IStringLocalizer<AppStrings> L
+
+<PageTitle>@L["AboutPage.PageTitle"]</PageTitle>
+<AboutPanel />

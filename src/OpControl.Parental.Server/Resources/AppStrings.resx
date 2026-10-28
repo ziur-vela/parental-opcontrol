@@ -496,7 +496,7 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Language.Saved" xml:space="preserve"><value>Language saved.</value></data>
   <data name="Language.ServerDefault" xml:space="preserve"><value>Family default</value></data>
   <data name="Language.Spanish" xml:space="preserve"><value>Español</value></data>
-  <data name="Layout.BuiltWithAi" xml:space="preserve"><value>Built with AI assistance: Claude, OpenCode, DeepSeek</value></data>
+  <data name="Layout.BuiltWithAi" xml:space="preserve"><value>Parental OpControl was designed, directed and tested by Ziur, and built with AI assistance: design, planning and code review with **Claude** by Anthropic, and code written with **OpenCode**, the open-source AI coding agent, using **DeepSeek V4.1 Flash** by DeepSeek. Every change was reviewed and tested by a person before release.</value></data>
   <data name="Layout.CreatedBy" xml:space="preserve"><value>Created by</value></data>
   <data name="Layout.English" xml:space="preserve"><value>English</value></data>
   <data name="Layout.FamilyDashboard" xml:space="preserve"><value>Family dashboard</value></data>
@@ -978,6 +978,29 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="About.Repository" xml:space="preserve"><value>Repository</value></data>
   <data name="About.Notices" xml:space="preserve"><value>Third-party notices</value></data>
   <data name="About.NoticesLink" xml:space="preserve"><value>View third-party notices</value></data>
+  <data name="AboutPage.PageTitle" xml:space="preserve"><value>About · Parental OpControl</value></data>
+  <data name="AboutPage.Eyebrow" xml:space="preserve"><value>About</value></data>
+  <data name="AboutPage.Subtitle" xml:space="preserve"><value>Version, license and credits for Parental OpControl.</value></data>
+  <data name="AboutPage.ProductTitle" xml:space="preserve"><value>Parental OpControl</value></data>
+  <data name="AboutPage.AuthorLine" xml:space="preserve"><value>Created by **Hendry (Ziur)** · OpControl IT Solutions</value></data>
+  <data name="AboutPage.VersionTitle" xml:space="preserve"><value>Version</value></data>
+  <data name="AboutPage.Server" xml:space="preserve"><value>Server</value></data>
+  <data name="AboutPage.ReleaseNotes" xml:space="preserve"><value>Release notes on GitHub</value></data>
+  <data name="AboutPage.ClientVersions" xml:space="preserve"><value>Client versions reported by your devices</value></data>
+  <data name="AboutPage.NoDevices" xml:space="preserve"><value>No devices have reported a version yet.</value></data>
+  <data name="AboutPage.NotReported" xml:space="preserve"><value>Not reported</value></data>
+  <data name="AboutPage.LastSeen" xml:space="preserve"><value>last seen</value></data>
+  <data name="AboutPage.LicenseTitle" xml:space="preserve"><value>License</value></data>
+  <data name="AboutPage.LicenseName" xml:space="preserve"><value>PolyForm Noncommercial License 1.0.0</value></data>
+  <data name="AboutPage.LicenseSummary" xml:space="preserve"><value>Parental OpControl is free for personal and other non-commercial use under the PolyForm Noncommercial License 1.0.0.</value></data>
+  <data name="AboutPage.CopyrightFull" xml:space="preserve"><value>© 2026 Ziur / OpControl IT Solutions. All rights reserved, except as granted by the PolyForm Noncommercial License 1.0.0.</value></data>
+  <data name="AboutPage.ReadFullLicense" xml:space="preserve"><value>Read the full license</value></data>
+  <data name="AboutPage.CreditsTitle" xml:space="preserve"><value>Credits</value></data>
+  <data name="AboutPage.BuiltWithAiTitle" xml:space="preserve"><value>Built with AI</value></data>
+  <data name="AboutPage.ThirdParty" xml:space="preserve"><value>Third-party components</value></data>
+  <data name="AboutPage.ThirdPartyHint" xml:space="preserve"><value>This list is generated from the actual dependencies of the dashboard, the client and the bundled fonts. Each component keeps its own license.</value></data>
+  <data name="AboutPage.ThirdPartyEmpty" xml:space="preserve"><value>No third-party components were found.</value></data>
+  <data name="Legal.ShortLine" xml:space="preserve"><value>© 2026 Ziur · License</value></data>
   <data name="Email.UpdateSubject" xml:space="preserve"><value>Parental OpControl {0} is available</value></data>
   <data name="Email.Update.Preheader" xml:space="preserve"><value>A new stable release is ready to install.</value></data>
   <data name="Email.Update.Headline" xml:space="preserve"><value>Version {0} is available</value></data>

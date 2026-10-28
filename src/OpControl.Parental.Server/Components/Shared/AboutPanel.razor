@@ -1,0 +1,156 @@
+@* Copyright (c) 2026 Ziur / OpControl IT Solutions
+   SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 *@
+
+@using System.Net
+@using System.Text
+@using Microsoft.EntityFrameworkCore
+@using OpControl.Parental.Server.Data
+@using OpControl.Parental.Server.Pages
+@inject AuthenticationStateProvider AuthState
+@inject IServiceScopeFactory Scopes
+@inject BuildInfo Build
+@inject IStringLocalizer<AppStrings> L
+
+<div class="page-head">
+    <div>
+        <div class="eyebrow">@L["AboutPage.Eyebrow"]</div>
+        <h1>@L["AboutPage.ProductTitle"]</h1>
+        <p class="muted">@L["AboutPage.Subtitle"]</p>
+    </div>
+</div>
+
+<section class="card about-brand-card">
+    <div class="about-brand">
+        <img class="about-shield" src="/brand/icon-color.svg" alt="@L["AboutPage.ProductTitle"]" />
+        <div class="about-brand-copy">
+            <div class="brand-title">@L["AboutPage.ProductTitle"]</div>
+            <p class="about-author">@Rich(L["AboutPage.AuthorLine"].Value)</p>
+        </div>
+        <img class="about-opc-logo" src="/brand/opcontrol-logo.png" alt="OpControl IT Solutions" width="183" height="40" />
+    </div>
+</section>
+
+<section class="card">
+    <h2>@L["AboutPage.VersionTitle"]</h2>
+    <div class="about-version">
+        <div class="about-info">
+            <span class="lbl">@L["AboutPage.Server"]</span>
+            <span class="about-version-value">@Build.DisplayVersion</span>
+        </div>
+        <a class="about-release-link" href="https://github.com/ziur-vela/parental-opcontrol/releases/tag/v@(Build.Version)" target="_blank" rel="noopener">@L["AboutPage.ReleaseNotes"] ↗</a>
+    </div>
+    <div class="about-devices">
+        <h3 class="about-subhead">@L["AboutPage.ClientVersions"]</h3>
+        @if (_devices.Count == 0)
+        {
+            <p class="muted small">@L["AboutPage.NoDevices"]</p>
+        }
+        else
+        {
+            @foreach (var device in _devices)
+            {
+                <div class="about-device-row">
+                    <div class="about-device-name">
+                        @device.Name
+                        @if (!string.IsNullOrWhiteSpace(device.ChildName)) { <span class="muted small">· @device.ChildName</span> }
+                    </div>
+                    <div class="about-device-meta">
+                        <span class="pill-soft">@ClientVersion(device.Version)</span>
+                        @if (device.LastSeenUtc is { } seen)
+                        {
+                            <span class="muted tiny">@L["AboutPage.LastSeen"] @seen.ToString("yyyy-MM-dd")</span>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</section>
+
+<section class="card" id="license">
+    <h2>@L["AboutPage.LicenseTitle"]</h2>
+    <div class="about-license-block">
+        <p class="about-license-name">@L["AboutPage.LicenseName"]</p>
+        <p class="muted">@L["AboutPage.LicenseSummary"]</p>
+        <p class="muted small">@L["AboutPage.CopyrightFull"]</p>
+        <details class="about-license">
+            <summary>@L["AboutPage.ReadFullLicense"]</summary>
+            <pre class="legal-text">@_licenseText</pre>
+        </details>
+    </div>
+</section>
+
+<section class="card">
+    <h2>@L["AboutPage.CreditsTitle"]</h2>
+    <div class="about-credits">
+        <h3 class="about-subhead">@L["AboutPage.BuiltWithAiTitle"]</h3>
+        <p class="about-ai">@Rich(L["Layout.BuiltWithAi"].Value)</p>
+        <h3 class="about-subhead">@L["AboutPage.ThirdParty"]</h3>
+        <p class="muted small">@L["AboutPage.ThirdPartyHint"]</p>
+        @if (_credits.Components.Count == 0)
+        {
+            <p class="muted small">@L["AboutPage.ThirdPartyEmpty"]</p>
+        }
+        else
+        {
+            <div class="credit-list" role="list">
+                @foreach (var component in _credits.Components)
+                {
+                    <div class="credit-row" role="listitem">
+                        <span class="credit-name">
+                            @component.Name
+                            @if (!string.IsNullOrWhiteSpace(component.Version)) { <span class="muted tiny">@component.Version</span> }
+                        </span>
+                        <span class="credit-license">@component.License</span>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</section>
+
+@code {
+    private sealed record DeviceRow(string Name, string? ChildName, string? Version, DateTime? LastSeenUtc);
+
+    private IReadOnlyList<DeviceRow> _devices = [];
+    private ThirdPartyCreditsDto _credits = new("project.assets.json", []);
+    private string _licenseText = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _licenseText = LicenseModel.ReadNotice("LICENSE");
+        _credits = AboutCredits.Credits;
+
+        var auth = await AuthState.GetAuthenticationStateAsync();
+        if (!Guid.TryParse(auth.User.FindFirst("family_id")?.Value, out var familyId)) return;
+        using var scope = Scopes.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
+        _devices = await db.Devices.AsNoTracking()
+            .Where(device => device.FamilyId == familyId && !device.IsRevoked)
+            .OrderBy(device => device.Name)
+            .Select(device => new DeviceRow(device.Name,
+                device.Child != null ? device.Child.Name : null,
+                device.ClientVersion, device.LastSeenUtc))
+            .ToListAsync();
+    }
+
+    private string ClientVersion(string? version)
+    {
+        var trimmed = version?.Trim().TrimStart('v', 'V');
+        return string.IsNullOrWhiteSpace(trimmed) ? L["AboutPage.NotReported"] : $"v{trimmed}";
+    }
+
+    private static MarkupString Rich(string text)
+    {
+        var encoded = WebUtility.HtmlEncode(text);
+        var parts = encoded.Split("**");
+        var builder = new StringBuilder(encoded.Length + 24);
+        for (var index = 0; index < parts.Length; index++)
+        {
+            if (parts[index].Length == 0) continue;
+            if (index % 2 == 1) builder.Append("<strong>").Append(parts[index]).Append("</strong>");
+            else builder.Append(parts[index]);
+        }
+        return new MarkupString(builder.ToString());
+    }
+}

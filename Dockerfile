@@ -10,7 +10,10 @@ WORKDIR /src
 COPY Directory.Build.props ./
 COPY src/OpControl.Parental.Contracts/OpControl.Parental.Contracts.csproj src/OpControl.Parental.Contracts/
 COPY src/OpControl.Parental.Server/OpControl.Parental.Server.csproj src/OpControl.Parental.Server/
+COPY src/OpControl.Parental.Luna/OpControl.Parental.Luna.csproj src/OpControl.Parental.Luna/
+COPY tools/ tools/
 RUN dotnet restore src/OpControl.Parental.Server/OpControl.Parental.Server.csproj
+RUN dotnet restore src/OpControl.Parental.Luna/OpControl.Parental.Luna.csproj
 COPY LICENSE THIRD-PARTY-NOTICES.md ./
 COPY src/ src/
 COPY release-assets/ /app/release-assets/

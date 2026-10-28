@@ -135,8 +135,8 @@ public class Job20CAboutPolishTests
             "Resources", "AppStrings.resx"));
         var spanish = File.ReadAllText(Path.Combine(root, "src", "OpControl.Parental.Server",
             "Resources", "AppStrings.es-MX.resx"));
-        Assert.Contains("Built with AI assistance: Claude, OpenCode, DeepSeek", english, StringComparison.Ordinal);
-        Assert.Contains("Construido con ayuda de IA: Claude, OpenCode, DeepSeek", spanish, StringComparison.Ordinal);
+        Assert.Contains("code written with **OpenCode**, the open-source AI coding agent, using **DeepSeek V4.1 Flash** by DeepSeek", english, StringComparison.Ordinal);
+        Assert.Contains("código escrito con **OpenCode**, el agente de programación con IA de código abierto, usando **DeepSeek V4.1 Flash** de DeepSeek", spanish, StringComparison.Ordinal);
     }
 
     private static string TextOf(TextBlock block) =>

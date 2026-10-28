@@ -150,7 +150,7 @@
   "Client.Kid.About.Server": "Servidor",
   "Client.Kid.About.Build": "compilación",
   "Client.Kid.About.BuiltWithAiTitle": "Construido con IA",
-  "Client.Kid.About.BuiltWithAi": "Parental OpControl fue diseñado, dirigido y probado por Ziur, y construido con ayuda de IA: diseño, planeación y revisión de código con **Claude** (de Anthropic), y código escrito por **OC**, un agente de programación con IA basado en **OpenCode**, usando modelos de **DeepSeek**. Cada cambio fue revisado y probado por una persona antes de publicarse.",
+  "Client.Kid.About.BuiltWithAi": "Parental OpControl fue diseñado, dirigido y probado por Ziur, y construido con ayuda de IA: diseño, planeación y revisión de código con **Claude** de Anthropic, y código escrito con **OpenCode**, el agente de programación con IA de código abierto, usando **DeepSeek V4.1 Flash** de DeepSeek. Cada cambio fue revisado y probado por una persona antes de publicarse.",
   "Client.Kid.About.ServerUnavailable": "No disponible",
   "Client.Kid.About.License": "Licencia",
   "Client.Kid.About.LicenseSummary": "Parental OpControl es gratis para uso personal y otros usos no comerciales bajo la PolyForm Noncommercial License 1.0.0.",

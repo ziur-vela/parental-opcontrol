@@ -69,10 +69,10 @@ Las notas de despliegue de nuestro homelab están en
 ## Créditos
 
 Parental OpControl fue diseñado, dirigido y probado por Ziur, y construido con
-ayuda de IA: diseño, planeación y revisión de código con **Claude** (de
-Anthropic), y código escrito por **OC**, un agente de programación con IA basado
-en **OpenCode**, usando modelos de **DeepSeek**. Cada cambio fue revisado y
-probado por una persona antes de publicarse.
+ayuda de IA: diseño, planeación y revisión de código con **Claude** de
+Anthropic, y código escrito con **OpenCode**, el agente de programación con IA
+de código abierto, usando **DeepSeek V4.1 Flash** de DeepSeek. Cada cambio fue
+revisado y probado por una persona antes de publicarse.
 
 Creado por Ziur · OpControl IT. Los componentes de terceros, las fuentes y las
 fuentes de datos están en [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
