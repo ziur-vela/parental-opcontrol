@@ -231,9 +231,9 @@ dashboard footer AI credit.
 - Staging and production temporary parents deleted; 0 `job20d-%` users remain.
 - No owner or child login; no PIN, password, family, scaling, Windows or Luna
   setting was changed; OC’s git identity was not changed.
-- Local preview stack and database will be removed after the report; the XPS
-  build folder `C:\ocp-build\parental-20d` remains until the next job unless
-  removed.
+- The local preview server and PostgreSQL container were stopped and removed
+  after the screenshots, and the XPS build folder
+  `C:\ocp-build\parental-20d` plus its transfer archives were removed.
 - Screenshots are from the local preview, not from the installed laptops.
 
 ## Limits
