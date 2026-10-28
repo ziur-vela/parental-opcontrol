@@ -39,9 +39,9 @@
           BeforeTargets="AssignTargetPaths"
           Inputs="$(ProjectAssetsFile);$(MSBuildProjectDirectory)/../../tools/generate-third-party-credits.cs"
           Outputs="$(IntermediateOutputPath)credits/third-party-credits.json;$(IntermediateOutputPath)credits/third-party-credits.md">
-    <MakeDir Directories="$(MSBuildProjectDirectory)/$(IntermediateOutputPath)gen-tmp" />
+    <MakeDir Directories="$(MSBuildProjectDirectory)/$(IntermediateOutputPath)gen-tmp;$(MSBuildProjectDirectory)/$(IntermediateOutputPath)gen-home" />
     <Exec Command="&quot;$(DOTNET_HOST_PATH)&quot; run --file &quot;$(MSBuildProjectDirectory)/../../tools/generate-third-party-credits.cs&quot; -- &quot;$(ProjectAssetsFile)&quot; &quot;$(NuGetPackageRoot).&quot; &quot;$(TargetFramework)&quot; &quot;$(MSBuildProjectDirectory)&quot; &quot;$(MSBuildProjectDirectory)/../..&quot; &quot;$(IntermediateOutputPath)credits&quot;"
-          EnvironmentVariables="TMP=$(MSBuildProjectDirectory)/$(IntermediateOutputPath)gen-tmp;TEMP=$(MSBuildProjectDirectory)/$(IntermediateOutputPath)gen-tmp;TMPDIR=$(MSBuildProjectDirectory)/$(IntermediateOutputPath)gen-tmp;DOTNET_CLI_TELEMETRY_OPTOUT=1" />
+          EnvironmentVariables="TMP=$(MSBuildProjectDirectory)/$(IntermediateOutputPath)gen-tmp;TEMP=$(MSBuildProjectDirectory)/$(IntermediateOutputPath)gen-tmp;TMPDIR=$(MSBuildProjectDirectory)/$(IntermediateOutputPath)gen-tmp;XDG_DATA_HOME=$(MSBuildProjectDirectory)/$(IntermediateOutputPath)gen-home;LOCALAPPDATA=$(MSBuildProjectDirectory)/$(IntermediateOutputPath)gen-home;DOTNET_CLI_HOME=$(MSBuildProjectDirectory)/$(IntermediateOutputPath)gen-home;DOTNET_CLI_TELEMETRY_OPTOUT=1" />
     <ItemGroup>
       <EmbeddedResource Include="$(IntermediateOutputPath)credits/third-party-credits.json" LogicalName="OpControl.Parental.ThirdPartyCredits.json" />
     </ItemGroup>
