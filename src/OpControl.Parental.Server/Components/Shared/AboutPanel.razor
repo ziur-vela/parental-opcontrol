@@ -58,7 +58,7 @@
                         <span class="pill-soft">@ClientVersion(device.Version)</span>
                         @if (device.LastSeenUtc is { } seen)
                         {
-                            <span class="muted tiny">@L["AboutPage.LastSeen"] @seen.ToString("yyyy-MM-dd")</span>
+                            <span class="muted tiny">@($"{L["AboutPage.LastSeen"]} {seen:yyyy-MM-dd}")</span>
                         }
                     </div>
                 </div>

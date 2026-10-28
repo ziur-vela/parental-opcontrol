@@ -39,7 +39,9 @@
           BeforeTargets="AssignTargetPaths"
           Inputs="$(AboutCreditsAssets);$(MSBuildProjectDirectory)/../../tools/generate-third-party-credits.cs"
           Outputs="$(IntermediateOutputPath)credits/third-party-credits.json;$(IntermediateOutputPath)credits/third-party-credits.md">
-    <Exec Command="&quot;$(DOTNET_HOST_PATH)&quot; run --file &quot;$(MSBuildProjectDirectory)/../../tools/generate-third-party-credits.cs&quot; -- &quot;$(AboutCreditsAssets)&quot; &quot;$(NuGetPackageRoot)&quot; &quot;$(TargetFramework)&quot; &quot;$(MSBuildProjectDirectory)&quot; &quot;$(MSBuildProjectDirectory)/../..&quot; &quot;$(IntermediateOutputPath)credits&quot;" />
+    <MakeDir Directories="$(MSBuildProjectDirectory)/$(IntermediateOutputPath)gen-tmp" />
+    <Exec Command="&quot;$(DOTNET_HOST_PATH)&quot; run --file &quot;$(MSBuildProjectDirectory)/../../tools/generate-third-party-credits.cs&quot; -- &quot;$(AboutCreditsAssets)&quot; &quot;$(NuGetPackageRoot).&quot; &quot;$(TargetFramework)&quot; &quot;$(MSBuildProjectDirectory)&quot; &quot;$(MSBuildProjectDirectory)/../..&quot; &quot;$(IntermediateOutputPath)credits&quot;"
+          EnvironmentVariables="TMP=$(MSBuildProjectDirectory)/$(IntermediateOutputPath)gen-tmp;TEMP=$(MSBuildProjectDirectory)/$(IntermediateOutputPath)gen-tmp;TMPDIR=$(MSBuildProjectDirectory)/$(IntermediateOutputPath)gen-tmp;DOTNET_CLI_TELEMETRY_OPTOUT=1" />
     <ItemGroup>
       <EmbeddedResource Include="$(IntermediateOutputPath)credits/third-party-credits.json" LogicalName="OpControl.Parental.Server.ThirdPartyCredits.json" />
     </ItemGroup>
