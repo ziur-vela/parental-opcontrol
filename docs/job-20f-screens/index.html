@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Job 20f — lock timer pill and Timer tab</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 28px; background: #14121f; color: #f4f1ff; font: 15px/1.5 "Segoe UI", system-ui, sans-serif; }
+  h1, h2 { font-family: "Fredoka", "Segoe UI", sans-serif; font-weight: 600; }
+  h1 { margin: 0 0 4px; font-size: 30px; }
+  .sub { color: #c9c0f5; margin: 0 0 26px; }
+  h2 { margin: 30px 0 10px; color: #fff6c8; }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  figure { margin: 0; background: #1b1442; border: 2px solid #3a2f7a; border-radius: 16px; overflow: hidden; }
+  figure img { width: 100%; display: block; }
+  figcaption { padding: 8px 12px 10px; color: #c9c0f5; font-weight: 600; font-size: 13px; }
+  code { background: #2a2160; border-radius: 6px; padding: 1px 6px; }
+  a { color: #f6dc7e; }
+</style>
+</head>
+<body>
+<h1>Job 20f — lock countdown pill + Timer tab</h1>
+<p class="sub">v0.17.21 · approved Luna-style mockups · captures from the Dell XPS build host</p>
+
+<h2>Pill states — Night sky</h2>
+<div class="grid">
+  <figure><img src="pill-show-night.png" alt="Showing"><figcaption>Showing — calm Luna, 1d 8h 45m</figcaption></figure>
+  <figure><img src="pill-tuck-night.png" alt="Tucked"><figcaption>Tucked away — only the clock shows</figcaption></figure>
+  <figure><img src="pill-warn-night.png" alt="Under five minutes"><figcaption>Under 5 minutes — amber, grimace, 4:12</figcaption></figure>
+  <figure><img src="pill-last-night.png" alt="Last minute"><figcaption>Last minute — red, fearful Luna, 0:42</figcaption></figure>
+</div>
+
+<h2>Pill states — Moon gray</h2>
+<div class="grid">
+  <figure><img src="pill-show-gray.png" alt="Showing gray"><figcaption>Showing — Moon gray</figcaption></figure>
+  <figure><img src="pill-tuck-gray.png" alt="Tucked gray"><figcaption>Tucked away — Moon gray</figcaption></figure>
+  <figure><img src="pill-warn-gray.png" alt="Under five minutes gray"><figcaption>Under 5 minutes — Moon gray</figcaption></figure>
+  <figure><img src="pill-last-gray.png" alt="Last minute gray"><figcaption>Last minute — Moon gray</figcaption></figure>
+</div>
+
+<h2>On the real desktop (XPS, 100%)</h2>
+<div class="grid">
+  <figure><img src="screen-pill-show-night.png" alt="Real desktop showing"><figcaption>Showing above the taskbar clock</figcaption></figure>
+  <figure><img src="screen-pill-tuck-night.png" alt="Real desktop tucked"><figcaption>Tucked — clock at the screen edge</figcaption></figure>
+  <figure><img src="screen-pill-last-night.png" alt="Real desktop last minute"><figcaption>Last minute — red pill and shake</figcaption></figure>
+  <figure><img src="screen-pill-show-gray.png" alt="Real desktop gray"><figcaption>Moon gray on the desktop</figcaption></figure>
+</div>
+
+<h2>Animation</h2>
+<div class="grid">
+  <figure><img src="pill-tuck-untuck.gif" alt="Tuck and untuck animation"><figcaption>Tuck and hover-untuck with the bounce</figcaption></figure>
+  <figure><img src="pill-last-shake.gif" alt="Last-minute shake"><figcaption>Last-minute shake (~0.5 s loop)</figcaption></figure>
+</div>
+
+<h2>Timer tab — My OpControl</h2>
+<div class="grid">
+  <figure><img src="timer-night.png" alt="Timer tab night"><figcaption>Timer tab — Night sky, English</figcaption></figure>
+  <figure><img src="timer-gray.png" alt="Timer tab gray"><figcaption>Timer tab — Moon gray, English</figcaption></figure>
+  <figure><img src="timer-night-es.png" alt="Timer tab night Spanish"><figcaption>Timer tab — Night sky, es-MX</figcaption></figure>
+  <figure><img src="timer-gray-es.png" alt="Timer tab gray Spanish"><figcaption>Timer tab — Moon gray, es-MX</figcaption></figure>
+</div>
+
+<p style="margin-top:28px;color:#c9c0f5">The pill images are rendered with the same <code>PillArt</code> paint code in a 900×250
+scene; the desktop images are real XPS screen captures of the Debug <code>--timer-preview</code> mode.
+The Timer tab captures are the Demo child ("Ana") at 1366×768.</p>
+</body>
+</html>
