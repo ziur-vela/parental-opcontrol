@@ -171,6 +171,12 @@ internal static class Theme
     /// <summary>Nunito 800 for "Parent override".</summary>
     public static Font LockSecondary(float pixels) => MakePx(BodyExtraBold, "Segoe UI", pixels);
 
+    /// <summary>Fredoka 600 for the lock countdown pill time.</summary>
+    public static Font PillTime(float pixels) => MakePx(DisplaySemiBold, "Segoe UI Semibold", pixels);
+
+    /// <summary>Nunito 800 for the lock countdown pill label.</summary>
+    public static Font PillLabel(float pixels) => MakePx(BodyExtraBold, "Segoe UI", pixels);
+
     private static bool _fontCheckLogged;
 
     /// <summary>One-line runtime proof that the embedded families resolved (no system fallback).</summary>

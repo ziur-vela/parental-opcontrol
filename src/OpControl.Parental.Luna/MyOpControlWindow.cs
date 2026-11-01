@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
@@ -27,7 +28,7 @@ public sealed record KidWindowOptions(
 
 public sealed class MyOpControlWindow : Window
 {
-    private enum Screen { Home, Schedule, Rules, Activity, Messages, About }
+    private enum Screen { Home, Schedule, Rules, Activity, Messages, Timer, About }
 
     private readonly IKidDataSource _data;
     private readonly KidWindowOptions _options;
@@ -36,6 +37,7 @@ public sealed class MyOpControlWindow : Window
     private LunaPalette _palette;
     private string _themeKey;
     private Screen _screen;
+    private LockTimerSettings _timerSettings = LockTimerSettings.Default;
     private bool _activityWeek;
     private bool _sending;
     private bool _loaded;
@@ -86,6 +88,7 @@ public sealed class MyOpControlWindow : Window
         _scale = options.Preview ? Math.Clamp(options.Scale, 1, 2) : 1;
         _themeKey = options.Theme ?? KidThemeStore.ReadLocal() ?? "night";
         _palette = LunaThemes.From(_themeKey);
+        _timerSettings = options.Preview ? LockTimerSettings.Default : LockTimerStore.Read();
         _language = options.Language;
         _screen = ParseScreen(options.Tab);
         if (options.MessagesOnly && _screen != Screen.About) _screen = Screen.Messages;
@@ -281,6 +284,7 @@ public sealed class MyOpControlWindow : Window
         nav.Children.Add(NavButton(Screen.Rules, "◎", Loc.T("Client.Kid.Nav.Rules")));
         nav.Children.Add(NavButton(Screen.Activity, "▤", Loc.T("Client.Kid.Nav.Activity")));
         nav.Children.Add(NavButton(Screen.Messages, "✉", Loc.T("Client.Kid.Nav.Messages")));
+        nav.Children.Add(NavButton(Screen.Timer, HourglassIcon(), Loc.T("Client.Kid.Nav.Timer")));
         grid.Children.Add(nav);
 
         var bottom = new StackPanel { Spacing = 8, Margin = new Thickness(12, 0, 12, 16) };
@@ -329,10 +333,14 @@ public sealed class MyOpControlWindow : Window
         };
     }
 
-    private Button NavButton(Screen screen, string glyph, string label)
+    private Button NavButton(Screen screen, string glyph, string label) =>
+        NavButton(screen, Text(glyph, 16, _palette.Muted, FontWeight.Bold), label);
+
+    private Button NavButton(Screen screen, Control icon, string label)
     {
         var content = new Grid { ColumnDefinitions = new ColumnDefinitions("24,*") };
-        content.Children.Add(Text(glyph, 16, _palette.Muted, FontWeight.Bold));
+        icon.VerticalAlignment = VerticalAlignment.Center;
+        content.Children.Add(icon);
         var text = Text(label, 13, _palette.Text, FontWeight.SemiBold);
         Grid.SetColumn(text, 1);
         content.Children.Add(text);
@@ -349,6 +357,22 @@ public sealed class MyOpControlWindow : Window
         button.Click += (_, _) => ShowScreen(screen);
         _navButtons[screen] = button;
         return button;
+    }
+
+    private Control HourglassIcon()
+    {
+        var path = new Avalonia.Controls.Shapes.Path
+        {
+            Data = Geometry.Parse("M7 3h10M7 21h10M8 3c0 5 8 6 8 9s-8 4-8 9M16 3c0 5-8 6-8 9"),
+            Stroke = LunaBrushes.B(_palette.Muted),
+            StrokeThickness = 2.2,
+            StrokeLineCap = PenLineCap.Round,
+            StrokeJoin = PenLineJoin.Round,
+            Stretch = Stretch.Uniform,
+            Width = 18,
+            Height = 18
+        };
+        return new Viewbox { Width = 20, Height = 20, Child = path, HorizontalAlignment = HorizontalAlignment.Left };
     }
 
     private void UpdateNavSelection()
@@ -592,6 +616,7 @@ public sealed class MyOpControlWindow : Window
             Screen.Rules => BuildRules(),
             Screen.Activity => BuildActivity(),
             Screen.Messages => BuildMessages(),
+            Screen.Timer => BuildTimer(),
             Screen.About => BuildAbout(),
             _ => BuildHome()
         });
@@ -610,6 +635,286 @@ public sealed class MyOpControlWindow : Window
         var text = DeviceLineText();
         if (!string.Equals(_sidebarDevice.Text, text, StringComparison.Ordinal))
             _sidebarDevice.Text = text;
+    }
+
+    private Control BuildTimer()
+    {
+        var stack = new StackPanel { Spacing = 14, Margin = new Thickness(22, 6, 22, 22) };
+        stack.Children.Add(ScreenTitle(Loc.T("Client.Kid.Timer.Eyebrow"), Loc.T("Client.Kid.Timer.Title")));
+
+        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("58*,42*") };
+
+        var settings = new StackPanel { Spacing = 2 };
+        settings.Children.Add(TimerRow(
+            Loc.T("Client.Kid.Timer.Show"),
+            Loc.T("Client.Kid.Timer.ShowHint"),
+            ToggleSwitch(_timerSettings.Enabled, () => ChangeTimer(s => s with { Enabled = !s.Enabled }),
+                Loc.T("Client.Kid.Timer.Show"))));
+
+        var options = new StackPanel
+        {
+            Spacing = 2,
+            Opacity = _timerSettings.Enabled ? 1 : 0.45,
+            IsHitTestVisible = _timerSettings.Enabled
+        };
+        options.Children.Add(TimerRow(
+            Loc.T("Client.Kid.Timer.Seconds"),
+            Loc.T("Client.Kid.Timer.SecondsHint"),
+            Segmented(_timerSettings.ShowSeconds ? "show" : "hide",
+                [("show", Loc.T("Client.Kid.Timer.ShowSeconds")), ("hide", Loc.T("Client.Kid.Timer.HideSeconds"))],
+                value => ChangeTimer(s => s with { ShowSeconds = value == "show" }))));
+        options.Children.Add(TimerRow(
+            Loc.T("Client.Kid.Timer.Days"),
+            Loc.T("Client.Kid.Timer.DaysHint"),
+            Segmented(_timerSettings.DaysFormat ? "days" : "hours",
+                [("days", Loc.T("Client.Kid.Timer.DaysExample")), ("hours", Loc.T("Client.Kid.Timer.HoursExample"))],
+                value => ChangeTimer(s => s with { DaysFormat = value == "days" }))));
+        options.Children.Add(TimerRow(
+            Loc.T("Client.Kid.Timer.Look"),
+            null,
+            Segmented(_timerSettings.Look,
+                [("my", Loc.T("Client.Kid.Timer.MyTheme")), ("night", Loc.T("Client.Kid.Timer.Night")), ("gray", Loc.T("Client.Kid.Timer.Gray"))],
+                value => ChangeTimer(s => s with { Look = value }))));
+        options.Children.Add(TimerRow(
+            Loc.T("Client.Kid.Timer.Tuck"),
+            Loc.T("Client.Kid.Timer.TuckHint"),
+            ToggleSwitch(_timerSettings.Tuck, () => ChangeTimer(s => s with { Tuck = !s.Tuck }),
+                Loc.T("Client.Kid.Timer.Tuck"))));
+        var afterRow = TimerRow(
+            Loc.T("Client.Kid.Timer.After"),
+            null,
+            Segmented(_timerSettings.TuckAfterSeconds.ToString(),
+                [("5", "5 s"), ("10", "10 s"), ("30", "30 s")],
+                value => ChangeTimer(s => s with { TuckAfterSeconds = int.Parse(value) })),
+            _timerSettings.Tuck);
+        afterRow.Opacity = _timerSettings.Tuck ? 1 : 0.45;
+        afterRow.IsHitTestVisible = _timerSettings.Tuck;
+        options.Children.Add(afterRow);
+        settings.Children.Add(options);
+        var left = Card(settings);
+        left.Margin = new Thickness(0, 0, 7, 0);
+        grid.Children.Add(left);
+
+        var right = new StackPanel { Spacing = 14, Margin = new Thickness(7, 0, 0, 0) };
+        right.Children.Add(BuildTimerPreview());
+        var goodToKnow = new StackPanel { Spacing = 8 };
+        goodToKnow.Children.Add(Text(Loc.T("Client.Kid.Timer.GoodToKnow"), 15,
+            _palette.Key == "gray" ? _palette.Text : _palette.Accent, FontWeight.Bold, LunaThemes.Display));
+        goodToKnow.Children.Add(Text(Loc.T("Client.Kid.Timer.GoodToKnowBody"), 13.5, _palette.Muted, FontWeight.SemiBold));
+        right.Children.Add(Card(goodToKnow));
+        Grid.SetColumn(right, 1);
+        grid.Children.Add(right);
+
+        stack.Children.Add(grid);
+        return Scroll(stack);
+    }
+
+    private Control BuildTimerPreview()
+    {
+        var header = Text(Loc.T("Client.Kid.Timer.Preview"), 15,
+            _palette.Key == "gray" ? _palette.Text : _palette.Accent, FontWeight.Bold, LunaThemes.Display);
+        var scene = new Border
+        {
+            Height = 84,
+            CornerRadius = new CornerRadius(16),
+            ClipToBounds = true,
+            Background = new LinearGradientBrush
+            {
+                StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+                EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative),
+                GradientStops =
+                {
+                    new GradientStop(Color.Parse("#3b4a5e"), 0),
+                    new GradientStop(Color.Parse("#26303d"), 1)
+                }
+            }
+        };
+        var content = new Grid { RowDefinitions = new RowDefinitions("*,22") };
+        var taskbar = new Border { Background = new SolidColorBrush(Color.Parse("#1c1f26")) };
+        Grid.SetRow(taskbar, 1);
+        content.Children.Add(taskbar);
+        if (_timerSettings.Enabled)
+        {
+            var pill = BuildPreviewPill();
+            pill.HorizontalAlignment = HorizontalAlignment.Right;
+            pill.VerticalAlignment = VerticalAlignment.Bottom;
+            pill.Margin = new Thickness(0, 0, 0, 30);
+            content.Children.Add(pill);
+        }
+        else
+        {
+            var hidden = Text(Loc.T("Client.Kid.Timer.Hidden"), 13, Color.Parse("#c4c9d6"), FontWeight.ExtraBold);
+            hidden.HorizontalAlignment = HorizontalAlignment.Center;
+            hidden.VerticalAlignment = VerticalAlignment.Center;
+            content.Children.Add(hidden);
+        }
+        scene.Child = content;
+
+        var stack = new StackPanel { Spacing = 10 };
+        stack.Children.Add(header);
+        stack.Children.Add(scene);
+        return Card(stack);
+    }
+
+    private Control BuildPreviewPill()
+    {
+        var theme = _timerSettings.ResolveTheme(_themeKey);
+        var night = !string.Equals(theme, "gray", StringComparison.OrdinalIgnoreCase);
+        var background = Color.Parse(night ? "#1b1442" : "#ffffff");
+        var border = Color.Parse(night ? "#4a3d94" : "#d6dae3");
+        var shadow = Color.Parse(night ? "#0e0a26" : "#e2bd52");
+        var labelColor = Color.Parse(night ? "#c9c0f5" : "#565c73");
+        var timeColor = Color.Parse(night ? "#fff6c8" : "#23273a");
+
+        var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 7, VerticalAlignment = VerticalAlignment.Center };
+        if (_timerSettings.Tuck)
+        {
+            content.Children.Add(ClockIcon(26));
+        }
+        else
+        {
+            content.Children.Add(MoonFace(26));
+            content.Children.Add(Text(Loc.T("Client.Pill.LockIn"), 12, labelColor, FontWeight.ExtraBold, LunaThemes.Body, wrap: false));
+            content.Children.Add(Text(PreviewTimerText(), 16, timeColor, FontWeight.Bold, LunaThemes.Display, wrap: false));
+        }
+
+        return new Border
+        {
+            Background = LunaBrushes.B(background),
+            BorderBrush = LunaBrushes.B(border),
+            BorderThickness = new Thickness(2, 2, 0, 2),
+            CornerRadius = new CornerRadius(99, 0, 0, 99),
+            Padding = new Thickness(6, 5, 18, 5),
+            Child = content,
+            BoxShadow = new BoxShadows(new BoxShadow { OffsetY = 3, Color = shadow })
+        };
+    }
+
+    private string PreviewTimerText() =>
+        LockTimerFormat.Format(new TimeSpan(1, 8, 45, 52), _timerSettings, Loc.Language);
+
+    private Control ClockIcon(double size)
+    {
+        var grid = new Grid { Width = size, Height = size };
+        grid.Children.Add(new Border
+        {
+            Background = new SolidColorBrush(Color.Parse("#f6dc7e")),
+            BorderBrush = new SolidColorBrush(Color.Parse("#2b2f3a")),
+            BorderThickness = new Thickness(2),
+            CornerRadius = new CornerRadius(size / 2)
+        });
+        grid.Children.Add(new Avalonia.Controls.Shapes.Path
+        {
+            Data = Geometry.Parse($"M{size / 2} {size * 0.18} V{size / 2} L{size * 0.72} {size * 0.6}"),
+            Stroke = new SolidColorBrush(Color.Parse("#2b2f3a")),
+            StrokeThickness = 2,
+            StrokeLineCap = PenLineCap.Round,
+            StrokeJoin = PenLineJoin.Round
+        });
+        return grid;
+    }
+
+    private Control TimerRow(string title, string? hint, Control control, bool enabled = true)
+    {
+        var text = new StackPanel { Spacing = 2 };
+        text.Children.Add(Text(title, 15.5, _palette.Text, FontWeight.Bold, LunaThemes.Display));
+        if (!string.IsNullOrWhiteSpace(hint))
+            text.Children.Add(Text(hint, 12.5, _palette.Muted, FontWeight.SemiBold));
+        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(0, 2) };
+        grid.Children.Add(text);
+        control.VerticalAlignment = VerticalAlignment.Center;
+        control.Margin = new Thickness(12, 0, 0, 0);
+        Grid.SetColumn(control, 1);
+        grid.Children.Add(control);
+        grid.Opacity = enabled ? 1 : 0.45;
+        grid.IsHitTestVisible = enabled;
+        return grid;
+    }
+
+    private Button ToggleSwitch(bool on, Action toggle, string name)
+    {
+        var knob = new Border
+        {
+            Width = 22,
+            Height = 22,
+            CornerRadius = new CornerRadius(11),
+            Background = Brushes.White,
+            HorizontalAlignment = on ? HorizontalAlignment.Right : HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Center,
+            BoxShadow = new BoxShadows(new BoxShadow { OffsetY = 1, Blur = 3, Color = Color.FromArgb(0x4d, 0, 0, 0) })
+        };
+        var track = new Border
+        {
+            Width = 48,
+            Height = 28,
+            CornerRadius = new CornerRadius(14),
+            Padding = new Thickness(3),
+            Background = LunaBrushes.B(on ? _palette.Success : _palette.Surface2),
+            Child = knob
+        };
+        var button = new Button
+        {
+            Content = track,
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Padding = new Thickness(0),
+            Cursor = new Cursor(StandardCursorType.Hand)
+        };
+        AutomationProperties.SetName(button, name);
+        button.Click += (_, _) => toggle();
+        return button;
+    }
+
+    private Control Segmented(string current, IReadOnlyList<(string Value, string Label)> options, Action<string> select)
+    {
+        var onBackground = _palette.Key == "gray" ? _palette.Text : _palette.Accent;
+        var onInk = _palette.Key == "gray" ? Colors.White : _palette.AccentInk;
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 3 };
+        foreach (var (value, label) in options)
+        {
+            var on = string.Equals(value, current, StringComparison.Ordinal);
+            var selected = value;
+            var item = new Border
+            {
+                Background = on ? LunaBrushes.B(onBackground) : Brushes.Transparent,
+                CornerRadius = new CornerRadius(20),
+                Padding = new Thickness(12, 6),
+                Cursor = new Cursor(StandardCursorType.Hand),
+                Child = Text(label, 12.5, on ? onInk : _palette.Muted, FontWeight.Bold, LunaThemes.Display, wrap: false)
+            };
+            AutomationProperties.SetName(item, label);
+            item.PointerEntered += (_, _) =>
+            {
+                if (!on) item.Background = LunaBrushes.B(_palette.Surface2);
+            };
+            item.PointerExited += (_, _) =>
+            {
+                if (!on) item.Background = Brushes.Transparent;
+            };
+            item.PointerPressed += (_, e) =>
+            {
+                if (!e.GetCurrentPoint(item).Properties.IsLeftButtonPressed) return;
+                e.Handled = true;
+                select(selected);
+            };
+            row.Children.Add(item);
+        }
+        return new Border
+        {
+            Background = LunaBrushes.B(_palette.Key == "gray" ? Colors.White : _palette.Surface),
+            BorderBrush = LunaBrushes.B(_palette.Surface2),
+            BorderThickness = new Thickness(2),
+            CornerRadius = new CornerRadius(20),
+            Padding = new Thickness(3),
+            Child = row
+        };
+    }
+
+    private void ChangeTimer(Func<LockTimerSettings, LockTimerSettings> change)
+    {
+        _timerSettings = change(_timerSettings).Normalize();
+        if (!_options.Preview) LockTimerStore.Write(_timerSettings);
+        RenderCurrent();
     }
 
     private Control BuildAbout()
@@ -1711,6 +2016,7 @@ public sealed class MyOpControlWindow : Window
         "rules" => Screen.Rules,
         "activity" => Screen.Activity,
         "messages" => Screen.Messages,
+        "timer" => Screen.Timer,
         "about" => Screen.About,
         _ => Screen.Home
     };

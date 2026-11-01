@@ -53,6 +53,7 @@ public sealed class HelperContext : ApplicationContext
         // separate top-level window may sit above the overlay.
         _overlays.MessageClicked += () => HelperPaths.LogEvent("lock-messages-requested");
         _countdown = new CountdownForm();
+        _countdown.Clicked += (_, _) => OpenMyOpControlFromPill();
         _ = _marshal.Handle;
         _remote = new RemoteCaptureHost(monitored);
         _remote.NoticeChanged += OnRemoteNoticeChanged;
@@ -125,13 +126,16 @@ public sealed class HelperContext : ApplicationContext
         }
 
         var now = DateTime.UtcNow;
+        CheckLockWarnings(state);
         CheckDailyWarnings(state);
+        var timerSettings = LockTimerStore.Read();
+        var timerTheme = timerSettings.ResolveTheme(ResolveStoredTheme());
         if (state.BonusUntilUtc is { } bonus && bonus > now)
         {
             var remaining = bonus - now;
             var minutes = state.BonusMinutes ?? 0;
             var text = Loc.T("Client.Countdown.Bonus", minutes, Format(remaining));
-            _countdown.UpdateText(text, remaining);
+            _countdown.Update(remaining, Loc.T("Client.Pill.Bonus", minutes), timerSettings, timerTheme, Loc.Language);
             SetVisible(true, false, state.Reason, text);
         }
         else if (state.Reason == "override" && state.EndsUtc is { } unlockedUntil && unlockedUntil > now)
@@ -141,21 +145,21 @@ public sealed class HelperContext : ApplicationContext
             var text = string.IsNullOrWhiteSpace(state.UnlockScheduleName)
                 ? Loc.T("Client.Countdown.UnlockedUntil", when)
                 : Loc.T("Client.Countdown.UnlockedUntilSchedule", when, state.UnlockScheduleName);
-            _countdown.UpdateText(text, remaining);
+            _countdown.Update(remaining, Loc.T("Client.Pill.UnlockedUntil", when), timerSettings, timerTheme, Loc.Language);
             SetVisible(true, false, state.Reason, text);
         }
         else if (state.NextLockUtc is { } next && next > now)
         {
             var remaining = next - now;
             var text = Loc.T("Client.Countdown.LockIn", Format(remaining));
-            _countdown.UpdateText(text, remaining);
+            _countdown.Update(remaining, Loc.T("Client.Pill.LockIn"), timerSettings, timerTheme, Loc.Language);
             SetVisible(true, false, state.Reason, text);
         }
         else if (state.DailyLimitRemainingSeconds is { } dailyLeft && dailyLeft > 0)
         {
             var remaining = TimeSpan.FromSeconds(dailyLeft);
             var text = Loc.T("Client.Countdown.LeftToday", FormatShort(remaining));
-            _countdown.UpdateText(text, remaining);
+            _countdown.Update(remaining, Loc.T("Client.Pill.LeftToday"), timerSettings, timerTheme, Loc.Language);
             SetVisible(true, false, state.Reason, text);
         }
         else
@@ -459,6 +463,7 @@ public sealed class HelperContext : ApplicationContext
                 "rules" => "rules",
                 "activity" => "activity",
                 "messages" => "messages",
+                "timer" => "timer",
                 _ => "home"
             };
             var theme = root.TryGetProperty("theme", out var themeValue) ? themeValue.GetString() : null;
@@ -470,6 +475,67 @@ public sealed class HelperContext : ApplicationContext
         {
             HelperPaths.LogEvent($"ui-command-failed {ex.Message}");
         }
+    }
+
+    private void OpenMyOpControlFromPill()
+    {
+        try
+        {
+            if (_kidProcess is { HasExited: false } running)
+            {
+                running.Refresh();
+                var handle = running.MainWindowHandle;
+                if (handle == IntPtr.Zero) handle = FindProcessWindow(running.Id);
+                if (handle != IntPtr.Zero)
+                {
+                    ShowWindow(handle, SwRestore);
+                    if (!SetForegroundWindow(handle)) SwitchToThisWindow(handle, true);
+                    HelperPaths.LogEvent("pill-open-focused");
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            HelperPaths.LogEvent($"pill-open-focus-failed {ex.Message}");
+        }
+        ShowMyOpControl("home");
+        HelperPaths.LogEvent("pill-open-launched");
+    }
+
+    private const int SwRestore = 9;
+
+    private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr hWnd);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int command);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern void SwitchToThisWindow(IntPtr hWnd, bool altTab);
+
+    private static IntPtr FindProcessWindow(int processId)
+    {
+        var found = IntPtr.Zero;
+        EnumWindows((handle, _) =>
+        {
+            GetWindowThreadProcessId(handle, out var owner);
+            if (owner != (uint)processId || !IsWindowVisible(handle)) return true;
+            found = handle;
+            return false;
+        }, IntPtr.Zero);
+        return found;
     }
 
     private void ShowMyOpControl(string tab, string? theme = null, string? language = null,
@@ -540,6 +606,41 @@ public sealed class HelperContext : ApplicationContext
             if (!response.Ok) HelperPaths.LogEvent($"message-ack-failed {messageId} {response.Error}");
         }
         catch { }
+    }
+
+    private void CheckLockWarnings(RuntimeLockStateDto state)
+    {
+        var now = DateTime.UtcNow;
+        int? remaining = null;
+        var source = "lock";
+        if (state.BonusUntilUtc is { } bonus && bonus > now)
+        {
+            remaining = (int)Math.Ceiling((bonus - now).TotalSeconds);
+            source = "bonus";
+        }
+        else if (state.NextLockUtc is { } next && next > now)
+        {
+            remaining = (int)Math.Ceiling((next - now).TotalSeconds);
+        }
+        else if (state.DailyLimitRemainingSeconds is { } left && left > 0)
+        {
+            remaining = left;
+            source = "daily";
+        }
+
+        if (remaining is not { } seconds) return;
+        foreach (var minutes in LockTimerPolicy.WarningMinutes)
+        {
+            if (!LockTimerPolicy.IsWarningDue(seconds, minutes)) continue;
+            if (!_warnedThresholds.Add(minutes)) continue;
+            var message = source == "daily"
+                ? Loc.T(minutes == 1 ? "Client.Notice.MinutesLeftOne" : "Client.Notice.MinutesLeftMany", minutes)
+                : Loc.T(minutes == 1 ? "Client.Notice.LockInOne" : "Client.Notice.LockInMany", minutes);
+            ShowNotification(Loc.T(source == "daily" ? "Client.Notice.ScreenTime" : "Client.Notice.LockTimer"), message);
+            if (state.SpokenWarnings) Speak(message);
+            HelperPaths.LogEvent($"lock-warning-{minutes} source={source}");
+            break;
+        }
     }
 
     private void CheckDailyWarnings(RuntimeLockStateDto state)
