@@ -153,6 +153,20 @@ public static class BrowserPolicyRules
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 }
 
+/// <summary>
+/// Chromium's registry encoding for list policies: a subkey named after the
+/// policy, with REG_SZ values named "1", "2", ... in order.
+/// </summary>
+public static class BrowserPolicyRegistryLayout
+{
+    public static string ListKey(string policyKeyPath, string listName) => $@"{policyKeyPath}\{listName}";
+
+    public static IReadOnlyList<string> NumberedNames(int count) =>
+        Enumerable.Range(1, count)
+            .Select(i => i.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            .ToArray();
+}
+
 /// <summary>One browser and the registry key that holds its user-level policies.</summary>
 public sealed record BrowserPolicyTarget(string Browser, string PolicyKeyPath);
 
@@ -174,12 +188,16 @@ public static class BrowserPolicyTargets
     ];
 }
 
-/// <summary>Minimal registry surface so the policy manager is testable off Windows.</summary>
+/// <summary>
+/// Minimal registry surface so the policy manager is testable off Windows.
+/// Chromium stores list policies as a subkey (for example URLBlocklist) with
+/// numbered string values 1..N, not as one multi-string value.
+/// </summary>
 public interface IPolicyRegistry
 {
-    IReadOnlyList<string>? GetMultiString(string keyPath, string valueName);
-    void SetMultiString(string keyPath, string valueName, IReadOnlyList<string> values);
-    void DeleteValue(string keyPath, string valueName);
+    IReadOnlyList<string>? GetList(string keyPath, string listName);
+    void SetList(string keyPath, string listName, IReadOnlyList<string> values);
+    void DeleteList(string keyPath, string listName);
 }
 
 /// <summary>Persists the values that existed before the first policy write.</summary>
@@ -234,12 +252,12 @@ public sealed class BrowserPolicyManager
         foreach (var target in BrowserPolicyTargets.ForUser(sid))
         {
             var expected = Merge(Baseline(target), desired);
-            var current = _registry.GetMultiString(target.PolicyKeyPath, BrowserPolicyRules.UrlBlocklistValue);
+            var current = _registry.GetList(target.PolicyKeyPath, BrowserPolicyRules.UrlBlocklistValue);
             if (Same(current, expected)) continue;
             if (expected.Count == 0)
-                _registry.DeleteValue(target.PolicyKeyPath, BrowserPolicyRules.UrlBlocklistValue);
+                _registry.DeleteList(target.PolicyKeyPath, BrowserPolicyRules.UrlBlocklistValue);
             else
-                _registry.SetMultiString(target.PolicyKeyPath, BrowserPolicyRules.UrlBlocklistValue, expected);
+                _registry.SetList(target.PolicyKeyPath, BrowserPolicyRules.UrlBlocklistValue, expected);
             repaired = true;
         }
         return repaired;
@@ -247,12 +265,12 @@ public sealed class BrowserPolicyManager
 
     private bool WriteIfDifferent(BrowserPolicyTarget target, IReadOnlyList<string> expected)
     {
-        var current = _registry.GetMultiString(target.PolicyKeyPath, BrowserPolicyRules.UrlBlocklistValue);
+        var current = _registry.GetList(target.PolicyKeyPath, BrowserPolicyRules.UrlBlocklistValue);
         if (Same(current, expected)) return false;
         if (expected.Count == 0)
-            _registry.DeleteValue(target.PolicyKeyPath, BrowserPolicyRules.UrlBlocklistValue);
+            _registry.DeleteList(target.PolicyKeyPath, BrowserPolicyRules.UrlBlocklistValue);
         else
-            _registry.SetMultiString(target.PolicyKeyPath, BrowserPolicyRules.UrlBlocklistValue, expected);
+            _registry.SetList(target.PolicyKeyPath, BrowserPolicyRules.UrlBlocklistValue, expected);
         return true;
     }
 
@@ -260,7 +278,7 @@ public sealed class BrowserPolicyManager
     {
         var key = BaselineKey(target);
         if (_baseline.TryGetValue(key, out var existing)) return existing;
-        var current = _registry.GetMultiString(target.PolicyKeyPath, BrowserPolicyRules.UrlBlocklistValue) ?? [];
+        var current = _registry.GetList(target.PolicyKeyPath, BrowserPolicyRules.UrlBlocklistValue) ?? [];
         var copy = current.ToList();
         _baseline[key] = copy;
         return copy;

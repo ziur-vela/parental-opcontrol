@@ -34,23 +34,23 @@ public class Job20EBrowserRulesTests
 
         private static string Key(string path, string name) => path + "|" + name;
 
-        public IReadOnlyList<string>? GetMultiString(string keyPath, string valueName) =>
-            Values.TryGetValue(Key(keyPath, valueName), out var value) ? value : null;
+        public IReadOnlyList<string>? GetList(string keyPath, string listName) =>
+            Values.TryGetValue(Key(keyPath, listName), out var value) ? value : null;
 
-        public void SetMultiString(string keyPath, string valueName, IReadOnlyList<string> values)
+        public void SetList(string keyPath, string listName, IReadOnlyList<string> values)
         {
             WrittenPaths.Add(keyPath);
-            Values[Key(keyPath, valueName)] = values.ToList();
+            Values[Key(keyPath, listName)] = values.ToList();
         }
 
-        public void DeleteValue(string keyPath, string valueName)
+        public void DeleteList(string keyPath, string listName)
         {
             DeletedPaths.Add(keyPath);
-            Values.Remove(Key(keyPath, valueName));
+            Values.Remove(Key(keyPath, listName));
         }
 
         public string? Value(string sid, string subKey) =>
-            GetMultiString($@"{sid}\{subKey}", BrowserPolicyRules.UrlBlocklistValue) is { } list
+            GetList($@"{sid}\{subKey}", BrowserPolicyRules.UrlBlocklistValue) is { } list
                 ? string.Join("|", list)
                 : null;
     }
@@ -114,6 +114,17 @@ public class Job20EBrowserRulesTests
     }
 
     [Fact]
+    public void List_policy_uses_a_subkey_with_numbered_string_values()
+    {
+        var key = BrowserPolicyRegistryLayout.ListKey(
+            $@"S-1-5-21-1111\{BrowserPolicyTargets.BraveSubKey}",
+            BrowserPolicyRules.UrlBlocklistValue);
+
+        Assert.EndsWith(@"\Software\Policies\BraveSoftware\Brave\URLBlocklist", key, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(["1", "2", "3"], BrowserPolicyRegistryLayout.NumberedNames(3));
+    }
+
+    [Fact]
     public void Policy_is_written_only_to_the_childs_own_user_hive()
     {
         var registry = new FakeRegistry();
@@ -153,7 +164,7 @@ public class Job20EBrowserRulesTests
     public void Existing_entries_are_kept_and_restored()
     {
         var registry = new FakeRegistry();
-        registry.SetMultiString($@"S-1-5-21-1111\{BrowserPolicyTargets.ChromeSubKey}",
+        registry.SetList($@"S-1-5-21-1111\{BrowserPolicyTargets.ChromeSubKey}",
             BrowserPolicyRules.UrlBlocklistValue, ["school.example/blocked"]);
         var manager = new BrowserPolicyManager(registry, new FakeBaselines());
 
@@ -175,7 +186,7 @@ public class Job20EBrowserRulesTests
         manager.Apply(sid, BrowserPolicyRules.ShortsPatterns);
         Assert.False(manager.VerifyAndRepair(sid, BrowserPolicyRules.ShortsPatterns));
 
-        registry.DeleteValue($@"{sid}\{BrowserPolicyTargets.ChromeSubKey}", BrowserPolicyRules.UrlBlocklistValue);
+        registry.DeleteList($@"{sid}\{BrowserPolicyTargets.ChromeSubKey}", BrowserPolicyRules.UrlBlocklistValue);
         Assert.True(manager.VerifyAndRepair(sid, BrowserPolicyRules.ShortsPatterns));
         Assert.Equal("youtube.com/shorts|www.youtube.com/shorts|m.youtube.com/shorts",
             registry.Value(sid, BrowserPolicyTargets.ChromeSubKey));

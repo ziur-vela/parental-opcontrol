@@ -194,18 +194,20 @@ public sealed class WindowsUserHive : IDisposable
 /// <summary>HKEY_USERS implementation: never HKLM, and never another user's hive.</summary>
 public sealed class WindowsPolicyRegistry : IPolicyRegistry
 {
-    public IReadOnlyList<string>? GetMultiString(string keyPath, string valueName)
+    public IReadOnlyList<string>? GetList(string keyPath, string listName)
     {
         try
         {
-            using var key = Registry.Users.OpenSubKey(keyPath);
-            var value = key?.GetValue(valueName);
-            return value switch
-            {
-                string[] list => list,
-                string single => [single],
-                _ => null
-            };
+            using var key = Registry.Users.OpenSubKey(BrowserPolicyRegistryLayout.ListKey(keyPath, listName));
+            if (key is null) return null;
+            var names = key.GetValueNames()
+                .Where(n => int.TryParse(n, out _))
+                .OrderBy(n => int.Parse(n, System.Globalization.CultureInfo.InvariantCulture))
+                .ToList();
+            var values = new List<string>();
+            foreach (var name in names)
+                if (key.GetValue(name) is string value) values.Add(value);
+            return values;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
         {
@@ -213,24 +215,54 @@ public sealed class WindowsPolicyRegistry : IPolicyRegistry
         }
     }
 
-    public void SetMultiString(string keyPath, string valueName, IReadOnlyList<string> values)
+    public void SetList(string keyPath, string listName, IReadOnlyList<string> values)
     {
         try
         {
-            using var key = Registry.Users.CreateSubKey(keyPath, writable: true);
-            key?.SetValue(valueName, values.ToArray(), RegistryValueKind.MultiString);
+            DeleteLegacyValue(keyPath, listName);
+            using var key = Registry.Users.CreateSubKey(BrowserPolicyRegistryLayout.ListKey(keyPath, listName), writable: true);
+            if (key is null) return;
+            foreach (var name in key.GetValueNames()) key.DeleteValue(name, throwOnMissingValue: false);
+            var names = BrowserPolicyRegistryLayout.NumberedNames(values.Count);
+            for (var i = 0; i < values.Count; i++)
+                key.SetValue(names[i], values[i], RegistryValueKind.String);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
         {
         }
     }
 
-    public void DeleteValue(string keyPath, string valueName)
+    // 0.17.20 originally wrote a multi-string value instead of the numbered
+    // subkey. Removing it here migrates the device without leaving a stale value.
+    private static void DeleteLegacyValue(string keyPath, string listName)
     {
         try
         {
-            using var key = Registry.Users.OpenSubKey(keyPath, writable: true);
-            key?.DeleteValue(valueName, throwOnMissingValue: false);
+            using var parent = Registry.Users.OpenSubKey(keyPath, writable: true);
+            parent?.DeleteValue(listName, throwOnMissingValue: false);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+        }
+    }
+
+    public void DeleteList(string keyPath, string listName)
+    {
+        try
+        {
+            DeleteLegacyValue(keyPath, listName);
+            var path = BrowserPolicyRegistryLayout.ListKey(keyPath, listName);
+            using (var key = Registry.Users.OpenSubKey(path, writable: true))
+            {
+                if (key is not null)
+                    foreach (var name in key.GetValueNames()) key.DeleteValue(name, throwOnMissingValue: false);
+            }
+            using var parent = Registry.Users.OpenSubKey(keyPath, writable: true);
+            if (parent is not null)
+            {
+                try { parent.DeleteSubKey(listName, throwOnMissingSubKey: false); }
+                catch (ArgumentException) { }
+            }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
         {
