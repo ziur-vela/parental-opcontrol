@@ -68,6 +68,7 @@ public static class ClientPaths
     public static string LockoutFile => Path.Combine(PrivateDirectory, "lockout.json");
     public static string OverrideQueueFile => Path.Combine(PrivateDirectory, "override-queue.jsonl");
     public static string PolicyStateFile => Path.Combine(PrivateDirectory, "taskmgr-policy.json");
+    public static string BrowserPolicyStateFile => Path.Combine(PrivateDirectory, "browser-policy-baseline.json");
     public static string DnsStateFile => Path.Combine(PrivateDirectory, "dns-state.json");
     public static string VisitQueueFile => Path.Combine(PrivateDirectory, "visit-queue.jsonl");
     public static string BlockEventQueueFile => Path.Combine(PrivateDirectory, "block-event-queue.jsonl");

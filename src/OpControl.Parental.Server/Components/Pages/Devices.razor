@@ -102,6 +102,10 @@
                         {
                             <label class="check"><input type="checkbox" checked="@notifyOffline" @onchange="e => SetNotifyOfflineAsync(device.DeviceId, (bool)(e.Value ?? false))" /> @L["Devices.NotifyOffline"]</label>
                         }
+                        @if (_notifyOnline.TryGetValue(device.DeviceId, out var notifyOnline))
+                        {
+                            <label class="check"><input type="checkbox" checked="@notifyOnline" @onchange="e => SetNotifyOnlineAsync(device.DeviceId, (bool)(e.Value ?? false))" /> @L["Devices.NotifyOnline"]</label>
+                        }
                     </div>
 
                     <div class="system-resources">
@@ -144,6 +148,7 @@
     private Dictionary<Guid, NoticeSettings> _noticeSettings = new();
     private Dictionary<Guid, string?> _deviceLanguages = [];
     private Dictionary<Guid, bool> _notifyOffline = [];
+    private Dictionary<Guid, bool> _notifyOnline = [];
     private Dictionary<Guid, string> _childNames = [];
     private Dictionary<Guid, string?> _timeZoneOverrides = [];
     private Dictionary<Guid, string> _reportedZoneDisplay = [];
@@ -188,6 +193,22 @@
             var row = await db.Devices.FirstOrDefaultAsync(d => d.Id == deviceId && d.FamilyId == _familyId);
             if (row is null) return;
             row.NotifyOffline = enabled;
+            await db.SaveChangesAsync();
+            _error = null;
+            await RefreshAsync();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task SetNotifyOnlineAsync(Guid deviceId, bool enabled)
+    {
+        try
+        {
+            using var scope = Scopes.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
+            var row = await db.Devices.FirstOrDefaultAsync(d => d.Id == deviceId && d.FamilyId == _familyId);
+            if (row is null) return;
+            row.NotifyOnline = enabled;
             await db.SaveChangesAsync();
             _error = null;
             await RefreshAsync();
@@ -248,6 +269,7 @@
         _noticeSettings = devices.ToDictionary(d => d.Id, d => new NoticeSettings(d.ScreenNoticeEnabled, d.CameraNoticeEnabled, d.HasCameraLightOrShutter));
         _deviceLanguages = devices.ToDictionary(d => d.Id, d => d.ClientLanguage);
         _notifyOffline = devices.ToDictionary(d => d.Id, d => d.NotifyOffline);
+        _notifyOnline = devices.ToDictionary(d => d.Id, d => d.NotifyOnline);
         _timeZoneOverrides = devices.ToDictionary(d => d.Id, d => d.TimeZoneOverrideId);
         _reportedZoneDisplay = devices.ToDictionary(d => d.Id, d => TimeZoneResolver.DisplayName(d.ReportedTimeZoneId ?? d.TimeZoneId));
         _childNames = await db.Children.AsNoTracking()

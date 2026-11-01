@@ -57,6 +57,7 @@ Host.CreateDefaultBuilder(args)
         services.AddSingleton<LockRuntime>();
         services.AddSingleton<LockoutStore>();
         services.AddSingleton<TaskManagerPolicy>();
+        services.AddSingleton<BrowserPolicyService>();
         services.AddSingleton<OverrideSync>();
         services.AddSingleton<DataSyncService>();
         services.AddSingleton<UpdateService>();

@@ -19,6 +19,8 @@ public class ParentalDbContext : IdentityDbContext<ParentUser, IdentityRole<Guid
     public DbSet<Schedule> Schedules => Set<Schedule>();
     public DbSet<WebsiteRule> WebsiteRules => Set<WebsiteRule>();
     public DbSet<AppRule> AppRules => Set<AppRule>();
+    public DbSet<ChildBrowserSetting> ChildBrowserSettings => Set<ChildBrowserSetting>();
+    public DbSet<BrowserPageRule> BrowserPageRules => Set<BrowserPageRule>();
     public DbSet<RuleHistory> RuleHistory => Set<RuleHistory>();
     public DbSet<LockState> LockStates => Set<LockState>();
     public DbSet<OverrideEvent> OverrideEvents => Set<OverrideEvent>();
@@ -103,6 +105,7 @@ public class ParentalDbContext : IdentityDbContext<ParentUser, IdentityRole<Guid
             e.Property(x => x.TimeZoneOverrideId).HasMaxLength(80);
             e.Property(x => x.CameraNoticeEnabled).HasDefaultValue(true);
             e.Property(x => x.NotifyOffline).HasDefaultValue(true);
+            e.Property(x => x.NotifyOnline).HasDefaultValue(false);
             e.Property(x => x.ClientLanguage).HasMaxLength(16);
             e.Property(x => x.CredentialHash).HasMaxLength(64);
             e.Property(x => x.ClientVersion).HasMaxLength(40);
@@ -153,6 +156,24 @@ public class ParentalDbContext : IdentityDbContext<ParentUser, IdentityRole<Guid
             e.HasIndex(x => new { x.FamilyId, x.ChildId, x.AppIdentity });
             e.HasOne(x => x.Child).WithMany(x => x.AppRules).HasForeignKey(x => x.ChildId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Schedule).WithMany().HasForeignKey(x => x.ScheduleId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<ChildBrowserSetting>(e =>
+        {
+            e.HasKey(x => x.ChildId);
+            e.Property(x => x.BlockYouTubeShorts).HasDefaultValue(false);
+            e.HasIndex(x => x.FamilyId);
+            e.HasOne<Child>().WithMany().HasForeignKey(x => x.ChildId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<BrowserPageRule>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Host).HasMaxLength(255).IsRequired();
+            e.Property(x => x.Path).HasMaxLength(BrowserPolicyRules.MaxRuleLength);
+            e.HasIndex(x => new { x.FamilyId, x.ChildId });
+            e.HasIndex(x => new { x.ChildId, x.Host, x.Path }).IsUnique();
+            e.HasOne<Child>().WithMany().HasForeignKey(x => x.ChildId).OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<RuleHistory>(e =>

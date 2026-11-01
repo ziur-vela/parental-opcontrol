@@ -96,6 +96,80 @@ public sealed class RuleService
         return (sites, apps, bonuses, categoryDtos);
     }
 
+    public async Task<BrowserPolicyDto> GetBrowserPolicyAsync(Guid familyId, Guid childId, CancellationToken ct = default)
+    {
+        var setting = await _db.ChildBrowserSettings.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.FamilyId == familyId && s.ChildId == childId, ct);
+        var rules = await _db.BrowserPageRules.AsNoTracking()
+            .Where(r => r.FamilyId == familyId && r.ChildId == childId)
+            .OrderBy(r => r.Host).ThenBy(r => r.Path)
+            .Select(r => new BrowserPageRuleDto(r.Id, r.Host, r.Path, r.UpdatedUtc))
+            .ToListAsync(ct);
+        return new BrowserPolicyDto(setting?.BlockYouTubeShorts ?? false, rules);
+    }
+
+    public async Task SetBlockYouTubeShortsAsync(Guid familyId, Guid childId, Guid? parentId, bool enabled, CancellationToken ct = default)
+    {
+        await EnsureChildAsync(familyId, childId, ct);
+        var setting = await _db.ChildBrowserSettings
+            .FirstOrDefaultAsync(s => s.FamilyId == familyId && s.ChildId == childId, ct);
+        if (setting is null)
+        {
+            setting = new ChildBrowserSetting { FamilyId = familyId, ChildId = childId };
+            _db.ChildBrowserSettings.Add(setting);
+        }
+        setting.BlockYouTubeShorts = enabled;
+        setting.UpdatedByParentId = parentId;
+        setting.UpdatedUtc = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        _logger?.LogInformation("YouTube Shorts browser rule set to {Enabled} by parent {ParentId}, child {ChildId}, family {FamilyId}",
+            enabled, parentId, childId, familyId);
+    }
+
+    public async Task<BrowserPageRuleDto> AddBrowserPageRuleAsync(Guid familyId, Guid childId, Guid? parentId, string input, CancellationToken ct = default)
+    {
+        await EnsureChildAsync(familyId, childId, ct);
+        if (!BrowserPolicyRules.TryParsePageRule(input, out var host, out var path, out var error))
+            throw new InvalidOperationException(AppText.Get(error switch
+            {
+                BrowserRuleParseError.Empty => "Error.BrowserRuleEmpty",
+                BrowserRuleParseError.InvalidHost => "Error.BrowserRuleInvalidHost",
+                BrowserRuleParseError.InvalidPath => "Error.BrowserRuleInvalidPath",
+                _ => "Error.BrowserRuleTooLong"
+            }));
+
+        var exists = await _db.BrowserPageRules.AnyAsync(r => r.FamilyId == familyId && r.ChildId == childId
+            && r.Host == host && r.Path == path, ct);
+        if (exists) throw new InvalidOperationException(AppText.Get("Error.BrowserRuleExists", host + (path ?? "")));
+
+        var rule = new BrowserPageRule
+        {
+            FamilyId = familyId,
+            ChildId = childId,
+            Host = host,
+            Path = path,
+            CreatedByParentId = parentId,
+            CreatedUtc = DateTime.UtcNow,
+            UpdatedUtc = DateTime.UtcNow
+        };
+        _db.BrowserPageRules.Add(rule);
+        await _db.SaveChangesAsync(ct);
+        _logger?.LogInformation("Browser page rule {Pattern} added by parent {ParentId}, child {ChildId}, family {FamilyId}",
+            host + (path ?? ""), parentId, childId, familyId);
+        return new BrowserPageRuleDto(rule.Id, rule.Host, rule.Path, rule.UpdatedUtc);
+    }
+
+    public async Task RemoveBrowserPageRuleAsync(Guid familyId, Guid childId, Guid ruleId, CancellationToken ct = default)
+    {
+        var rule = await _db.BrowserPageRules.FirstOrDefaultAsync(r => r.Id == ruleId
+            && r.FamilyId == familyId && r.ChildId == childId, ct)
+            ?? throw new InvalidOperationException(AppText.Get("Error.BrowserRuleNotFound"));
+        _db.BrowserPageRules.Remove(rule);
+        await _db.SaveChangesAsync(ct);
+        _logger?.LogInformation("Browser page rule {Pattern} removed, child {ChildId}, family {FamilyId}",
+            rule.Host + (rule.Path ?? ""), childId, familyId);
+    }
+
     public async Task<WebsiteRule> UpsertWebsiteRuleAsync(Guid familyId, Guid childId, Guid? parentId, string domain, bool blocked, RuleMode mode, Guid? scheduleId, CancellationToken ct = default, bool exactHost = false)
     {
         try
@@ -827,11 +901,12 @@ public sealed class RuleService
 
         foreach (var item in events)
         {
-            await _alerts.AddAsync(device.FamilyId, device.ChildId, device.Id, "tampering",
-                string.IsNullOrWhiteSpace(item.Detail)
+            var content = item.Kind == "browser-policy-removed"
+                ? new AlertContent("Alert.BrowserPolicyRemoved.Title", "Alert.BrowserPolicyRemoved.Detail", device.Name)
+                : string.IsNullOrWhiteSpace(item.Detail)
                     ? new AlertContent("Alert.Tampering.Title", "Alert.Tampering.Detail", item.Kind, device.Name)
-                    : new AlertContent("Alert.Tampering.Title", "Alert.Tampering.DetailMore", item.Kind, device.Name, item.Detail),
-                TimeSpan.FromHours(1), ct);
+                    : new AlertContent("Alert.Tampering.Title", "Alert.Tampering.DetailMore", item.Kind, device.Name, item.Detail);
+            await _alerts.AddAsync(device.FamilyId, device.ChildId, device.Id, "tampering", content, TimeSpan.FromHours(1), ct);
         }
     }
 

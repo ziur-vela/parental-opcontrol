@@ -158,7 +158,8 @@ public sealed record DeviceStateDto(
     bool SpokenWarnings = false,
     string? Language = null,
     bool LunaEnabled = false,
-    string Theme = "night");
+    string Theme = "night",
+    BrowserPolicyDto? BrowserPolicy = null);
 
 public sealed record DailyLimitDto(
     bool Enabled,

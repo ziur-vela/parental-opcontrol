@@ -95,7 +95,7 @@
   <data name="Alert.DailyLimit.Detail" xml:space="preserve"><value>The {0} minute limit for {1} has been reached.</value></data>
   <data name="Alert.DailyLimit.Title" xml:space="preserve"><value>Daily screen time limit reached</value></data>
   <data name="Alert.DeviceOffline.Detail" xml:space="preserve"><value>{0} has not contacted the server since {1}.</value></data>
-  <data name="Alert.DeviceOffline.LegacyTitle" xml:space="preserve"><value>Device offline</value></data>
+  <data name="Alert.DeviceOffline.LegacyTitle" xml:space="preserve"><value>Device offline or online</value></data>
   <data name="Alert.DeviceOffline.Title" xml:space="preserve"><value>Device offline: {0}</value></data>
   <data name="Alert.NewApp.Detail" xml:space="preserve"><value>{0} ({1}) was installed on {2}.</value></data>
   <data name="Alert.NewApp.LegacyTitle" xml:space="preserve"><value>New app installed</value></data>
@@ -676,7 +676,7 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Settings.LeaveBlankToKeep" xml:space="preserve"><value>Leave blank to keep</value></data>
   <data name="Settings.MuteLimit" xml:space="preserve"><value>Mute limit alerts</value></data>
   <data name="Settings.MuteNewApp" xml:space="preserve"><value>Mute new app alerts</value></data>
-  <data name="Settings.MuteOffline" xml:space="preserve"><value>Mute offline alerts</value></data>
+  <data name="Settings.MuteOffline" xml:space="preserve"><value>Mute device connectivity alerts</value></data>
   <data name="Settings.MutePin" xml:space="preserve"><value>Mute PIN override alerts</value></data>
   <data name="Settings.MuteRepeated" xml:space="preserve"><value>Mute repeated blocked sites</value></data>
   <data name="Settings.MuteTamper" xml:space="preserve"><value>Mute tampering alerts</value></data>
@@ -1171,7 +1171,7 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Push.Pref.Tampering" xml:space="preserve"><value>Tampering signs</value></data>
   <data name="Push.Pref.Limits" xml:space="preserve"><value>Daily limit or app limit reached</value></data>
   <data name="Push.Pref.Pin" xml:space="preserve"><value>Parent PIN used on a device</value></data>
-  <data name="Push.Pref.Offline" xml:space="preserve"><value>Device offline</value></data>
+  <data name="Push.Pref.Offline" xml:space="preserve"><value>Device offline or online</value></data>
   <data name="Push.Pref.Blocked" xml:space="preserve"><value>Repeated blocked attempts</value></data>
   <data name="Push.Pref.NewApp" xml:space="preserve"><value>New apps installed</value></data>
   <data name="Push.Pref.Other" xml:space="preserve"><value>Other alerts (updates and server notices)</value></data>
@@ -1550,4 +1550,38 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Settings.FamilyTimeZoneUsedExplicit" xml:space="preserve"><value>Using explicit: {0}</value></data>
   <data name="Device.Icon.Online" xml:space="preserve"><value>online</value></data>
   <data name="Device.Icon.Offline" xml:space="preserve"><value>offline</value></data>
+  <data name="Devices.NotifyOnline" xml:space="preserve"><value>Notify me when this device comes online</value></data>
+  <data name="Alert.DeviceOnline.Title" xml:space="preserve"><value>Device online: {0}</value></data>
+  <data name="Alert.DeviceOnline.Detail" xml:space="preserve"><value>{0} is back online.</value></data>
+  <data name="Websites.BrowserRules.Title" xml:space="preserve"><value>Browser rules</value></data>
+  <data name="Websites.BrowserRules.Subtitle" xml:space="preserve"><value>Block pages inside supported browsers on {0}'s Windows account. Other Windows users are not affected.</value></data>
+  <data name="Websites.BrowserRules.Shorts" xml:space="preserve"><value>Block YouTube Shorts</value></data>
+  <data name="Websites.BrowserRules.ShortsHelp" xml:space="preserve"><value>Shorts links show a blocked page. Regular videos, search and channels keep working.</value></data>
+  <data name="Websites.BrowserRules.Support" xml:space="preserve"><value>Works in Chrome, Edge and Brave (and Firefox if supported).</value></data>
+  <data name="Websites.BrowserRules.ApplyNote" xml:space="preserve"><value>Browsers usually pick up changes within a minute, or after a restart.</value></data>
+  <data name="Websites.BrowserRules.Custom" xml:space="preserve"><value>Custom page rules</value></data>
+  <data name="Websites.BrowserRules.CustomHelp" xml:space="preserve"><value>Add a path like x.com/i/grok. No scheme is needed.</value></data>
+  <data name="Websites.BrowserRules.HostPlaceholder" xml:space="preserve"><value>x.com/i/grok</value></data>
+  <data name="Websites.BrowserRules.Add" xml:space="preserve"><value>Add rule</value></data>
+  <data name="Websites.BrowserRules.None" xml:space="preserve"><value>No custom page rules yet.</value></data>
+  <data name="Websites.BrowserRules.Remove" xml:space="preserve"><value>Remove</value></data>
+  <data name="Websites.BrowserRules.Added" xml:space="preserve"><value>Browser rule added.</value></data>
+  <data name="Websites.BrowserRules.Removed" xml:space="preserve"><value>Browser rule removed.</value></data>
+  <data name="Websites.BrowserRules.Toggled" xml:space="preserve"><value>Browser rules updated.</value></data>
+  <data name="Websites.BrowserRules.Sticks" xml:space="preserve"><value>Browser rules only work in supported browsers. To make them stick, block other browsers in</value></data>
+  <data name="Websites.BrowserRules.Kept" xml:space="preserve"><value>Firefox does not read user-level policy on Windows, so it is not changed here.</value></data>
+  <data name="Websites.BrowserRules.BlockOthers" xml:space="preserve"><value>Block other browsers</value></data>
+  <data name="Websites.BrowserRules.BlockOthersHelp" xml:space="preserve"><value>Adds blocked app rules for installed browsers that do not honor browser policy.</value></data>
+  <data name="Websites.BrowserRules.OtherBlocked" xml:space="preserve"><value>{0} browser app rule(s) added.</value></data>
+  <data name="Websites.BrowserRules.NoOtherBrowsers" xml:space="preserve"><value>No other browsers were found to block.</value></data>
+  <data name="Error.BrowserRuleEmpty" xml:space="preserve"><value>Enter a page like x.com/i/grok.</value></data>
+  <data name="Error.BrowserRuleInvalidHost" xml:space="preserve"><value>Enter a valid website host, like x.com.</value></data>
+  <data name="Error.BrowserRuleInvalidPath" xml:space="preserve"><value>The page path may not contain spaces, ?, #, @, backslashes or *.</value></data>
+  <data name="Error.BrowserRuleTooLong" xml:space="preserve"><value>That browser rule is too long.</value></data>
+  <data name="Error.BrowserRuleExists" xml:space="preserve"><value>That browser rule already exists: {0}</value></data>
+  <data name="Error.BrowserRuleNotFound" xml:space="preserve"><value>That browser rule no longer exists.</value></data>
+  <data name="Websites.BrowserRules.Browsers" xml:space="preserve"><value>Chrome · Edge · Brave</value></data>
+  <data name="Activity.Tamper.BrowserPolicy" xml:space="preserve"><value>Browser rules were removed and restored</value></data>
+  <data name="Alert.BrowserPolicyRemoved.Title" xml:space="preserve"><value>Browser rules removed: {0}</value></data>
+  <data name="Alert.BrowserPolicyRemoved.Detail" xml:space="preserve"><value>The browser rules were removed on {0}. They were restored automatically.</value></data>
 </root>

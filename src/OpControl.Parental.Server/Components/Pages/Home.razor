@@ -571,13 +571,13 @@ else
     private static string Icon(string type) => type switch
     {
         "new-app" => "＋", "repeated-blocked-site" => "⊘", "pin-override" => "✦",
-        "daily-limit" or "app-limit" => "◔", "device-offline" => "⇄", "tampering" => "!", "child-message" => "✉", _ => "◉"
+        "daily-limit" or "app-limit" => "◔", "device-offline" or "device-online" => "⇄", "tampering" => "!", "child-message" => "✉", _ => "◉"
     };
 
     private static string Tone(string type) => type switch
     {
         "repeated-blocked-site" or "daily-limit" or "app-limit" => "danger",
-        "device-offline" or "tampering" => "warn",
+        "device-offline" or "device-online" or "tampering" => "warn",
         "child-message" => "accent",
         _ => "accent"
     };

@@ -75,6 +75,7 @@ public sealed class LockService
         var schedules = await LoadScheduleDtosAsync(familyId, childId, ct);
         var parentName = await ParentDisplayNameAsync(familyId, ct);
         var policy = await _rules.GetDevicePolicyAsync(familyId, childId, ct);
+        var browserPolicy = await _rules.GetBrowserPolicyAsync(familyId, childId, ct);
         var tz = ResolveTimeZone(await FirstDeviceTimeZoneAsync(familyId, childId, ct));
         var now = DateTime.UtcNow;
         var dailyLimit = await _usage.BuildDailyLimitAsync(familyId, childId, tz, now, ct);
@@ -92,7 +93,7 @@ public sealed class LockService
             childId, child.Name, parentName, state.ManualLock, state.UnlockUntilUtc, state.BonusUntilUtc,
             state.BonusMinutes, state.OverridePinHash, schedules, policy.Sites, policy.Apps, policy.Bonuses,
             policy.Categories, now, appUsage, dailyLimit, limitSettings.SpokenWarnings, language, lunaEnabled,
-            LunaThemes.Normalize(childLuna?.Theme));
+            LunaThemes.Normalize(childLuna?.Theme), browserPolicy);
     }
 
     public async Task<LockStateDto> ApplyAsync(Guid familyId, Guid childId, Guid? parentId, LockAction action, int? minutes = null, CancellationToken ct = default)

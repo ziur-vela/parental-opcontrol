@@ -68,6 +68,7 @@ public class Device
     public bool ScreenNoticeEnabled { get; set; }
     public bool CameraNoticeEnabled { get; set; } = true;
     public bool NotifyOffline { get; set; } = true;
+    public bool NotifyOnline { get; set; }
     public bool HasCameraLightOrShutter { get; set; }
     public string? ClientLanguage { get; set; }
     public string? PreviousClientVersion { get; set; }
@@ -118,6 +119,29 @@ public class WebsiteRule
     public DateTime UpdatedUtc { get; set; } = DateTime.UtcNow;
     public Child? Child { get; set; }
     public Schedule? Schedule { get; set; }
+}
+
+/// <summary>Per-child switch for the browser policy layer (YouTube Shorts).</summary>
+public class ChildBrowserSetting
+{
+    public Guid ChildId { get; set; }
+    public Guid FamilyId { get; set; }
+    public bool BlockYouTubeShorts { get; set; }
+    public Guid? UpdatedByParentId { get; set; }
+    public DateTime UpdatedUtc { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>A custom page blocked by browser policy (host plus optional path).</summary>
+public class BrowserPageRule
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid FamilyId { get; set; }
+    public Guid ChildId { get; set; }
+    public string Host { get; set; } = "";
+    public string? Path { get; set; }
+    public Guid? CreatedByParentId { get; set; }
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedUtc { get; set; } = DateTime.UtcNow;
 }
 
 public class AppRule

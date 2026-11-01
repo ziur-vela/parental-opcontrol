@@ -292,6 +292,7 @@ else
                 : LegacyHelperKilled(detail)),
             "helper-auth-failed" => (L["Activity.Tamper.HelperAuth"], detail),
             "dns-settings-changed" => (L["Activity.Tamper.Dns"], ""),
+            "browser-policy-removed" => (L["Activity.Tamper.BrowserPolicy"], ""),
             "clock-changed" => (L["Activity.Tamper.Clock"],
                 int.TryParse(detail, out var minutes) ? L["Activity.Tamper.Minutes", minutes] : LegacyClock(detail)),
             "uninstall-attempted" => (L["Activity.Tamper.Uninstall"], detail),
@@ -306,7 +307,7 @@ else
         "repeated-blocked-site" => "⊘",
         "pin-override" => "✦",
         "daily-limit" or "app-limit" => "◔",
-        "device-offline" => "⇄",
+        "device-offline" or "device-online" => "⇄",
         "tampering" => "!",
         "child-message" => "✉",
         _ => "◉"
@@ -315,7 +316,7 @@ else
     private static string AlertTone(string type) => type switch
     {
         "repeated-blocked-site" or "daily-limit" or "app-limit" => "danger",
-        "device-offline" or "tampering" => "warn",
+        "device-offline" or "device-online" or "tampering" => "warn",
         "child-message" => "accent",
         _ => "accent"
     };

@@ -412,6 +412,46 @@ namespace OpControl.Parental.Server.Data.Migrations
                     b.ToTable("BlockEvents");
                 });
 
+            modelBuilder.Entity("OpControl.Parental.Server.Data.BrowserPageRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ChildId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CreatedByParentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Host")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Path")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FamilyId", "ChildId");
+
+                    b.HasIndex("ChildId", "Host", "Path")
+                        .IsUnique();
+
+                    b.ToTable("BrowserPageRules");
+                });
+
             modelBuilder.Entity("OpControl.Parental.Server.Data.CameraConsent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -533,6 +573,32 @@ namespace OpControl.Parental.Server.Data.Migrations
                     b.HasIndex("FamilyId");
 
                     b.ToTable("Children");
+                });
+
+            modelBuilder.Entity("OpControl.Parental.Server.Data.ChildBrowserSetting", b =>
+                {
+                    b.Property<Guid>("ChildId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("BlockYouTubeShorts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("UpdatedByParentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("ChildId");
+
+                    b.HasIndex("FamilyId");
+
+                    b.ToTable("ChildBrowserSettings");
                 });
 
             modelBuilder.Entity("OpControl.Parental.Server.Data.ChildCategory", b =>
@@ -791,6 +857,11 @@ namespace OpControl.Parental.Server.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
+
+                    b.Property<bool>("NotifyOnline")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("OsVersion")
                         .HasMaxLength(120)
@@ -2573,6 +2644,15 @@ namespace OpControl.Parental.Server.Data.Migrations
                     b.Navigation("Schedule");
                 });
 
+            modelBuilder.Entity("OpControl.Parental.Server.Data.BrowserPageRule", b =>
+                {
+                    b.HasOne("OpControl.Parental.Server.Data.Child", null)
+                        .WithMany()
+                        .HasForeignKey("ChildId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("OpControl.Parental.Server.Data.CategoryDomain", b =>
                 {
                     b.HasOne("OpControl.Parental.Server.Data.Category", "Category")
@@ -2593,6 +2673,15 @@ namespace OpControl.Parental.Server.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Family");
+                });
+
+            modelBuilder.Entity("OpControl.Parental.Server.Data.ChildBrowserSetting", b =>
+                {
+                    b.HasOne("OpControl.Parental.Server.Data.Child", null)
+                        .WithMany()
+                        .HasForeignKey("ChildId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("OpControl.Parental.Server.Data.Device", b =>

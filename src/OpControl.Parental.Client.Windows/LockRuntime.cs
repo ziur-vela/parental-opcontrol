@@ -231,13 +231,15 @@ public sealed class RuntimeLoopService : BackgroundService
 {
     private readonly LockRuntime _runtime;
     private readonly TaskManagerPolicy _policy;
+    private readonly BrowserPolicyService _browser;
     private readonly ClientSettings _settings;
     private readonly ILogger<RuntimeLoopService> _logger;
 
-    public RuntimeLoopService(LockRuntime runtime, TaskManagerPolicy policy, ClientSettings settings, ILogger<RuntimeLoopService> logger)
+    public RuntimeLoopService(LockRuntime runtime, TaskManagerPolicy policy, BrowserPolicyService browser, ClientSettings settings, ILogger<RuntimeLoopService> logger)
     {
         _runtime = runtime;
         _policy = policy;
+        _browser = browser;
         _settings = settings;
         _logger = logger;
     }
@@ -251,6 +253,7 @@ public sealed class RuntimeLoopService : BackgroundService
             {
                 var runtime = _runtime.ComputeAndWrite();
                 _policy.Sync(runtime?.IsLocked ?? false, _settings.Value.MonitoredAccount);
+                _browser.Sync();
             }
             catch (Exception ex)
             {

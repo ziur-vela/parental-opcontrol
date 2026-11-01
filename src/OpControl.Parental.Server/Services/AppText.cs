@@ -163,6 +163,7 @@ public static class AlertText
         "helper-killed" => AppText.Get("Activity.Tamper.HelperKilled", language),
         "helper-auth-failed" => AppText.Get("Activity.Tamper.HelperAuth", language),
         "dns-settings-changed" => AppText.Get("Activity.Tamper.Dns", language),
+        "browser-policy-removed" => AppText.Get("Activity.Tamper.BrowserPolicy", language),
         "clock-changed" => AppText.Get("Activity.Tamper.Clock", language),
         "uninstall-attempted" => AppText.Get("Activity.Tamper.Uninstall", language),
         "usage-sanity" => AppText.Get("Activity.Tamper.UsageSanity", language),

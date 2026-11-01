@@ -190,7 +190,7 @@ public sealed class AlertService
         "repeated-blocked-site" => p.MutedRepeatedBlock,
         "pin-override" => p.MutedPinOverride,
         "daily-limit" or "app-limit" => p.MutedLimit,
-        "device-offline" => p.MutedOffline,
+        "device-offline" or "device-online" => p.MutedOffline,
         "tampering" => p.MutedTampering,
         "child-message" => p.MutedChildMessage,
         _ => false

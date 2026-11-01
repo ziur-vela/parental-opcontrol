@@ -170,7 +170,7 @@ else
         "repeated-blocked-site" => "⊘",
         "pin-override" => "✦",
         "daily-limit" or "app-limit" => "◔",
-        "device-offline" => "⇄",
+        "device-offline" or "device-online" => "⇄",
         "tampering" => "!",
         "child-message" => "✉",
         "luna-flagged" => "◉",
@@ -183,7 +183,7 @@ else
     private static string Tone(string type) => type switch
     {
         "repeated-blocked-site" or "daily-limit" or "app-limit" => "danger",
-        "device-offline" or "tampering" or "luna-setup-broken" => "warn",
+        "device-offline" or "device-online" or "tampering" or "luna-setup-broken" => "warn",
         "luna-urgent" => "danger",
         "child-message" or "luna-flagged" or "luna-more-request" => "accent",
         _ => "accent"

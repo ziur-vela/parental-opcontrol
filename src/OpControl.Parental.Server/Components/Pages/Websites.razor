@@ -321,6 +321,66 @@ else
         </section>
     </div>
 
+    <section class="card browser-rules-card">
+        <div class="card-title-row">
+            <h2>@L["Websites.BrowserRules.Title"]</h2>
+            <span class="pill-soft">@L["Websites.BrowserRules.Browsers"]</span>
+        </div>
+        <p class="muted tiny">@L["Websites.BrowserRules.Subtitle", _childName]</p>
+
+        <div class="toggle-row">
+            <div class="ai-category-main">
+                <div class="rule-title">@L["Websites.BrowserRules.Shorts"]</div>
+                <div class="muted tiny">@L["Websites.BrowserRules.ShortsHelp"]</div>
+            </div>
+            <button class="toggle @(_browserPolicy?.BlockYouTubeShorts == true ? "on" : "")"
+                    @onclick="ToggleShortsAsync"
+                    aria-label="@L["Websites.BrowserRules.Shorts"]">
+                <span></span>
+            </button>
+        </div>
+        <p class="muted tiny">@L["Websites.BrowserRules.Support"] @L["Websites.BrowserRules.ApplyNote"]</p>
+
+        <div class="rule-section">
+            <div class="eyebrow">@L["Websites.BrowserRules.Custom"]</div>
+            <p class="muted tiny">@L["Websites.BrowserRules.CustomHelp"]</p>
+            <form class="inline-add" @onsubmit="AddBrowserRuleAsync" @onsubmit:preventDefault>
+                <input class="mini-input grow" placeholder="@L["Websites.BrowserRules.HostPlaceholder"]" @bind="_newBrowserRule" />
+                <button class="btn btn-primary" type="submit">@L["Websites.BrowserRules.Add"]</button>
+            </form>
+            @if (_browserPolicy is null || _browserPolicy.Rules.Count == 0)
+            {
+                <p class="muted tiny">@L["Websites.BrowserRules.None"]</p>
+            }
+            else
+            {
+                <div class="rule-list">
+                    @foreach (var rule in _browserPolicy.Rules)
+                    {
+                        <div class="rule-row compact" @key="rule.Id">
+                            <div class="rule-main">
+                                <div class="rule-title">@rule.Host@rule.Path</div>
+                            </div>
+                            <div class="rule-actions">
+                                <button class="ghost-btn" @onclick="() => RemoveBrowserRuleAsync(rule)">@L["Websites.BrowserRules.Remove"]</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <p class="muted tiny">
+            @L["Websites.BrowserRules.Sticks"]
+            <a href="/apps">@L["Nav.Apps"]</a>.
+            @L["Websites.BrowserRules.Kept"]
+        </p>
+        <div class="browser-block-helper">
+            <button class="btn btn-ghost" @onclick="BlockOtherBrowsersAsync">@L["Websites.BrowserRules.BlockOthers"]</button>
+            <span class="muted tiny">@L["Websites.BrowserRules.BlockOthersHelp"]</span>
+        </div>
+    </section>
+
     <section class="card">
         <div class="card-title-row">
             <h2>@L["Websites.History"]</h2>
@@ -522,6 +582,8 @@ else
     private bool _adultConfirmed;
     private string _reviewScheduleId = "";
     private string? _reportMailto;
+    private BrowserPolicyDto? _browserPolicy;
+    private string _newBrowserRule = "";
 
     private List<WebsiteSiteRow> FilteredSites => _filteredSites;
 
@@ -657,6 +719,7 @@ else
 
             var rulesService = scope.ServiceProvider.GetRequiredService<RuleService>();
             var policy = await rulesService.GetDevicePolicyAsync(_familyId, childId);
+            var browserPolicy = await rulesService.GetBrowserPolicyAsync(_familyId, childId);
             var categories = policy.Categories.ToList();
             var history = await rulesService.GetHistoryAsync(_familyId, childId, 60);
 
@@ -716,6 +779,7 @@ else
             _reportMailto = reportMailto;
             _rules = rules;
             _schedules = schedules;
+            _browserPolicy = browserPolicy;
             _categories = categories;
             _history = history;
             _overrideByDomain = overrideByDomain;
@@ -818,6 +882,77 @@ else
             await rules.ToggleCategoryAsync(_familyId, _childId, parentId, key, enabled);
             await db.SaveChangesAsync();
         }, L["Websites.CategoryToast"]);
+    }
+
+    private async Task ToggleShortsAsync()
+    {
+        var enabled = !(_browserPolicy?.BlockYouTubeShorts ?? false);
+        await RunAsync(async (db, rules, parentId) =>
+        {
+            await rules.SetBlockYouTubeShortsAsync(_familyId, _childId, parentId, enabled);
+            await db.SaveChangesAsync();
+        }, L["Websites.BrowserRules.Toggled"]);
+    }
+
+    private async Task AddBrowserRuleAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newBrowserRule)) return;
+        var ok = await RunAsync(async (db, rules, parentId) =>
+        {
+            await rules.AddBrowserPageRuleAsync(_familyId, _childId, parentId, _newBrowserRule.Trim());
+            await db.SaveChangesAsync();
+        }, L["Websites.BrowserRules.Added"]);
+        if (ok) _newBrowserRule = "";
+    }
+
+    private async Task RemoveBrowserRuleAsync(BrowserPageRuleDto rule)
+    {
+        await RunAsync(async (db, rules, parentId) =>
+        {
+            await rules.RemoveBrowserPageRuleAsync(_familyId, _childId, rule.Id);
+            await db.SaveChangesAsync();
+        }, L["Websites.BrowserRules.Removed"]);
+    }
+
+    private async Task BlockOtherBrowsersAsync()
+    {
+        _error = null;
+        try
+        {
+            using var scope = Scopes.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
+            var rules = scope.ServiceProvider.GetRequiredService<RuleService>();
+            var locks = scope.ServiceProvider.GetRequiredService<LockService>();
+            var auth = await AuthState.GetAuthenticationStateAsync();
+            Guid? parentId = Guid.TryParse(auth.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var id) ? id : null;
+
+            var apps = await db.InstalledApps.AsNoTracking()
+                .Where(a => a.FamilyId == _familyId && a.ChildId == _childId && a.RemovedUtc == null)
+                .ToListAsync();
+            var candidates = UnsupportedBrowsers.Find(apps);
+            var alreadyBlocked = await db.AppRules.AsNoTracking()
+                .Where(r => r.FamilyId == _familyId && r.ChildId == _childId && r.IsBlocked)
+                .Select(r => r.AppIdentity)
+                .ToListAsync();
+            var todo = candidates
+                .Where(c => !alreadyBlocked.Contains(c.Identity, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+            if (todo.Count == 0)
+            {
+                ShowToast(L["Websites.BrowserRules.NoOtherBrowsers"], false);
+                return;
+            }
+            foreach (var app in todo)
+                await rules.UpsertAppRuleAsync(_familyId, _childId, parentId, app.Identity, app.DisplayName, null, blocked: true, RuleMode.Always, null);
+            await locks.PublishDeviceStateAsync(_familyId, _childId);
+            await RefreshAsync();
+            ShowToast(L["Websites.BrowserRules.OtherBlocked", todo.Count], false);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            ShowToast(ex.Message, true);
+        }
     }
 
     private void OfferRelatedDomains(string domain)

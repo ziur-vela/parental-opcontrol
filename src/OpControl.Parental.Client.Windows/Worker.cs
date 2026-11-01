@@ -19,6 +19,7 @@ public sealed class Worker : BackgroundService
     private readonly ClientSettings _settings;
     private readonly UpdateService _updates;
     private readonly TaskManagerPolicy _policy;
+    private readonly BrowserPolicyService _browser;
     private readonly RemoteRelayService _remote;
     private readonly MessageSyncService _messages;
     private readonly ChildSummarySyncService _summary;
@@ -39,6 +40,7 @@ public sealed class Worker : BackgroundService
         ClientSettings settings,
         UpdateService updates,
         TaskManagerPolicy policy,
+        BrowserPolicyService browser,
         RemoteRelayService remote,
         MessageSyncService messages,
         ChildSummarySyncService summary,
@@ -55,6 +57,7 @@ public sealed class Worker : BackgroundService
         _settings = settings;
         _updates = updates;
         _policy = policy;
+        _browser = browser;
         _remote = remote;
         _messages = messages;
         _summary = summary;
@@ -337,6 +340,8 @@ public sealed class Worker : BackgroundService
                 }
             }
             catch { }
+            if (uninstall)
+                _browser.RemoveAll();
             if (!update && !uninstall && !recentUpdate)
             {
                 QueueTamper("service-stopped", "");

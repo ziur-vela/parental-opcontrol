@@ -318,7 +318,7 @@ public sealed class PushService
         "tampering" => "tampering",
         "daily-limit" or "app-limit" => "limits",
         "pin-override" => "pin",
-        "device-offline" => "offline",
+        "device-offline" or "device-online" => "offline",
         "repeated-blocked-site" => "blocked",
         "new-app" => "newapp",
         "luna-flagged" or "luna-urgent" or "luna-more-request" or "luna-setup-broken" => "luna",

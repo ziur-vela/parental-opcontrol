@@ -95,7 +95,7 @@
   <data name="Alert.DailyLimit.Detail" xml:space="preserve"><value>Se alcanzó el límite de {0} minutos para {1}.</value></data>
   <data name="Alert.DailyLimit.Title" xml:space="preserve"><value>Llegaste al límite diario de tiempo en pantalla</value></data>
   <data name="Alert.DeviceOffline.Detail" xml:space="preserve"><value>{0} no se ha conectado al servidor desde {1}.</value></data>
-  <data name="Alert.DeviceOffline.LegacyTitle" xml:space="preserve"><value>Dispositivo sin conexión</value></data>
+  <data name="Alert.DeviceOffline.LegacyTitle" xml:space="preserve"><value>Dispositivo sin conexión o conectado</value></data>
   <data name="Alert.DeviceOffline.Title" xml:space="preserve"><value>Dispositivo sin conexión: {0}</value></data>
   <data name="Alert.NewApp.Detail" xml:space="preserve"><value>Se instaló {0} ({1}) en {2}.</value></data>
   <data name="Alert.NewApp.LegacyTitle" xml:space="preserve"><value>Se instaló una aplicación nueva</value></data>
@@ -676,7 +676,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Settings.LeaveBlankToKeep" xml:space="preserve"><value>Déjala en blanco para conservarla</value></data>
   <data name="Settings.MuteLimit" xml:space="preserve"><value>Silenciar alertas de límites</value></data>
   <data name="Settings.MuteNewApp" xml:space="preserve"><value>Silenciar alertas de aplicaciones nuevas</value></data>
-  <data name="Settings.MuteOffline" xml:space="preserve"><value>Silenciar alertas de dispositivos sin conexión</value></data>
+  <data name="Settings.MuteOffline" xml:space="preserve"><value>Silenciar alertas de conexión de dispositivos</value></data>
   <data name="Settings.MutePin" xml:space="preserve"><value>Silenciar alertas de desbloqueo con PIN</value></data>
   <data name="Settings.MuteRepeated" xml:space="preserve"><value>Silenciar sitios bloqueados repetidos</value></data>
   <data name="Settings.MuteTamper" xml:space="preserve"><value>Silenciar alertas de manipulación</value></data>
@@ -1171,7 +1171,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Push.Pref.Tampering" xml:space="preserve"><value>Señales de manipulación</value></data>
   <data name="Push.Pref.Limits" xml:space="preserve"><value>Límite diario o de app alcanzado</value></data>
   <data name="Push.Pref.Pin" xml:space="preserve"><value>PIN de padres usado en un dispositivo</value></data>
-  <data name="Push.Pref.Offline" xml:space="preserve"><value>Dispositivo sin conexión</value></data>
+  <data name="Push.Pref.Offline" xml:space="preserve"><value>Dispositivo sin conexión o conectado</value></data>
   <data name="Push.Pref.Blocked" xml:space="preserve"><value>Intentos bloqueados repetidos</value></data>
   <data name="Push.Pref.NewApp" xml:space="preserve"><value>Apps nuevas instaladas</value></data>
   <data name="Push.Pref.Other" xml:space="preserve"><value>Otras alertas (actualizaciones y avisos del servidor)</value></data>
@@ -1550,4 +1550,38 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Settings.FamilyTimeZoneUsedExplicit" xml:space="preserve"><value>Usando explícita: {0}</value></data>
   <data name="Device.Icon.Online" xml:space="preserve"><value>en línea</value></data>
   <data name="Device.Icon.Offline" xml:space="preserve"><value>desconectado</value></data>
+  <data name="Devices.NotifyOnline" xml:space="preserve"><value>Avisarme cuando este dispositivo se conecte</value></data>
+  <data name="Alert.DeviceOnline.Title" xml:space="preserve"><value>Dispositivo conectado: {0}</value></data>
+  <data name="Alert.DeviceOnline.Detail" xml:space="preserve"><value>{0} volvió a conectarse.</value></data>
+  <data name="Websites.BrowserRules.Title" xml:space="preserve"><value>Reglas del navegador</value></data>
+  <data name="Websites.BrowserRules.Subtitle" xml:space="preserve"><value>Bloquea páginas dentro de los navegadores compatibles en la cuenta de Windows de {0}. Otros usuarios de Windows no se ven afectados.</value></data>
+  <data name="Websites.BrowserRules.Shorts" xml:space="preserve"><value>Bloquear YouTube Shorts</value></data>
+  <data name="Websites.BrowserRules.ShortsHelp" xml:space="preserve"><value>Los enlaces de Shorts muestran una página bloqueada. Los videos normales, la búsqueda y los canales siguen funcionando.</value></data>
+  <data name="Websites.BrowserRules.Support" xml:space="preserve"><value>Funciona en Chrome, Edge y Brave (y Firefox si es compatible).</value></data>
+  <data name="Websites.BrowserRules.ApplyNote" xml:space="preserve"><value>Los navegadores suelen tomar los cambios en un minuto o después de reiniciar.</value></data>
+  <data name="Websites.BrowserRules.Custom" xml:space="preserve"><value>Reglas de páginas personalizadas</value></data>
+  <data name="Websites.BrowserRules.CustomHelp" xml:space="preserve"><value>Agrega una ruta como x.com/i/grok. No hace falta el esquema.</value></data>
+  <data name="Websites.BrowserRules.HostPlaceholder" xml:space="preserve"><value>x.com/i/grok</value></data>
+  <data name="Websites.BrowserRules.Add" xml:space="preserve"><value>Agregar regla</value></data>
+  <data name="Websites.BrowserRules.None" xml:space="preserve"><value>Aún no hay reglas de páginas personalizadas.</value></data>
+  <data name="Websites.BrowserRules.Remove" xml:space="preserve"><value>Quitar</value></data>
+  <data name="Websites.BrowserRules.Added" xml:space="preserve"><value>Regla del navegador agregada.</value></data>
+  <data name="Websites.BrowserRules.Removed" xml:space="preserve"><value>Regla del navegador quitada.</value></data>
+  <data name="Websites.BrowserRules.Toggled" xml:space="preserve"><value>Reglas del navegador actualizadas.</value></data>
+  <data name="Websites.BrowserRules.Sticks" xml:space="preserve"><value>Las reglas del navegador solo funcionan en navegadores compatibles. Para que se mantengan, bloquea otros navegadores en</value></data>
+  <data name="Websites.BrowserRules.Kept" xml:space="preserve"><value>Firefox no lee políticas de usuario en Windows, así que no se modifica aquí.</value></data>
+  <data name="Websites.BrowserRules.BlockOthers" xml:space="preserve"><value>Bloquear otros navegadores</value></data>
+  <data name="Websites.BrowserRules.BlockOthersHelp" xml:space="preserve"><value>Agrega reglas de apps bloqueadas para los navegadores instalados que no respetan las políticas del navegador.</value></data>
+  <data name="Websites.BrowserRules.OtherBlocked" xml:space="preserve"><value>Se agregaron {0} regla(s) de apps de navegadores.</value></data>
+  <data name="Websites.BrowserRules.NoOtherBrowsers" xml:space="preserve"><value>No se encontraron otros navegadores para bloquear.</value></data>
+  <data name="Error.BrowserRuleEmpty" xml:space="preserve"><value>Escribe una página como x.com/i/grok.</value></data>
+  <data name="Error.BrowserRuleInvalidHost" xml:space="preserve"><value>Escribe un host válido, como x.com.</value></data>
+  <data name="Error.BrowserRuleInvalidPath" xml:space="preserve"><value>La ruta no puede tener espacios, ?, #, @, barras invertidas ni *.</value></data>
+  <data name="Error.BrowserRuleTooLong" xml:space="preserve"><value>Esa regla del navegador es demasiado larga.</value></data>
+  <data name="Error.BrowserRuleExists" xml:space="preserve"><value>Esa regla del navegador ya existe: {0}</value></data>
+  <data name="Error.BrowserRuleNotFound" xml:space="preserve"><value>Esa regla del navegador ya no existe.</value></data>
+  <data name="Websites.BrowserRules.Browsers" xml:space="preserve"><value>Chrome · Edge · Brave</value></data>
+  <data name="Activity.Tamper.BrowserPolicy" xml:space="preserve"><value>Se quitaron las reglas del navegador y se restauraron</value></data>
+  <data name="Alert.BrowserPolicyRemoved.Title" xml:space="preserve"><value>Se quitaron las reglas del navegador: {0}</value></data>
+  <data name="Alert.BrowserPolicyRemoved.Detail" xml:space="preserve"><value>Se quitaron las reglas del navegador en {0}. Se restauraron automáticamente.</value></data>
 </root>

@@ -52,15 +52,23 @@ public sealed class DevicePresenceService
 
     public async Task ConnectedAsync(Device device)
     {
+        var now = DateTime.UtcNow;
+        var firstConnection = false;
         lock (_gate)
         {
             if (!_connections.TryGetValue(device.Id, out var state))
                 _connections[device.Id] = state = new ConnectionState();
             state.Count++;
-            state.LastSeenUtc = DateTime.UtcNow;
+            state.LastSeenUtc = now;
+            firstConnection = state.Count == 1;
         }
 
-        await UpdateLastSeenAsync(device.Id, DateTime.UtcNow);
+        // Checked before LastSeen is refreshed so a short reconnect is distinguishable
+        // from a device that was really away. NotifyOnline defaults to off.
+        if (firstConnection)
+            await MaybeNotifyOnlineAsync(device, now);
+
+        await UpdateLastSeenAsync(device.Id, now);
         _events.PublishDeviceStatus(await StatusAsync(device.Id, true));
         _logger.LogInformation("Device {DeviceId} connected", device.Id);
     }
@@ -126,6 +134,33 @@ public sealed class DevicePresenceService
                 TimeSpan.FromHours(1));
         }
     }
+
+    private async Task MaybeNotifyOnlineAsync(Device device, DateTime now)
+    {
+        if (!ShouldNotifyOnline(device, now, TimeSpan.FromMinutes(5))) return;
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var alerts = scope.ServiceProvider.GetRequiredService<AlertService>();
+            await alerts.AddAsync(device.FamilyId, device.ChildId, device.Id, "device-online",
+                new AlertContent("Alert.DeviceOnline.Title", "Alert.DeviceOnline.Detail", device.Name),
+                TimeSpan.FromMinutes(5));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Device-online notification failed for {DeviceId}", device.Id);
+        }
+    }
+
+    /// <summary>
+    /// Off by default (per device). Reconnects after less than five minutes are
+    /// treated as a network blip and do not notify.
+    /// </summary>
+    public static bool ShouldNotifyOnline(Device device, DateTime now, TimeSpan minimumOffline) =>
+        device.NotifyOnline
+        && !device.IsRevoked
+        && device.LastSeenUtc is { } seen
+        && now - seen >= minimumOffline;
 
     public async Task<DeviceStatusDto> StatusAsync(Guid deviceId, bool online)
     {
