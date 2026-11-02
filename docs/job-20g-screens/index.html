@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Job 20g — lock timer fixes</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 28px; background: #14121f; color: #f4f1ff; font: 15px/1.5 "Segoe UI", system-ui, sans-serif; }
+  h1, h2 { font-family: "Fredoka", "Segoe UI", sans-serif; font-weight: 600; }
+  h1 { margin: 0 0 4px; font-size: 30px; }
+  .sub { color: #c9c0f5; margin: 0 0 26px; }
+  h2 { margin: 30px 0 10px; color: #fff6c8; }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  figure { margin: 0; background: #1b1442; border: 2px solid #3a2f7a; border-radius: 16px; overflow: hidden; }
+  figure img { width: 100%; display: block; }
+  figcaption { padding: 8px 12px 10px; color: #c9c0f5; font-weight: 600; font-size: 13px; }
+  code { background: #2a2160; border-radius: 6px; padding: 1px 6px; }
+</style>
+</head>
+<body>
+<h1>Job 20g — lock timer fixes</h1>
+<p class="sub">v0.17.22 · unlock override, no old popups, new time formats, status-message morph, clipped grimace</p>
+
+<h2>Pill states</h2>
+<div class="grid">
+  <figure><img src="pill-show-night.png" alt="Showing"><figcaption>Showing — days format, 1d 8h 45m</figcaption></figure>
+  <figure><img src="pill-tuck-night.png" alt="Tucked"><figcaption>Tucked away — only the clock shows</figcaption></figure>
+  <figure><img src="pill-warn-night.png" alt="Under five minutes"><figcaption>Under 5 minutes — warning face, 4m 12s</figcaption></figure>
+  <figure><img src="pill-last-night.png" alt="Last minute"><figcaption>Last minute — 0:42s</figcaption></figure>
+</div>
+
+<h2>Time formats — English</h2>
+<div class="grid">
+  <figure><img src="pill-format-days-night.png" alt="Days hidden seconds"><figcaption>1 day or more, seconds hidden — 1d 8h 45m</figcaption></figure>
+  <figure><img src="pill-format-dayssec-night.png" alt="Days shown seconds"><figcaption>1 day or more, seconds shown — 1d 8h 45m 52s</figcaption></figure>
+  <figure><img src="pill-format-hours-night.png" alt="Hours hidden seconds"><figcaption>1 h to 1 day, seconds hidden — 3h 21m</figcaption></figure>
+  <figure><img src="pill-format-hourssec-night.png" alt="Hours shown seconds"><figcaption>1 h to 1 day, seconds shown — 3h 21m 05s</figcaption></figure>
+  <figure><img src="pill-format-minutes-night.png" alt="Minutes hidden seconds"><figcaption>1 min to 1 h, seconds hidden — 21m</figcaption></figure>
+  <figure><img src="pill-format-minutessec-night.png" alt="Minutes shown seconds"><figcaption>1 min to 1 h, seconds shown — 21m 05s</figcaption></figure>
+  <figure><img src="pill-format-overday-night.png" alt="Hours over a day"><figcaption>Hours setting — 32h 45m</figcaption></figure>
+  <figure><img src="pill-format-overdaysec-night.png" alt="Hours over a day with seconds"><figcaption>Hours setting, seconds shown — 32h 45m 52s</figcaption></figure>
+  <figure><img src="pill-format-last-night.png" alt="Last minute"><figcaption>Last minute — 0:42s (always seconds)</figcaption></figure>
+</div>
+
+<h2>Time formats — es-MX</h2>
+<div class="grid">
+  <figure><img src="pill-format-days-night-es.png" alt="Días"><figcaption>1 d 8 h 45 min</figcaption></figure>
+  <figure><img src="pill-format-dayssec-night-es.png" alt="Días con segundos"><figcaption>1 d 8 h 45 min 52 s</figcaption></figure>
+  <figure><img src="pill-format-hours-night-es.png" alt="Horas"><figcaption>3 h 21 min</figcaption></figure>
+  <figure><img src="pill-format-hourssec-night-es.png" alt="Horas con segundos"><figcaption>3 h 21 min 05 s</figcaption></figure>
+  <figure><img src="pill-format-minutes-night-es.png" alt="Minutos"><figcaption>21 min</figcaption></figure>
+  <figure><img src="pill-format-minutessec-night-es.png" alt="Minutos con segundos"><figcaption>21 min 05 s</figcaption></figure>
+  <figure><img src="pill-format-overday-night-es.png" alt="Más de un día en horas"><figcaption>32 h 45 min</figcaption></figure>
+  <figure><img src="pill-format-overdaysec-night-es.png" alt="Más de un día en horas con segundos"><figcaption>32 h 45 min 52 s</figcaption></figure>
+  <figure><img src="pill-format-last-night-es.png" alt="Último minuto"><figcaption>0:42s</figcaption></figure>
+</div>
+
+<h2>Status message, then morph into the countdown</h2>
+<div class="grid">
+  <figure><img src="pill-message-night.png" alt="Message night"><figcaption>Message — Night sky</figcaption></figure>
+  <figure><img src="pill-message-gray.png" alt="Message gray"><figcaption>Message — Moon gray</figcaption></figure>
+  <figure><img src="pill-message-night-es.png" alt="Message es-MX"><figcaption>Message — es-MX</figcaption></figure>
+  <figure><img src="pill-message-morph.gif" alt="Message morph animation"><figcaption>4 s hold, cross-fade/slide text and animated width</figcaption></figure>
+</div>
+
+<h2>Grimace clipping (100%, 125%, 150%)</h2>
+<div class="grid">
+  <figure><img src="pill-grimace-100.png" alt="Grimace 100%"><figcaption>100%</figcaption></figure>
+  <figure><img src="pill-grimace-125.png" alt="Grimace 125%"><figcaption>125%</figcaption></figure>
+  <figure><img src="pill-grimace-150.png" alt="Grimace 150%"><figcaption>150%</figcaption></figure>
+  <figure><img src="pill-grimace-glance.gif" alt="Grimace glance animation"><figcaption>Full glance loop — eyes and mouth stay inside the moon</figcaption></figure>
+</div>
+
+<p style="margin-top:28px;color:#c9c0f5">Rendered with the real <code>PillArt</code> paint code in a 900×250 scene from the Dell XPS build host. The 100/125/150 images use the same vector paint at those output scales.</p>
+</body>
+</html>
