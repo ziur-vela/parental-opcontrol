@@ -142,9 +142,8 @@ public static class LockTimerFormat
             var text = spanish
                 ? $"{days} d {hours} h {minutes} min"
                 : $"{days}d {hours}h {minutes}m";
-            return showSeconds
-                ? text + (spanish ? $" {rest} s" : $" {rest}s")
-                : text;
+            if (!showSeconds) return text;
+            return spanish ? $"{text} {rest} s" : $"{text} {rest}s";
         }
 
         if (seconds >= 3600)
@@ -152,18 +151,21 @@ public static class LockTimerFormat
             var hours = seconds / 3600;
             var minutes = seconds % 3600 / 60;
             var rest = seconds % 60;
-            return showSeconds ? $"{hours}:{minutes:00}:{rest:00}" : $"{hours}:{minutes:00}";
+            var text = spanish ? $"{hours} h {minutes} min" : $"{hours}h {minutes}m";
+            if (!showSeconds) return text;
+            return spanish ? $"{text} {rest:00} s" : $"{text} {rest:00}s";
         }
 
         if (seconds >= 60)
         {
             var minutes = seconds / 60;
             var rest = seconds % 60;
-            if (showSeconds) return $"{minutes}:{rest:00}";
-            return $"{minutes} min";
+            var text = spanish ? $"{minutes} min" : $"{minutes}m";
+            if (!showSeconds) return text;
+            return spanish ? $"{text} {rest:00} s" : $"{text} {rest:00}s";
         }
 
-        return $"0:{seconds:00}";
+        return $"0:{seconds:00}s";
     }
 }
 

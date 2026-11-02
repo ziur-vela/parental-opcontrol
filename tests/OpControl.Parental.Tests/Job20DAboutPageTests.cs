@@ -62,7 +62,7 @@ public class Job20DAboutPageTests
     {
         var html = await RenderAboutAsync("Owner", 511, "en");
         Assert.Contains("/releases/tag/v", html, StringComparison.Ordinal);
-        Assert.Contains("v0.17.21", html, StringComparison.Ordinal);
+        Assert.Contains("v0.17.22", html, StringComparison.Ordinal);
         Assert.Contains("EMMA-LAPTOP", html, StringComparison.Ordinal);
         Assert.Contains("v0.17.18", html, StringComparison.Ordinal);
         Assert.Contains("PolyForm Noncommercial License 1.0.0", html, StringComparison.Ordinal);

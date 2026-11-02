@@ -92,7 +92,7 @@ public class FoundationTests
     }
 
     [Fact]
-    public void Next_lock_cycle_uses_current_window_end_then_next_start()
+    public void Next_lock_cycle_uses_current_or_upcoming_window_end()
     {
         var mondayNight = new DateTime(2026, 10, 19, 23, 0, 0, DateTimeKind.Utc);
         var schedules = new[] { Schedule(1 << 1, 22 * 60, 6 * 60) };
@@ -102,7 +102,7 @@ public class FoundationTests
 
         var mondayNoon = new DateTime(2026, 10, 19, 12, 0, 0, DateTimeKind.Utc);
         var next = LockRules.NextLockCycleUtc(schedules, TimeZoneInfo.Utc, mondayNoon);
-        Assert.Equal(new DateTime(2026, 10, 19, 22, 0, 0, DateTimeKind.Utc), next);
+        Assert.Equal(new DateTime(2026, 10, 20, 6, 0, 0, DateTimeKind.Utc), next);
     }
 
     [Fact]
@@ -122,13 +122,15 @@ public class FoundationTests
     }
 
     [Fact]
-    public void Unlock_until_next_ends_at_the_next_schedule_start()
+    public void Unlock_until_next_skips_the_upcoming_schedule_window()
     {
         var mondayNoon = new DateTime(2026, 10, 19, 12, 0, 0, DateTimeKind.Utc);
         var schedules = new[] { Schedule(1 << 1, 20 * 60 + 30, 22 * 60, "Bedtime") };
         var cycle = LockRules.NextLockCycle(schedules, TimeZoneInfo.Utc, mondayNoon);
-        Assert.Equal(new DateTime(2026, 10, 19, 20, 30, 0, DateTimeKind.Utc), cycle.Utc);
+        Assert.Equal(new DateTime(2026, 10, 19, 22, 0, 0, DateTimeKind.Utc), cycle.Utc);
         Assert.Equal("Bedtime", cycle.ScheduleName);
+        Assert.False(LockRules.Evaluate(false, cycle.Utc, null, schedules, TimeZoneInfo.Utc,
+            new DateTime(2026, 10, 19, 20, 30, 0, DateTimeKind.Utc)).IsLocked);
     }
 
     [Fact]
@@ -197,13 +199,14 @@ public class FoundationTests
     }
 
     [Fact]
-    public async Task Server_unlock_uses_the_next_schedule_start()
+    public async Task Server_unlock_skips_the_upcoming_schedule_window()
     {
         await using var db = NewDb();
         var now = DateTime.UtcNow;
         var local = now;
         var minute = local.Hour * 60 + local.Minute;
         var start = minute < 22 * 60 ? 22 * 60 : (minute + 1) % 1440;
+        var end = Math.Min(start + 60, 1439);
         var dayOffset = minute < 22 * 60 ? 0 : start <= minute ? 1 : 0;
         var (family, child) = SeedLockFamily(db);
         db.LockStates.Add(new LockState { FamilyId = family.Id, ChildId = child.Id, ManualLock = true });
@@ -211,12 +214,12 @@ public class FoundationTests
         {
             FamilyId = family.Id, ChildId = child.Id, Name = "Bedtime",
             DaysMask = 1 << (int)local.Date.AddDays(dayOffset).DayOfWeek,
-            StartMinutes = start, EndMinutes = Math.Min(start + 60, 1439), IsEnabled = true
+            StartMinutes = start, EndMinutes = end, IsEnabled = true
         });
         await db.SaveChangesAsync();
 
         var dto = await NewLocks(db).ApplyAsync(family.Id, child.Id, null, LockAction.Unlock);
-        var expected = local.Date.AddDays(dayOffset).AddMinutes(start);
+        var expected = local.Date.AddDays(dayOffset).AddMinutes(end);
         Assert.False(dto.IsLocked);
         Assert.Equal(expected, dto.UnlockUntilUtc);
     }

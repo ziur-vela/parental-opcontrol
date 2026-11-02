@@ -84,13 +84,27 @@ public static class LockRules
                 best = new LockCycle(value, active.Name);
         }
 
-        if (NextScheduleStartWithName(schedules, tz, nowUtc) is { } next && (best is null || next.Utc < best.Utc))
-            best = next;
+        if (NextScheduleStartWithSchedule(schedules, tz, nowUtc, out var upcoming) is { } next)
+        {
+            var end = ScheduleWindowEndUtc(upcoming!, tz, next.Utc);
+            if (end > nowUtc && (best is null || end < best.Utc))
+                best = new LockCycle(end, upcoming!.Name);
+        }
 
         if (dailyLimit is { Enabled: true } && dailyLimit.DayEndUtc > nowUtc && (best is null || dailyLimit.DayEndUtc < best.Utc))
             best = new LockCycle(dailyLimit.DayEndUtc, null);
 
         return best ?? new LockCycle(NextLocalMidnightUtc(tz, nowUtc), null);
+    }
+
+    /// <summary>The UTC instant when the schedule window that starts at <paramref name="startUtc"/> ends.</summary>
+    public static DateTime ScheduleWindowEndUtc(ScheduleDto schedule, TimeZoneInfo tz, DateTime startUtc)
+    {
+        var localStart = TimeZoneInfo.ConvertTimeFromUtc(startUtc, tz);
+        var endLocal = schedule.StartMinutes <= schedule.EndMinutes
+            ? localStart.Date.AddMinutes(schedule.EndMinutes)
+            : localStart.Date.AddDays(1).AddMinutes(schedule.EndMinutes);
+        return ToUtc(endLocal, tz);
     }
 
     public static DateTime NextLocalMidnightUtc(TimeZoneInfo tz, DateTime nowUtc)
@@ -155,22 +169,31 @@ public static class LockRules
     public static DateTime? NextScheduleStart(IReadOnlyList<ScheduleDto> schedules, TimeZoneInfo tz, DateTime nowUtc) =>
         NextScheduleStartWithName(schedules, tz, nowUtc)?.Utc;
 
-    public static LockCycle? NextScheduleStartWithName(IReadOnlyList<ScheduleDto> schedules, TimeZoneInfo tz, DateTime nowUtc)
+    public static LockCycle? NextScheduleStartWithName(IReadOnlyList<ScheduleDto> schedules, TimeZoneInfo tz, DateTime nowUtc) =>
+        NextScheduleStartWithSchedule(schedules, tz, nowUtc, out _);
+
+    private static LockCycle? NextScheduleStartWithSchedule(
+        IReadOnlyList<ScheduleDto> schedules, TimeZoneInfo tz, DateTime nowUtc, out ScheduleDto? schedule)
     {
         var localNow = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, tz);
         LockCycle? best = null;
+        schedule = null;
 
-        foreach (var schedule in schedules.Where(s => s.IsEnabled))
+        foreach (var candidate in schedules.Where(s => s.IsEnabled))
         {
             for (var offset = 0; offset <= 8; offset++)
             {
                 var date = localNow.Date.AddDays(offset);
-                if ((schedule.DaysMask & (1 << (int)date.DayOfWeek)) == 0)
+                if ((candidate.DaysMask & (1 << (int)date.DayOfWeek)) == 0)
                     continue;
-                var candidateLocal = date.AddMinutes(schedule.StartMinutes);
+                var candidateLocal = date.AddMinutes(candidate.StartMinutes);
                 var candidateUtc = ToUtc(candidateLocal, tz);
                 if (candidateUtc <= nowUtc) continue;
-                if (best is null || candidateUtc < best.Utc) best = new LockCycle(candidateUtc, schedule.Name);
+                if (best is null || candidateUtc < best.Utc)
+                {
+                    best = new LockCycle(candidateUtc, candidate.Name);
+                    schedule = candidate;
+                }
                 break;
             }
         }

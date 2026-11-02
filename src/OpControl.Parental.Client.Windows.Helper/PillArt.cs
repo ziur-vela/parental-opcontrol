@@ -19,6 +19,7 @@ internal static class PillArt
 
     private static readonly Font TimeFont = Theme.PillTime(18);
     private static readonly Font LabelFont = Theme.PillLabel(13);
+    private static readonly Font MessageFont = Theme.PillTime(15);
 
     private static readonly Color Ink = C("#2b2f3a");
     private static readonly Color Moon = C("#f6dc7e");
@@ -43,7 +44,11 @@ internal static class PillArt
         float Slide,
         bool Reduced,
         double NowSeconds,
-        DateTime Clock);
+        DateTime Clock,
+        string? Message = null,
+        float MessageAlpha = 0f,
+        float NormalAlpha = 1f,
+        float NormalOffset = 0f);
 
     public readonly record struct Palette(Color Bg, Color Border, Color Text, Color Label, Color Shadow, bool Stars);
 
@@ -78,6 +83,9 @@ internal static class PillArt
         var width = timeX + timeWidth + PadRight;
         return new Layout(width, PadLeft, (Height - FaceSize) / 2f, labelX, timeX, labelWidth, timeWidth);
     }
+
+    public static float MessageWidth(Graphics graphics, string message) =>
+        PadLeft + FaceSize + Gap + MeasureText(graphics, message, MessageFont) + PadRight;
 
     private static float MeasureText(Graphics graphics, string text, Font font)
     {
@@ -139,12 +147,25 @@ internal static class PillArt
             LineAlignment = StringAlignment.Center,
             FormatFlags = StringFormatFlags.NoWrap
         };
-        using var labelBrush = new SolidBrush(palette.Label);
-        using var timeBrush = new SolidBrush(palette.Text);
-        g.DrawString(visual.Label, LabelFont, labelBrush,
-            new RectangleF(layout.LabelX + offset, 0, layout.LabelWidth + 24, height), format);
-        g.DrawString(visual.Time, TimeFont, timeBrush,
-            new RectangleF(layout.TimeX + offset, 0, layout.TimeWidth + 24, height), format);
+        if (visual.NormalAlpha > 0.001f)
+        {
+            var alpha = (int)(255 * Math.Clamp(visual.NormalAlpha, 0f, 1f));
+            using var labelBrush = new SolidBrush(Color.FromArgb(alpha, palette.Label));
+            using var timeBrush = new SolidBrush(Color.FromArgb(alpha, palette.Text));
+            var normalX = offset + visual.NormalOffset;
+            g.DrawString(visual.Label, LabelFont, labelBrush,
+                new RectangleF(layout.LabelX + normalX, 0, layout.LabelWidth + 24, height), format);
+            g.DrawString(visual.Time, TimeFont, timeBrush,
+                new RectangleF(layout.TimeX + normalX, 0, layout.TimeWidth + 24, height), format);
+        }
+
+        if (!string.IsNullOrEmpty(visual.Message) && visual.MessageAlpha > 0.001f)
+        {
+            var alpha = (int)(255 * Math.Clamp(visual.MessageAlpha, 0f, 1f));
+            using var messageBrush = new SolidBrush(Color.FromArgb(alpha, palette.Text));
+            g.DrawString(visual.Message, MessageFont, messageBrush,
+                new RectangleF(layout.LabelX + offset - visual.NormalOffset, 0, MessageWidth(g, visual.Message), height), format);
+        }
     }
 
     public static float SlideOffset(Layout layout, float slide)
@@ -257,7 +278,7 @@ internal static class PillArt
     private static void DrawGrimace(Graphics g, Visual visual)
     {
         var tilt = visual.Reduced ? 0f : Keyframe(visual.NowSeconds, 3.2, [0, 0, 4, 4, 0, 0]);
-        var look = visual.Reduced ? 0f : Keyframe(visual.NowSeconds, 3.2, [0, 0, 16, 16, 0, 0]);
+        var look = visual.Reduced ? 0f : Keyframe(visual.NowSeconds, 3.2, [0, 0, 6, 6, 0, 0]);
         var s = g.Save();
         g.TranslateTransform(86, 86);
         g.RotateTransform(tilt);
@@ -268,7 +289,9 @@ internal static class PillArt
             g.FillEllipse(crater, 41, 37, 22, 22);
 
         var shift = look * 172f / 30f;
+        using var face = FaceClip();
         var s2 = g.Save();
+        g.SetClip(face, CombineMode.Intersect);
         g.TranslateTransform(shift, 0);
         Eye(g, 62, 70, 10, 14);
         Eye(g, 110, 70, 10, 14);
@@ -313,30 +336,43 @@ internal static class PillArt
         using (var pen = new Pen(MoonLine, 4))
             g.DrawEllipse(pen, 3, 3, 166, 166);
 
-        using (var pen = new Pen(Ink, 8) { StartCap = LineCap.Round, EndCap = LineCap.Round })
+        using (var face = FaceClip())
         {
-            g.DrawBezier(pen, 40, 52, 48, 51, 62, 45, 72, 40);
-            g.DrawBezier(pen, 132, 52, 124, 51, 110, 45, 100, 40);
-        }
+            var s2 = g.Save();
+            g.SetClip(face, CombineMode.Intersect);
+            using (var pen = new Pen(Ink, 8) { StartCap = LineCap.Round, EndCap = LineCap.Round })
+            {
+                g.DrawBezier(pen, 40, 52, 48, 51, 62, 45, 72, 40);
+                g.DrawBezier(pen, 132, 52, 124, 51, 110, 45, 100, 40);
+            }
 
-        using (var white = new SolidBrush(Color.White))
-        using (var pen = new Pen(Ink, 5))
-        {
-            g.FillEllipse(white, 43, 60, 34, 40);
-            g.DrawEllipse(pen, 43, 60, 34, 40);
-            g.FillEllipse(white, 95, 60, 34, 40);
-            g.DrawEllipse(pen, 95, 60, 34, 40);
-        }
-        Eye(g, 60, 82, 8, 8);
-        Eye(g, 112, 82, 8, 8);
+            using (var white = new SolidBrush(Color.White))
+            using (var pen = new Pen(Ink, 5))
+            {
+                g.FillEllipse(white, 43, 60, 34, 40);
+                g.DrawEllipse(pen, 43, 60, 34, 40);
+                g.FillEllipse(white, 95, 60, 34, 40);
+                g.DrawEllipse(pen, 95, 60, 34, 40);
+            }
+            Eye(g, 60, 82, 8, 8);
+            Eye(g, 112, 82, 8, 8);
 
-        using (var mouth = new SolidBrush(Ink))
-            g.FillEllipse(mouth, 68, 112, 36, 40);
-        using (var tongue = new SolidBrush(C("#e8706a")))
-            g.FillEllipse(tongue, 75, 132, 22, 16);
+            using (var mouth = new SolidBrush(Ink))
+                g.FillEllipse(mouth, 68, 112, 36, 40);
+            using (var tongue = new SolidBrush(C("#e8706a")))
+                g.FillEllipse(tongue, 75, 132, 22, 16);
+            g.Restore(s2);
+        }
 
         DrawSweat(g, visual.Reduced ? 0.0 : visual.NowSeconds);
         g.Restore(s);
+    }
+
+    private static GraphicsPath FaceClip()
+    {
+        var path = new GraphicsPath();
+        path.AddEllipse(3, 3, 166, 166);
+        return path;
     }
 
     private static void DrawSweat(Graphics g, double now)

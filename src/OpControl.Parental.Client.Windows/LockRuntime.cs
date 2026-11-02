@@ -182,11 +182,9 @@ public sealed class LockRuntime
         string? unlockSchedule = null;
         if (evaluation.Reason == "override" && evaluation.EndsUtc is { } unlockEnd)
         {
-            var active = LockRules.ActiveSchedule(state.Schedules, tz, now);
-            if (active is not null && LockRules.CurrentScheduleEnd(active, tz, now) == unlockEnd)
-                unlockSchedule = active.Name;
-            else if (LockRules.NextScheduleStartWithName(state.Schedules, tz, now) is { } upcoming && upcoming.Utc == unlockEnd)
-                unlockSchedule = upcoming.ScheduleName;
+            var cycle = LockRules.NextLockCycle(state.Schedules, tz, now, state.DailyLimit);
+            if (cycle.Utc == unlockEnd && !string.IsNullOrWhiteSpace(cycle.ScheduleName))
+                unlockSchedule = cycle.ScheduleName;
         }
         var runtime = new RuntimeLockStateDto(
             state.ChildId,

@@ -43,6 +43,7 @@ public sealed class HelperContext : ApplicationContext
     private bool _wasLocked;
     private readonly HashSet<int> _warnedThresholds = [];
     private DateTime _warningDay = DateTime.MinValue;
+    private RuntimeLockStateDto? _lastPillState;
 
     public HelperContext(string monitored)
     {
@@ -84,8 +85,13 @@ public sealed class HelperContext : ApplicationContext
             _countdown.HideBanner();
             _hook.Uninstall();
             HelperPaths.WriteStatus(false, false, null);
+            _lastPillState = null;
             return;
         }
+
+        var now = DateTime.UtcNow;
+        var pillChange = LockTimerStatus.Detect(_lastPillState, state, now);
+        _lastPillState = state;
 
         if (state.IsLocked)
         {
@@ -125,7 +131,6 @@ public sealed class HelperContext : ApplicationContext
             HelperPaths.LogEvent("keyboard-hook-removed");
         }
 
-        var now = DateTime.UtcNow;
         CheckLockWarnings(state);
         CheckDailyWarnings(state);
         var timerSettings = LockTimerStore.Read();
@@ -135,7 +140,8 @@ public sealed class HelperContext : ApplicationContext
             var remaining = bonus - now;
             var minutes = state.BonusMinutes ?? 0;
             var text = Loc.T("Client.Countdown.Bonus", minutes, Format(remaining));
-            _countdown.Update(remaining, Loc.T("Client.Pill.Bonus", minutes), timerSettings, timerTheme, Loc.Language);
+            _countdown.Update(remaining, Loc.T("Client.Pill.Bonus", minutes), timerSettings, timerTheme, Loc.Language,
+                Loc.T("Client.Pill.Bonus", minutes));
             SetVisible(true, false, state.Reason, text);
         }
         else if (state.Reason == "override" && state.EndsUtc is { } unlockedUntil && unlockedUntil > now)
@@ -145,7 +151,8 @@ public sealed class HelperContext : ApplicationContext
             var text = string.IsNullOrWhiteSpace(state.UnlockScheduleName)
                 ? Loc.T("Client.Countdown.UnlockedUntil", when)
                 : Loc.T("Client.Countdown.UnlockedUntilSchedule", when, state.UnlockScheduleName);
-            _countdown.Update(remaining, Loc.T("Client.Pill.UnlockedUntil", when), timerSettings, timerTheme, Loc.Language);
+            _countdown.Update(remaining, Loc.T("Client.Pill.UnlockedUntil", when), timerSettings, timerTheme, Loc.Language,
+                Loc.T("Client.Pill.UnlockedUntil", when));
             SetVisible(true, false, state.Reason, text);
         }
         else if (state.NextLockUtc is { } next && next > now)
@@ -164,9 +171,35 @@ public sealed class HelperContext : ApplicationContext
         }
         else
         {
-            _countdown.HideBanner();
-            SetVisible(false, false, state.Reason);
+            if (_countdown.ShowingMessage) SetVisible(true, false, state.Reason);
+            else
+            {
+                _countdown.HideBanner();
+                SetVisible(false, false, state.Reason);
+            }
         }
+
+        if (pillChange.HasMessage && (timerSettings.Enabled || pillChange.MakesLockEarlier))
+        {
+            var message = PillMessage(pillChange);
+            if (!string.IsNullOrWhiteSpace(message))
+                _countdown.ShowStatus(message, pillChange.HideAfter);
+        }
+    }
+
+    private static string? PillMessage(LockTimerChange change)
+    {
+        var time = change.AtUtc is { } at
+            ? at.ToLocalTime().ToString("t", System.Globalization.CultureInfo.CurrentCulture)
+            : "";
+        return change.Kind switch
+        {
+            LockTimerChangeKind.Unlocked => Loc.T("Client.Pill.Msg.Unlocked", time),
+            LockTimerChangeKind.BonusAdded => Loc.T("Client.Pill.Msg.Bonus", change.Minutes ?? 0),
+            LockTimerChangeKind.LockTimeChanged => Loc.T("Client.Pill.Msg.LockAt", time),
+            LockTimerChangeKind.NoLockScheduled => Loc.T("Client.Pill.Msg.NoLock"),
+            _ => null
+        };
     }
 
     private void OnRemoteNoticeChanged()
@@ -636,7 +669,6 @@ public sealed class HelperContext : ApplicationContext
             var message = source == "daily"
                 ? Loc.T(minutes == 1 ? "Client.Notice.MinutesLeftOne" : "Client.Notice.MinutesLeftMany", minutes)
                 : Loc.T(minutes == 1 ? "Client.Notice.LockInOne" : "Client.Notice.LockInMany", minutes);
-            ShowNotification(Loc.T(source == "daily" ? "Client.Notice.ScreenTime" : "Client.Notice.LockTimer"), message);
             if (state.SpokenWarnings) Speak(message);
             HelperPaths.LogEvent($"lock-warning-{minutes} source={source}");
             break;
@@ -660,22 +692,16 @@ public sealed class HelperContext : ApplicationContext
             if (left > minutes * 60 || left <= (minutes - 1) * 60) continue;
             if (!_warnedThresholds.Add(minutes)) continue;
             var message = Loc.T(minutes == 1 ? "Client.Notice.MinutesLeftOne" : "Client.Notice.MinutesLeftMany", minutes);
-            ShowNotification(Loc.T("Client.Notice.ScreenTime"), message);
+            if (minutes == 15)
+            {
+                _notification?.Close();
+                _notification = new NotificationForm(Loc.T("Client.Notice.ScreenTime"), message);
+                _notification.Show();
+            }
             if (state.SpokenWarnings) Speak(message);
             HelperPaths.LogEvent($"daily-warning-{minutes}");
             break;
         }
-    }
-
-    private void ShowNotification(string title, string message)
-    {
-        try
-        {
-            _notification?.Close();
-            _notification = new NotificationForm(title, message);
-            _notification.Show();
-        }
-        catch { }
     }
 
     private static void Speak(string text)

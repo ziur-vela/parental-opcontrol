@@ -16,13 +16,13 @@ public class Job20FTimerTests
     [Theory]
     [InlineData(24 * 3600, "1d 0h 0m", "1 d 0 h 0 min")]
     [InlineData(32 * 3600 + 45 * 60 + 52, "1d 8h 45m", "1 d 8 h 45 min")]
-    [InlineData(23 * 3600 + 59 * 60 + 59, "23:59", "23:59")]
-    [InlineData(3600, "1:00", "1:00")]
-    [InlineData(59 * 60 + 59, "59 min", "59 min")]
-    [InlineData(5 * 60, "5 min", "5 min")]
-    [InlineData(60, "1 min", "1 min")]
-    [InlineData(59, "0:59", "0:59")]
-    [InlineData(0, "0:00", "0:00")]
+    [InlineData(23 * 3600 + 59 * 60 + 59, "23h 59m", "23 h 59 min")]
+    [InlineData(3600, "1h 0m", "1 h 0 min")]
+    [InlineData(59 * 60 + 59, "59m", "59 min")]
+    [InlineData(5 * 60, "5m", "5 min")]
+    [InlineData(60, "1m", "1 min")]
+    [InlineData(59, "0:59s", "0:59s")]
+    [InlineData(0, "0:00s", "0:00s")]
     public void Days_format_with_seconds_hidden(int seconds, string english, string spanish)
     {
         var span = TimeSpan.FromSeconds(seconds);
@@ -33,13 +33,13 @@ public class Job20FTimerTests
     [Theory]
     [InlineData(24 * 3600, "1d 0h 0m 0s", "1 d 0 h 0 min 0 s")]
     [InlineData(32 * 3600 + 45 * 60 + 52, "1d 8h 45m 52s", "1 d 8 h 45 min 52 s")]
-    [InlineData(23 * 3600 + 59 * 60 + 59, "23:59:59", "23:59:59")]
-    [InlineData(3600, "1:00:00", "1:00:00")]
-    [InlineData(59 * 60 + 59, "59:59", "59:59")]
-    [InlineData(5 * 60, "5:00", "5:00")]
-    [InlineData(60, "1:00", "1:00")]
-    [InlineData(59, "0:59", "0:59")]
-    [InlineData(0, "0:00", "0:00")]
+    [InlineData(23 * 3600 + 59 * 60 + 59, "23h 59m 59s", "23 h 59 min 59 s")]
+    [InlineData(3600, "1h 0m 00s", "1 h 0 min 00 s")]
+    [InlineData(59 * 60 + 59, "59m 59s", "59 min 59 s")]
+    [InlineData(5 * 60, "5m 00s", "5 min 00 s")]
+    [InlineData(60, "1m 00s", "1 min 00 s")]
+    [InlineData(59, "0:59s", "0:59s")]
+    [InlineData(0, "0:00s", "0:00s")]
     public void Days_format_with_seconds_shown(int seconds, string english, string spanish)
     {
         var span = TimeSpan.FromSeconds(seconds);
@@ -48,37 +48,39 @@ public class Job20FTimerTests
     }
 
     [Theory]
-    [InlineData(24 * 3600, "24:00", "32:45", 32 * 3600 + 45 * 60)]
-    [InlineData(23 * 3600 + 59 * 60 + 59, "23:59", "23:59", 23 * 3600 + 59 * 60 + 59)]
-    [InlineData(3600, "1:00", "1:00", 3600)]
-    [InlineData(59 * 60 + 59, "59 min", "59 min", 59 * 60 + 59)]
-    [InlineData(5 * 60, "5 min", "5 min", 5 * 60)]
-    [InlineData(60, "1 min", "1 min", 60)]
-    [InlineData(59, "0:59", "0:59", 59)]
-    [InlineData(0, "0:00", "0:00", 0)]
-    public void Hours_format_with_seconds_hidden(int first, string firstText, string secondText, int second)
+    [InlineData(24 * 3600, "24h 0m", "24 h 0 min")]
+    [InlineData(32 * 3600 + 45 * 60 + 52, "32h 45m", "32 h 45 min")]
+    [InlineData(23 * 3600 + 59 * 60 + 59, "23h 59m", "23 h 59 min")]
+    [InlineData(3600, "1h 0m", "1 h 0 min")]
+    [InlineData(59 * 60 + 59, "59m", "59 min")]
+    [InlineData(5 * 60, "5m", "5 min")]
+    [InlineData(60, "1m", "1 min")]
+    [InlineData(59, "0:59s", "0:59s")]
+    [InlineData(0, "0:00s", "0:00s")]
+    public void Hours_format_with_seconds_hidden(int seconds, string english, string spanish)
     {
-        Assert.Equal(firstText, LockTimerFormat.Format(TimeSpan.FromSeconds(first), HoursHidden, "en"));
-        Assert.Equal(secondText, LockTimerFormat.Format(TimeSpan.FromSeconds(second), HoursHidden, "en"));
+        var span = TimeSpan.FromSeconds(seconds);
+        Assert.Equal(english, LockTimerFormat.Format(span, HoursHidden, "en"));
+        Assert.Equal(spanish, LockTimerFormat.Format(span, HoursHidden, "es-MX"));
     }
 
-    [Fact]
-    public void Hours_format_with_seconds_shown_uses_the_same_boundaries()
-    {
-        Assert.Equal("32:45:52", LockTimerFormat.Format(TimeSpan.FromSeconds(32 * 3600 + 45 * 60 + 52), HoursShown, "en"));
-        Assert.Equal("23:59:59", LockTimerFormat.Format(TimeSpan.FromSeconds(23 * 3600 + 59 * 60 + 59), HoursShown, "en"));
-        Assert.Equal("1:00:00", LockTimerFormat.Format(TimeSpan.FromSeconds(3600), HoursShown, "en"));
-        Assert.Equal("59:59", LockTimerFormat.Format(TimeSpan.FromSeconds(59 * 60 + 59), HoursShown, "en"));
-        Assert.Equal("5:00", LockTimerFormat.Format(TimeSpan.FromSeconds(300), HoursShown, "en"));
-        Assert.Equal("0:59", LockTimerFormat.Format(TimeSpan.FromSeconds(59), HoursShown, "en"));
-    }
+    [Theory]
+    [InlineData(32 * 3600 + 45 * 60 + 52, "32h 45m 52s")]
+    [InlineData(24 * 3600, "24h 0m 00s")]
+    [InlineData(23 * 3600 + 59 * 60 + 59, "23h 59m 59s")]
+    [InlineData(3600, "1h 0m 00s")]
+    [InlineData(59 * 60 + 59, "59m 59s")]
+    [InlineData(5 * 60, "5m 00s")]
+    [InlineData(59, "0:59s")]
+    public void Hours_format_with_seconds_shown_uses_the_same_boundaries(int seconds, string english) =>
+        Assert.Equal(english, LockTimerFormat.Format(TimeSpan.FromSeconds(seconds), HoursShown, "en"));
 
     [Fact]
     public void The_last_minute_always_shows_seconds_even_when_hidden()
     {
         var hidden = LockTimerSettings.Default with { ShowSeconds = false, DaysFormat = false };
-        Assert.Equal("0:59", LockTimerFormat.Format(TimeSpan.FromSeconds(59), hidden, "en"));
-        Assert.Equal("0:42", LockTimerFormat.Format(TimeSpan.FromSeconds(42), hidden, "es-MX"));
+        Assert.Equal("0:59s", LockTimerFormat.Format(TimeSpan.FromSeconds(59), hidden, "en"));
+        Assert.Equal("0:42s", LockTimerFormat.Format(TimeSpan.FromSeconds(42), hidden, "es-MX"));
         Assert.True(LockTimerFormat.ForcesSeconds(TimeSpan.FromSeconds(59)));
         Assert.False(LockTimerFormat.ForcesSeconds(TimeSpan.FromSeconds(60)));
     }
