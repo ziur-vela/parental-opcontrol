@@ -59,24 +59,27 @@ public class FoundationTests
     }
 
     [Fact]
-    public void Bonus_overrides_manual_lock_then_relocks()
+    public void Bonus_is_free_time_then_normal_rules_apply_again()
     {
-        var now = new DateTime(2026, 10, 18, 12, 0, 0, DateTimeKind.Utc);
-        var during = LockRules.Evaluate(true, null, now.AddMinutes(15), [], TimeZoneInfo.Utc, now.AddMinutes(5));
+        var now = new DateTime(2026, 10, 19, 12, 0, 0, DateTimeKind.Utc);
+        var bonusUntil = now.AddMinutes(15);
+        var schedules = new[] { Schedule(1 << (int)now.DayOfWeek, 12 * 60 + 15, 13 * 60) };
+
+        var during = LockRules.Evaluate(false, null, bonusUntil, schedules, TimeZoneInfo.Utc, now.AddMinutes(5));
         Assert.False(during.IsLocked);
         Assert.Equal("bonus", during.Reason);
 
-        var after = LockRules.Evaluate(true, null, now.AddMinutes(15), [], TimeZoneInfo.Utc, now.AddMinutes(16));
+        var after = LockRules.Evaluate(false, null, bonusUntil, schedules, TimeZoneInfo.Utc, now.AddMinutes(16));
         Assert.True(after.IsLocked);
-        Assert.Equal("manual", after.Reason);
+        Assert.Equal("schedule", after.Reason);
     }
 
     [Fact]
-    public void Manual_lock_and_unlock_override_are_evaluated_in_order()
+    public void Lock_now_wins_and_unlock_overrides_normal_rules()
     {
         var now = new DateTime(2026, 10, 18, 12, 0, 0, DateTimeKind.Utc);
-        Assert.False(LockRules.Evaluate(true, now.AddMinutes(10), null, [], TimeZoneInfo.Utc, now).IsLocked);
-        Assert.True(LockRules.Evaluate(true, now.AddMinutes(10), null, [], TimeZoneInfo.Utc, now.AddMinutes(11)).IsLocked);
+        Assert.True(LockRules.Evaluate(true, now.AddMinutes(10), null, [], TimeZoneInfo.Utc, now).IsLocked);
+        Assert.False(LockRules.Evaluate(false, now.AddMinutes(10), null, [], TimeZoneInfo.Utc, now).IsLocked);
         Assert.False(LockRules.Evaluate(false, null, null, [], TimeZoneInfo.Utc, now).IsLocked);
     }
 
@@ -115,7 +118,7 @@ public class FoundationTests
         Assert.Equal(dayEnd, LockRules.NextLockCycleUtc([], TimeZoneInfo.Utc, now, daily));
         Assert.Equal(dayEnd, LockRules.NextLockCycleUtc([], TimeZoneInfo.Utc, now));
 
-        var overrideState = LockRules.Evaluate(true, dayEnd, null, [], TimeZoneInfo.Utc, now, daily);
+        var overrideState = LockRules.Evaluate(false, dayEnd, null, [], TimeZoneInfo.Utc, now, daily);
         Assert.False(overrideState.IsLocked);
         Assert.Equal("override", overrideState.Reason);
         Assert.Equal(dayEnd, overrideState.EndsUtc);
@@ -287,11 +290,17 @@ public class FoundationTests
             NullLogger<LockService>.Instance);
 
     [Fact]
-    public void Countdown_uses_bonus_expiry_when_bonus_is_active()
+    public void Countdown_uses_the_shared_engine_when_bonus_is_active()
     {
-        var now = new DateTime(2026, 10, 18, 12, 0, 0, DateTimeKind.Utc);
-        var next = LockRules.NextLockUtc(true, null, now.AddMinutes(30), [], TimeZoneInfo.Utc, now);
-        Assert.Equal(now.AddMinutes(30), next);
+        var now = new DateTime(2026, 10, 19, 16, 30, 0, DateTimeKind.Utc);
+        var schedule = Schedule(1 << (int)now.DayOfWeek, 17 * 60, 19 * 60);
+        var result = LockEngine.Evaluate(new LockEngineInput(
+            false, null, null, now, now.AddMinutes(30), 30,
+            [schedule], null, now, TimeZoneInfo.Utc));
+        Assert.False(result.IsLocked);
+        Assert.Equal(LockOverrideKind.Bonus, result.ActiveOverride);
+        Assert.Equal(30 * 60, result.TimeUntilLockSeconds);
+        Assert.Equal(LockEngineTimeKind.Schedule, result.TimeUntilLockKind);
     }
 
     [Fact]

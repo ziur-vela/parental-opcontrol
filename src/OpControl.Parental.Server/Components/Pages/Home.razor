@@ -499,8 +499,9 @@ else
     {
         get
         {
-            if (_limitMinutes <= 0) return L["Home.NoDailyLimitSet"];
-            var remaining = Math.Max(0, _limitMinutes * 60 - _usedTodaySeconds);
+            var limit = _state?.LimitMinutes ?? _limitMinutes;
+            if (limit <= 0) return L["Home.NoDailyLimitSet"];
+            var remaining = _state?.LimitRemainingSeconds ?? Math.Max(0, _limitMinutes * 60 - _usedTodaySeconds);
             return remaining == 0 ? L["Home.LimitReachedUntilMidnight"] : L["Home.TimeLeftToday", FormatDuration(remaining)];
         }
     }
@@ -509,10 +510,9 @@ else
     {
         get
         {
-            var active = LockRules.ActiveSchedule(_schedules, TimeZoneResolver.Resolve(_timeZoneId), DateTime.UtcNow);
-            var next = LockRules.NextScheduleStart(_schedules, TimeZoneResolver.Resolve(_timeZoneId), DateTime.UtcNow);
-            if (active is not null) return FormatTimeLocal(LockRules.CurrentScheduleEnd(active, TimeZoneResolver.Resolve(_timeZoneId), DateTime.UtcNow));
-            return next is { } value ? FormatTimeLocal(value) : L["Common.None"];
+            if (_state?.Reason == "schedule" && _state.EndsUtc is { } scheduleEnd)
+                return FormatTimeLocal(scheduleEnd);
+            return _state?.NextScheduleLockUtc is { } value ? FormatTimeLocal(value) : L["Common.None"];
         }
     }
 
@@ -520,10 +520,9 @@ else
     {
         get
         {
-            var active = LockRules.ActiveSchedule(_schedules, TimeZoneResolver.Resolve(_timeZoneId), DateTime.UtcNow);
-            if (active is not null) return L["Home.ScheduleUntil", active.Name];
-            var next = LockRules.NextScheduleStart(_schedules, TimeZoneResolver.Resolve(_timeZoneId), DateTime.UtcNow);
-            return next is null ? L["Home.NoScheduleSet"] : L["Home.NextLock"];
+            if (_state?.Reason == "schedule")
+                return L["Home.ScheduleUntil", _state.ScheduleName ?? L["Home.ASchedule"]];
+            return _state?.NextScheduleLockUtc is null ? L["Home.NoScheduleSet"] : L["Home.NextLock"];
         }
     }
 

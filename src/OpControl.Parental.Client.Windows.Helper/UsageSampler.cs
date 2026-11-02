@@ -48,14 +48,15 @@ public sealed class UsageSampler
         var threshold = Math.Clamp(state.IdleThresholdSeconds ?? 180, 30, 3600);
         if (IdleSeconds() >= threshold)
         {
-            AddInterval(TruncateToMinute(now), "", "", elapsed, false);
+            AddInterval(TruncateToMinute(now), "", "", elapsed, false, false);
             FlushCompleted(now);
             return;
         }
 
         var (identity, display, processName) = ForegroundApp();
         var bucket = TruncateToMinute(now);
-        AddInterval(bucket, identity, display, elapsed, true);
+        var counts = state.ActiveOverride == LockOverrideKind.None;
+        AddInterval(bucket, identity, display, elapsed, true, counts);
         if (Browsers.Contains(processName) && TryReadLastVisit(now) is { } domain)
             AddSite(bucket, domain, elapsed);
 
@@ -67,9 +68,9 @@ public sealed class UsageSampler
         Flush(DateTime.MaxValue);
     }
 
-    private void AddInterval(DateTime bucket, string identity, string display, int seconds, bool active)
+    private void AddInterval(DateTime bucket, string identity, string display, int seconds, bool active, bool countsTowardLimit)
     {
-        var key = new IntervalKey(bucket, identity, display, active);
+        var key = new IntervalKey(bucket, identity, display, active, countsTowardLimit);
         lock (_gate) _pending[key] = _pending.GetValueOrDefault(key) + seconds;
     }
 
@@ -93,7 +94,7 @@ public sealed class UsageSampler
                 var seconds = _pending[key];
                 _pending.Remove(key);
                 if (seconds > 0)
-                    WriteLine(HelperPaths.UsageQueueFile, new UsageIntervalDto(Guid.NewGuid(), key.Identity, key.Display, key.Bucket, seconds, key.Active));
+                    WriteLine(HelperPaths.UsageQueueFile, new UsageIntervalDto(Guid.NewGuid(), key.Identity, key.Display, key.Bucket, seconds, key.Active, key.CountsTowardLimit));
             }
 
             sites = _pendingSites.Where(p => p.Key.Bucket < beforeUtc).Select(p => p.Key).ToList();
@@ -204,7 +205,7 @@ public sealed class UsageSampler
     private static DateTime TruncateToMinute(DateTime utc) =>
         new(utc.Ticks - utc.Ticks % TimeSpan.TicksPerMinute, DateTimeKind.Utc);
 
-    private readonly record struct IntervalKey(DateTime Bucket, string Identity, string Display, bool Active);
+    private readonly record struct IntervalKey(DateTime Bucket, string Identity, string Display, bool Active, bool CountsTowardLimit);
     private readonly record struct SiteKey(DateTime Bucket, string Domain);
 
     [StructLayout(LayoutKind.Sequential)]

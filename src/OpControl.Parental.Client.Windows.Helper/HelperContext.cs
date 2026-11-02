@@ -135,38 +135,12 @@ public sealed class HelperContext : ApplicationContext
         CheckDailyWarnings(state);
         var timerSettings = LockTimerStore.Read();
         var timerTheme = timerSettings.ResolveTheme(ResolveStoredTheme());
-        if (state.BonusUntilUtc is { } bonus && bonus > now)
+        if (state.HasPill && state.TimeUntilLockSeconds is { } lockSeconds && lockSeconds > 0)
         {
-            var remaining = bonus - now;
-            var minutes = state.BonusMinutes ?? 0;
-            var text = Loc.T("Client.Countdown.Bonus", minutes, Format(remaining));
-            _countdown.Update(remaining, Loc.T("Client.Pill.Bonus", minutes), timerSettings, timerTheme, Loc.Language,
-                Loc.T("Client.Pill.Bonus", minutes));
-            SetVisible(true, false, state.Reason, text);
-        }
-        else if (state.Reason == "override" && state.EndsUtc is { } unlockedUntil && unlockedUntil > now)
-        {
-            var remaining = unlockedUntil - now;
-            var when = unlockedUntil.ToLocalTime().ToString("t", System.Globalization.CultureInfo.CurrentCulture);
-            var text = string.IsNullOrWhiteSpace(state.UnlockScheduleName)
-                ? Loc.T("Client.Countdown.UnlockedUntil", when)
-                : Loc.T("Client.Countdown.UnlockedUntilSchedule", when, state.UnlockScheduleName);
-            _countdown.Update(remaining, Loc.T("Client.Pill.UnlockedUntil", when), timerSettings, timerTheme, Loc.Language,
-                Loc.T("Client.Pill.UnlockedUntil", when));
-            SetVisible(true, false, state.Reason, text);
-        }
-        else if (state.NextLockUtc is { } next && next > now)
-        {
-            var remaining = next - now;
+            var remaining = TimeSpan.FromSeconds(lockSeconds);
             var text = Loc.T("Client.Countdown.LockIn", Format(remaining));
-            _countdown.Update(remaining, Loc.T("Client.Pill.LockIn"), timerSettings, timerTheme, Loc.Language);
-            SetVisible(true, false, state.Reason, text);
-        }
-        else if (state.DailyLimitRemainingSeconds is { } dailyLeft && dailyLeft > 0)
-        {
-            var remaining = TimeSpan.FromSeconds(dailyLeft);
-            var text = Loc.T("Client.Countdown.LeftToday", FormatShort(remaining));
-            _countdown.Update(remaining, Loc.T("Client.Pill.LeftToday"), timerSettings, timerTheme, Loc.Language);
+            var tooltip = PillTooltip(state, remaining, timerSettings);
+            _countdown.Update(remaining, Loc.T("Client.Pill.LockIn"), timerSettings, timerTheme, Loc.Language, tooltip);
             SetVisible(true, false, state.Reason, text);
         }
         else
@@ -199,6 +173,21 @@ public sealed class HelperContext : ApplicationContext
             LockTimerChangeKind.LockTimeChanged => Loc.T("Client.Pill.Msg.LockAt", time),
             LockTimerChangeKind.NoLockScheduled => Loc.T("Client.Pill.Msg.NoLock"),
             _ => null
+        };
+    }
+
+    private static string? PillTooltip(RuntimeLockStateDto state, TimeSpan remaining, LockTimerSettings settings)
+    {
+        var formatted = LockTimerFormat.Format(remaining, settings, Loc.Language);
+        return state.TimeUntilLockKind switch
+        {
+            LockEngineTimeKind.DailyLimit => Loc.T("Client.Pill.Tooltip.ScreenTime", formatted),
+            LockEngineTimeKind.Schedule => string.IsNullOrWhiteSpace(state.NextScheduleName)
+                ? Loc.T("Client.Pill.Tooltip.LockAt", state.NextLockAtUtc?.ToLocalTime().ToString("t", System.Globalization.CultureInfo.CurrentCulture) ?? formatted)
+                : Loc.T("Client.Pill.Tooltip.Schedule", state.NextScheduleName,
+                    state.NextLockAtUtc?.ToLocalTime().ToString("t", System.Globalization.CultureInfo.CurrentCulture) ?? formatted),
+            LockEngineTimeKind.LockNow => Loc.T("Client.Pill.Tooltip.LockNow"),
+            _ => Loc.T("Client.Pill.LockIn") + " " + formatted
         };
     }
 
@@ -404,10 +393,8 @@ public sealed class HelperContext : ApplicationContext
 
     private static string? CountdownText(RuntimeLockStateDto? state)
     {
-        var now = DateTime.UtcNow;
-        if (state?.BonusUntilUtc is { } bonus && bonus > now) return Format(bonus - now);
-        if (state?.NextLockUtc is { } next && next > now) return Format(next - now);
-        if (state?.DailyLimitRemainingSeconds is { } left && left > 0) return Format(TimeSpan.FromSeconds(left));
+        if (state?.LimitRemainingSeconds is { } left && left > 0) return FormatShort(TimeSpan.FromSeconds(left));
+        if (state?.TimeUntilLockSeconds is { } until && until > 0) return FormatShort(TimeSpan.FromSeconds(until));
         return null;
     }
 
@@ -643,25 +630,8 @@ public sealed class HelperContext : ApplicationContext
 
     private void CheckLockWarnings(RuntimeLockStateDto state)
     {
-        var now = DateTime.UtcNow;
-        int? remaining = null;
-        var source = "lock";
-        if (state.BonusUntilUtc is { } bonus && bonus > now)
-        {
-            remaining = (int)Math.Ceiling((bonus - now).TotalSeconds);
-            source = "bonus";
-        }
-        else if (state.NextLockUtc is { } next && next > now)
-        {
-            remaining = (int)Math.Ceiling((next - now).TotalSeconds);
-        }
-        else if (state.DailyLimitRemainingSeconds is { } left && left > 0)
-        {
-            remaining = left;
-            source = "daily";
-        }
-
-        if (remaining is not { } seconds) return;
+        if (!state.HasPill || state.TimeUntilLockSeconds is not { } seconds || seconds <= 0) return;
+        var source = state.TimeUntilLockKind == LockEngineTimeKind.DailyLimit ? "daily" : "schedule";
         foreach (var minutes in LockTimerPolicy.WarningMinutes)
         {
             if (!LockTimerPolicy.IsWarningDue(seconds, minutes)) continue;
@@ -684,7 +654,7 @@ public sealed class HelperContext : ApplicationContext
             _warnedThresholds.Clear();
         }
 
-        if (state.DailyLimitRemainingSeconds is not { } left || left <= 0 || state.BonusUntilUtc is { } bonus && bonus > DateTime.UtcNow)
+        if (state.LimitRemainingSeconds is not { } left || left <= 0 || state.ActiveOverride != LockOverrideKind.None)
             return;
 
         foreach (var minutes in new[] { 15, 5, 1 })

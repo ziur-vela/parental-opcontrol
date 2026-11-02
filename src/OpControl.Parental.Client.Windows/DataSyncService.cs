@@ -112,6 +112,7 @@ public sealed class DataSyncService : BackgroundService
 
     private async Task SyncAsync(CancellationToken ct)
     {
+        await ApplyLocalUsageAsync();
         var credential = _credentials.Load();
         if (credential is null || !credential.IsUsable) return;
         var client = _httpFactory.CreateClient("device");
@@ -139,17 +140,9 @@ public sealed class DataSyncService : BackgroundService
         {
             var intervals = usageLines.Select(Deserialize<UsageIntervalDto>).Where(v => v is not null).Cast<UsageIntervalDto>().ToList();
             var sites = siteLines.Select(Deserialize<WebsiteUsageDto>).Where(v => v is not null).Cast<WebsiteUsageDto>().ToList();
-            if (await PostAsync(client, $"{server}/api/device/usage", new UsageBatchRequest(intervals, sites), credential, ct))
+            if ((intervals.Count > 0 || sites.Count > 0)
+                && await PostAsync(client, $"{server}/api/device/usage", new UsageBatchRequest(intervals, sites), credential, ct))
             {
-                var state = _runtime.DeviceState;
-                if (state is not null)
-                {
-                    foreach (var interval in intervals.Where(i => i.Active))
-                    {
-                        var alwaysAllowed = PolicyRules.IsAppAlwaysAllowed(state, interval.AppIdentity, null);
-                        _runtime.AddLocalUsage(interval.AppIdentity, interval.DurationSeconds, alwaysAllowed);
-                    }
-                }
                 if (usageLines.Count > 0) await RemoveLinesAsync(ClientPaths.UsageQueueFile, usageLines);
                 if (siteLines.Count > 0) await RemoveLinesAsync(ClientPaths.WebsiteUsageQueueFile, siteLines);
             }
@@ -229,6 +222,20 @@ public sealed class DataSyncService : BackgroundService
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Could not append sync record");
+        }
+    }
+
+    private async Task ApplyLocalUsageAsync()
+    {
+        var usageLines = await TakeLinesAsync(ClientPaths.UsageQueueFile, 2000);
+        if (usageLines.Count == 0) return;
+        var state = _runtime.DeviceState;
+        foreach (var interval in usageLines.Select(Deserialize<UsageIntervalDto>)
+                     .Where(v => v is not null).Cast<UsageIntervalDto>().Where(i => i.Active))
+        {
+            var alwaysAllowed = state is not null && PolicyRules.IsAppAlwaysAllowed(state, interval.AppIdentity, null);
+            _runtime.AddLocalUsage(interval.Id, interval.AppIdentity, interval.DurationSeconds,
+                alwaysAllowed, interval.CountsTowardLimit);
         }
     }
 

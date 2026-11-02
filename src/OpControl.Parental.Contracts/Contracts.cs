@@ -159,14 +159,17 @@ public sealed record DeviceStateDto(
     string? Language = null,
     bool LunaEnabled = false,
     string Theme = "night",
-    BrowserPolicyDto? BrowserPolicy = null);
+    BrowserPolicyDto? BrowserPolicy = null,
+    DateTime? UnlockStartUtc = null,
+    DateTime? BonusStartUtc = null);
 
 public sealed record DailyLimitDto(
     bool Enabled,
     int TodayMinutes,
     int UsedTodaySeconds,
     DateTime DayStartUtc,
-    DateTime DayEndUtc);
+    DateTime DayEndUtc,
+    int? TomorrowMinutes = null);
 
 public sealed record AppDailyUsageDto(
     string Identity,
@@ -273,7 +276,20 @@ public sealed record LockStateDto(
     DateTime? EndsUtc,
     DateTime ServerUtc,
     string Reason,
-    string? ScheduleName);
+    string? ScheduleName,
+    int? TimeUntilLockSeconds = null,
+    LockEngineTimeKind TimeUntilLockKind = LockEngineTimeKind.None,
+    bool TimeUntilLockIsUsage = false,
+    DateTime? NextLockAtUtc = null,
+    DateTime? NextScheduleLockUtc = null,
+    string? NextScheduleName = null,
+    LockOverrideKind ActiveOverride = LockOverrideKind.None,
+    DateTime? ActiveOverrideStartUtc = null,
+    DateTime? ActiveOverrideEndUtc = null,
+    int? LimitRemainingSeconds = null,
+    int? LimitMinutes = null,
+    DateTime? UnlockedUntilUtc = null,
+    bool HasPill = false);
 
 public sealed record RuntimeLockStateDto(
     Guid ChildId,
@@ -294,7 +310,20 @@ public sealed record RuntimeLockStateDto(
     string? Language = null,
     string? UnlockScheduleName = null,
     bool LunaEnabled = false,
-    string Theme = "night");
+    string Theme = "night",
+    int? TimeUntilLockSeconds = null,
+    LockEngineTimeKind TimeUntilLockKind = LockEngineTimeKind.None,
+    bool TimeUntilLockIsUsage = false,
+    DateTime? NextLockAtUtc = null,
+    DateTime? NextScheduleLockUtc = null,
+    string? NextScheduleName = null,
+    LockOverrideKind ActiveOverride = LockOverrideKind.None,
+    DateTime? ActiveOverrideStartUtc = null,
+    DateTime? ActiveOverrideEndUtc = null,
+    int? LimitRemainingSeconds = null,
+    int? LimitMinutes = null,
+    DateTime? UnlockedUntilUtc = null,
+    bool HasPill = false);
 
 public sealed record UsageIntervalDto(
     Guid Id,
@@ -302,7 +331,8 @@ public sealed record UsageIntervalDto(
     string AppDisplayName,
     DateTime StartUtc,
     int DurationSeconds,
-    bool Active);
+    bool Active,
+    bool CountsTowardLimit = true);
 
 public sealed record WebsiteUsageDto(
     Guid Id,

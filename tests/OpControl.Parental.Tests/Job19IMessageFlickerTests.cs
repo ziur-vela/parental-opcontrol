@@ -332,7 +332,7 @@ public class Job19IMessageFlickerTests
                 Schedules: [], Categories: [], Websites: [], Apps: [], AppsToday: [], AppsWeek: [],
                 Visits: [], History: [], RecentMessages: [], UnreadMessages: 0);
             var state = new RuntimeLockStateDto(Child, "Ana", "Mom", false, "none", null, null,
-                _created.AddHours(2), null, null, _created, DailyLimitRemainingSeconds: 16800);
+                _created.AddHours(2), null, null, _created, DailyLimitRemainingSeconds: 16800, LimitRemainingSeconds: 16800);
             return Task.FromResult(new KidSnapshot(summary, state, Messages.ToList(), true));
         }
 

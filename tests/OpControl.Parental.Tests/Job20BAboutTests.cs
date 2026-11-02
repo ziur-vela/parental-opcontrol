@@ -110,7 +110,8 @@ public class Job20BAboutTests
             data.State = data.State! with
             {
                 UpdatedUtc = DateTime.UtcNow.AddMinutes(1),
-                DailyLimitRemainingSeconds = 15_600
+                DailyLimitRemainingSeconds = 15_600,
+                LimitRemainingSeconds = 15_600
             };
             window.RefreshForTestAsync().GetAwaiter().GetResult();
             UiHarness.Pump(80);
@@ -228,7 +229,7 @@ public class Job20BAboutTests
                 Visits: [], History: [], RecentMessages: [], UnreadMessages: 0);
             State = new RuntimeLockStateDto(Child, "Ana", "Mom", false, "none", null, null,
                 DateTime.UtcNow.AddHours(2), null, null, DateTime.UtcNow,
-                DailyLimitRemainingSeconds: 16800, DailyLimitMinutes: 360);
+                DailyLimitRemainingSeconds: 16800, DailyLimitMinutes: 360, LimitRemainingSeconds: 16800, LimitMinutes: 360);
         }
 
         public AboutInfoDto About { get; }

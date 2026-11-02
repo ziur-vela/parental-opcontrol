@@ -29,7 +29,7 @@ internal static class TimerPreview
             foreach (var themeKey in new[] { "night", "gray" })
                 foreach (var preview in new[]
                          {
-                             "show", "tuck", "warn", "grimace", "last", "message",
+                             "show", "tuck", "warn", "grimace", "last", "message", "daily",
                              "format-days", "format-dayssec", "format-hours", "format-hourssec",
                              "format-minutes", "format-minutessec", "format-overday",
                              "format-overdaysec", "format-last"
@@ -62,6 +62,7 @@ internal static class TimerPreview
     private static TimeSpan Remaining(string state) => state switch
     {
         "warn" or "grimace" => new TimeSpan(0, 4, 12),
+        "daily" => new TimeSpan(0, 27, 0),
         "last" or "format-last" => new TimeSpan(0, 0, 42),
         "tuck" => new TimeSpan(1, 8, 45, 31),
         "format-days" or "format-dayssec" => new TimeSpan(1, 8, 45, 52),

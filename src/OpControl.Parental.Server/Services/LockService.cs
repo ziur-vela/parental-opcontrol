@@ -93,7 +93,7 @@ public sealed class LockService
             childId, child.Name, parentName, state.ManualLock, state.UnlockUntilUtc, state.BonusUntilUtc,
             state.BonusMinutes, state.OverridePinHash, schedules, policy.Sites, policy.Apps, policy.Bonuses,
             policy.Categories, now, appUsage, dailyLimit, limitSettings.SpokenWarnings, language, lunaEnabled,
-            LunaThemes.Normalize(childLuna?.Theme), browserPolicy);
+            LunaThemes.Normalize(childLuna?.Theme), browserPolicy, state.UnlockStartUtc, state.BonusStartUtc);
     }
 
     public async Task<LockStateDto> ApplyAsync(Guid familyId, Guid childId, Guid? parentId, LockAction action, int? minutes = null, CancellationToken ct = default)
@@ -113,7 +113,9 @@ public sealed class LockService
         {
             case LockAction.Lock:
                 state.ManualLock = true;
+                state.UnlockStartUtc = null;
                 state.UnlockUntilUtc = null;
+                state.BonusStartUtc = null;
                 state.BonusUntilUtc = null;
                 state.BonusMinutes = null;
                 _db.OverrideEvents.Add(new OverrideEvent
@@ -127,9 +129,11 @@ public sealed class LockService
                 break;
             case LockAction.Unlock:
                 state.ManualLock = false;
+                state.BonusStartUtc = null;
                 state.BonusUntilUtc = null;
                 state.BonusMinutes = null;
                 unlockUntil = LockRules.NextLockCycleUtc(schedules, zone, now, daily);
+                state.UnlockStartUtc = now;
                 state.UnlockUntilUtc = unlockUntil;
                 _db.OverrideEvents.Add(new OverrideEvent
                 {
@@ -143,9 +147,13 @@ public sealed class LockService
                 break;
             case LockAction.Bonus:
                 var bonusMinutes = Math.Clamp(minutes ?? 15, 1, 1440);
-                state.ManualLock = true;
+                var (bonusStart, bonusEnd) = LockEngine.ExtendBonus(
+                    state.BonusStartUtc, state.BonusUntilUtc, now, bonusMinutes);
+                state.ManualLock = false;
+                state.UnlockStartUtc = null;
                 state.UnlockUntilUtc = null;
-                state.BonusUntilUtc = now.AddMinutes(bonusMinutes);
+                state.BonusStartUtc = bonusStart;
+                state.BonusUntilUtc = bonusEnd;
                 state.BonusMinutes = bonusMinutes;
                 _db.OverrideEvents.Add(new OverrideEvent
                 {
@@ -195,17 +203,23 @@ public sealed class LockService
         if (request.Option == "unlock-until-next")
         {
             state.ManualLock = false;
+            state.BonusStartUtc = null;
             state.BonusUntilUtc = null;
             state.BonusMinutes = null;
             unlockUntil = LockRules.NextLockCycleUtc(schedules, zone, applied, daily);
+            state.UnlockStartUtc = applied;
             state.UnlockUntilUtc = unlockUntil;
         }
         else
         {
             var bonusMinutes = Math.Clamp(request.Minutes ?? 15, 1, 1440);
-            state.ManualLock = true;
+            var (bonusStart, bonusEnd) = LockEngine.ExtendBonus(
+                state.BonusStartUtc, state.BonusUntilUtc, applied, bonusMinutes);
+            state.ManualLock = false;
+            state.UnlockStartUtc = null;
             state.UnlockUntilUtc = null;
-            state.BonusUntilUtc = applied.AddMinutes(bonusMinutes);
+            state.BonusStartUtc = bonusStart;
+            state.BonusUntilUtc = bonusEnd;
             state.BonusMinutes = bonusMinutes;
         }
 
@@ -341,19 +355,37 @@ public sealed class LockService
 
     private static LockStateDto BuildDto(LockState state, IReadOnlyList<ScheduleDto> schedules, TimeZoneInfo tz, DateTime now, DailyLimitDto? daily = null)
     {
-        var evaluation = LockRules.Evaluate(state.ManualLock, state.UnlockUntilUtc, state.BonusUntilUtc, schedules, tz, now, daily);
+        var result = LockEngine.Evaluate(new LockEngineInput(
+            state.ManualLock, state.UnlockStartUtc, state.UnlockUntilUtc,
+            state.BonusStartUtc, state.BonusUntilUtc, state.BonusMinutes,
+            schedules, daily, now, tz));
         return new LockStateDto(
             state.ChildId,
-            evaluation.IsLocked,
+            result.IsLocked,
             state.ManualLock,
             state.UnlockUntilUtc,
             state.BonusUntilUtc,
             state.BonusMinutes,
-            evaluation.EndsUtc,
+            result.EndsUtc,
             now,
-            evaluation.Reason,
-            evaluation.ScheduleName);
+            LegacyReason(result),
+            result.ScheduleName,
+            result.TimeUntilLockSeconds,
+            result.TimeUntilLockKind,
+            result.TimeUntilLockIsUsage,
+            result.NextLockAtUtc,
+            result.NextScheduleLockUtc,
+            result.NextScheduleName,
+            result.ActiveOverride,
+            result.ActiveOverrideStartUtc,
+            result.ActiveOverrideEndUtc,
+            result.LimitRemainingSeconds,
+            result.LimitMinutes,
+            result.UnlockedUntilUtc,
+            result.HasPill);
     }
+
+    public static string LegacyReason(LockEngineResult result) => LockEngine.LegacyReason(result);
 
     private static TimeZoneInfo ResolveTimeZone(string? id) => TimeZoneResolver.Resolve(id);
 }

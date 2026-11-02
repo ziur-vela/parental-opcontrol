@@ -21,21 +21,11 @@ public static class LockRules
         DateTime nowUtc,
         DailyLimitDto? dailyLimit = null)
     {
-        if (bonusUntilUtc is { } bonus && bonus > nowUtc)
-            return new LockEvaluation(false, "bonus", null, bonus);
-        if (unlockUntilUtc is { } unlock && unlock > nowUtc)
-            return new LockEvaluation(false, "override", null, unlock);
-        if (manualLock)
-            return new LockEvaluation(true, "manual", null, null);
-
-        var schedule = ActiveSchedule(schedules, tz, nowUtc);
-        if (schedule is not null)
-            return new LockEvaluation(true, "schedule", schedule.Name, CurrentScheduleEnd(schedule, tz, nowUtc));
-
-        if (DailyLimitReached(dailyLimit, nowUtc) && dailyLimit is not null)
-            return new LockEvaluation(true, "daily-limit", null, dailyLimit.DayEndUtc);
-
-        return new LockEvaluation(false, "unlocked", null, null);
+        var result = LockEngine.Evaluate(new LockEngineInput(
+            manualLock, null, unlockUntilUtc, null, bonusUntilUtc, null,
+            schedules, dailyLimit, nowUtc, tz));
+        return new LockEvaluation(result.IsLocked, LockEngine.LegacyReason(result),
+            result.ScheduleName, result.EndsUtc);
     }
 
     public static bool DailyLimitReached(DailyLimitDto? dailyLimit, DateTime nowUtc) =>
@@ -50,23 +40,6 @@ public static class LockRules
         if (nowUtc >= dailyLimit.DayEndUtc) return dailyLimit.TodayMinutes * 60;
         if (nowUtc < dailyLimit.DayStartUtc) return dailyLimit.TodayMinutes * 60;
         return Math.Max(0, dailyLimit.TodayMinutes * 60 - dailyLimit.UsedTodaySeconds);
-    }
-
-    public static DateTime? NextLockUtc(
-        bool manualLock,
-        DateTime? unlockUntilUtc,
-        DateTime? bonusUntilUtc,
-        IReadOnlyList<ScheduleDto> schedules,
-        TimeZoneInfo tz,
-        DateTime nowUtc)
-    {
-        if (manualLock && (bonusUntilUtc is null || bonusUntilUtc <= nowUtc))
-            return null;
-        if (bonusUntilUtc is { } bonus && bonus > nowUtc)
-            return bonus;
-        if (unlockUntilUtc is { } unlock && unlock > nowUtc)
-            return unlock;
-        return NextScheduleStart(schedules, tz, nowUtc);
     }
 
     public static DateTime? NextLockCycleUtc(IReadOnlyList<ScheduleDto> schedules, TimeZoneInfo tz, DateTime nowUtc, DailyLimitDto? dailyLimit = null) =>

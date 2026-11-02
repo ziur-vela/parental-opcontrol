@@ -249,7 +249,7 @@ public class Job185HotfixTests
                 Schedules: [], Categories: [], Websites: [], Apps: [], AppsToday: [], AppsWeek: [],
                 Visits: [], History: [], RecentMessages: [], UnreadMessages: 0);
             var state = new RuntimeLockStateDto(Child, "Ana", "Mom", false, "none", null, null,
-                DateTime.UtcNow.AddHours(2), null, null, DateTime.UtcNow, DailyLimitRemainingSeconds: 16800);
+                DateTime.UtcNow.AddHours(2), null, null, DateTime.UtcNow, DailyLimitRemainingSeconds: 16800, LimitRemainingSeconds: 16800);
             return Task.FromResult(new KidSnapshot(summary, state, _messages.ToList(), true));
         }
 

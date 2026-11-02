@@ -77,7 +77,7 @@ public sealed class ChildSummaryService
         var intervals = await _db.UsageIntervals.AsNoTracking()
             .Where(u => u.FamilyId == device.FamilyId && u.ChildId == device.ChildId
                 && u.Active && u.StartUtc >= weekFloor && u.StartUtc < dayEnd)
-            .Select(u => new UsageRow(u.AppIdentity, u.AppDisplayName, u.StartUtc, u.DurationSeconds))
+            .Select(u => new UsageRow(u.AppIdentity, u.AppDisplayName, u.StartUtc, u.DurationSeconds, u.CountsTowardLimit))
             .ToListAsync(ct);
 
         var alwaysAllowed = appRules.Where(r => r.AlwaysAllowed)
@@ -85,7 +85,7 @@ public sealed class ChildSummaryService
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var usedToday = intervals
-            .Where(i => i.StartUtc >= dayStart && i.StartUtc < dayEnd && !alwaysAllowed.Contains(i.AppIdentity.Trim()))
+            .Where(i => i.CountsTowardLimit && i.StartUtc >= dayStart && i.StartUtc < dayEnd && !alwaysAllowed.Contains(i.AppIdentity.Trim()))
             .Sum(i => i.DurationSeconds);
         var usedWeek = intervals
             .Where(i => i.StartUtc >= weekStart && i.StartUtc < dayEnd && !alwaysAllowed.Contains(i.AppIdentity.Trim()))
@@ -197,7 +197,7 @@ public sealed class ChildSummaryService
         _ => limit.SundayMinutes
     };
 
-    private sealed record UsageRow(string AppIdentity, string AppDisplayName, DateTime StartUtc, int DurationSeconds);
+    private sealed record UsageRow(string AppIdentity, string AppDisplayName, DateTime StartUtc, int DurationSeconds, bool CountsTowardLimit);
 
     private static List<SummaryAppUsageDto> GroupUsage(
         IEnumerable<UsageRow> intervals,

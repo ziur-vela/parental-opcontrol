@@ -108,12 +108,14 @@ public sealed class KidPreviewDataSource : IKidDataSource
             new SummaryWeekdayDto(0, 360)
         };
         _summary = new ChildSummaryDto(
-            child, "Ana", "X1 laptop", now, true, 360, 81 * 60, 10 * 3600 + 32 * 60,
+            child, "Ana", "X1 laptop", now, true, 300, 300 * 60 - 27 * 60, 10 * 3600 + 32 * 60,
             weekdays, schedules, categories, websites, apps, appsToday, appsWeek, visits, history,
             _messages.Take(1).ToList(), 1, _theme);
         _state = new RuntimeLockStateDto(
-            child, "Ana", "Dad", false, "", null, null, nextLock.ToUniversalTime(), null, null, now,
-            279 * 60, 360, false, null, "en", null, true, _theme);
+            child, "Ana", "Dad", false, "", null, null, null, null, null, now,
+            27 * 60, 300, false, null, "en", null, true, _theme,
+            27 * 60, LockEngineTimeKind.DailyLimit, true, null, nextLock.ToUniversalTime(),
+            "Bedtime", LockOverrideKind.None, null, null, 27 * 60, 300, null, true);
     }
 
     public Task<KidSnapshot> LoadAsync(CancellationToken ct) =>

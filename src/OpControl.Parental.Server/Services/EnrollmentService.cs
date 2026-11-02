@@ -111,8 +111,18 @@ public sealed class EnrollmentService
             _db.LockStates.Add(lockState);
             await _db.SaveChangesAsync(ct);
         }
-        var evaluation = LockRules.Evaluate(lockState.ManualLock, lockState.UnlockUntilUtc, lockState.BonusUntilUtc, Array.Empty<ScheduleDto>(), TimeZoneInfo.Utc, DateTime.UtcNow);
-        var state = new LockStateDto(lockState.ChildId, evaluation.IsLocked, lockState.ManualLock, lockState.UnlockUntilUtc, lockState.BonusUntilUtc, lockState.BonusMinutes, evaluation.EndsUtc, DateTime.UtcNow, evaluation.Reason, evaluation.ScheduleName);
+        var evaluated = LockEngine.Evaluate(new LockEngineInput(
+            lockState.ManualLock, lockState.UnlockStartUtc, lockState.UnlockUntilUtc,
+            lockState.BonusStartUtc, lockState.BonusUntilUtc, lockState.BonusMinutes,
+            Array.Empty<ScheduleDto>(), null, DateTime.UtcNow, TimeZoneInfo.Utc));
+        var state = new LockStateDto(
+            lockState.ChildId, evaluated.IsLocked, lockState.ManualLock, lockState.UnlockUntilUtc,
+            lockState.BonusUntilUtc, lockState.BonusMinutes, evaluated.EndsUtc, DateTime.UtcNow,
+            LockService.LegacyReason(evaluated), evaluated.ScheduleName, evaluated.TimeUntilLockSeconds,
+            evaluated.TimeUntilLockKind, evaluated.TimeUntilLockIsUsage, evaluated.NextLockAtUtc,
+            evaluated.NextScheduleLockUtc, evaluated.NextScheduleName, evaluated.ActiveOverride,
+            evaluated.ActiveOverrideStartUtc, evaluated.ActiveOverrideEndUtc, evaluated.LimitRemainingSeconds,
+            evaluated.LimitMinutes, evaluated.UnlockedUntilUtc, evaluated.HasPill);
 
         _logger.LogInformation("Device {DeviceId} enrolled for child {ChildId} in family {FamilyId}", device.Id, child.Id, child.FamilyId);
 

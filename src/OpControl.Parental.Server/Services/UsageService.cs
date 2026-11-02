@@ -104,7 +104,8 @@ public sealed class UsageService
         var (start, end) = LocalDayBounds(tz, nowUtc);
         var alwaysAllowed = await AlwaysAllowedIdentitiesAsync(familyId, childId, ct);
         var intervals = await _db.UsageIntervals.AsNoTracking()
-            .Where(u => u.FamilyId == familyId && u.ChildId == childId && u.Active && u.StartUtc >= start && u.StartUtc < end)
+            .Where(u => u.FamilyId == familyId && u.ChildId == childId && u.Active && u.CountsTowardLimit
+                && u.StartUtc >= start && u.StartUtc < end)
             .Select(u => new { u.AppIdentity, u.DurationSeconds })
             .ToListAsync(ct);
         return intervals
@@ -141,8 +142,9 @@ public sealed class UsageService
         var (start, end) = LocalDayBounds(tz, nowUtc);
         var local = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, tz);
         var minutes = MinutesForDay(limit, local.DayOfWeek);
+        var tomorrow = MinutesForDay(limit, local.AddDays(1).DayOfWeek);
         var used = await UsedTodaySecondsAsync(familyId, childId, tz, nowUtc, ct);
-        return new DailyLimitDto(limit.Enabled, minutes, used, start, end);
+        return new DailyLimitDto(limit.Enabled, minutes, used, start, end, tomorrow);
     }
 
     public async Task SyncUsageAsync(Device device, UsageBatchRequest request, CancellationToken ct = default)
@@ -236,6 +238,7 @@ public sealed class UsageService
                     StartUtc = item.StartUtc,
                     DurationSeconds = duration,
                     Active = item.Active,
+                    CountsTowardLimit = item.Active && item.CountsTowardLimit,
                     CreatedUtc = now
                 });
             }

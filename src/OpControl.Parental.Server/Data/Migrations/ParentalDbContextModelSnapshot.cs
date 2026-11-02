@@ -1378,6 +1378,9 @@ namespace OpControl.Parental.Server.Data.Migrations
                     b.Property<int?>("BonusMinutes")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("BonusStartUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime?>("BonusUntilUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -1393,6 +1396,9 @@ namespace OpControl.Parental.Server.Data.Migrations
                     b.Property<string>("OverridePinHash")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime?>("UnlockStartUtc")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("UnlockUntilUtc")
                         .HasColumnType("timestamp with time zone");
@@ -2412,6 +2418,9 @@ namespace OpControl.Parental.Server.Data.Migrations
 
                     b.Property<Guid>("ChildId")
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("CountsTowardLimit")
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime>("CreatedUtc")
                         .HasColumnType("timestamp with time zone");

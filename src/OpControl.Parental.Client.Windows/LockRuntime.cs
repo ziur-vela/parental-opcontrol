@@ -21,7 +21,9 @@ public sealed class LockRuntime
     private DeviceStateDto? _state;
     private RuntimeLockStateDto? _runtime;
     private string _policyFingerprint = "";
+    private int _serverUsedSeconds;
     private int _localActiveSeconds;
+    private readonly HashSet<Guid> _appliedUsageIds = [];
     private readonly Dictionary<string, int> _localAppSeconds = new(StringComparer.OrdinalIgnoreCase);
 
     public LockRuntime(DeviceStateStore store, StateStore writer, ClientSettings settings, ILogger<LockRuntime> logger)
@@ -47,6 +49,9 @@ public sealed class LockRuntime
         lock (_gate)
         {
             _state = state;
+            _serverUsedSeconds = state.DailyLimit?.UsedTodaySeconds ?? 0;
+            _localActiveSeconds = 0;
+            _appliedUsageIds.Clear();
             ComputeAndWriteLocked();
         }
     }
@@ -58,8 +63,17 @@ public sealed class LockRuntime
             var fingerprint = PolicyFingerprint(state);
             var policyChanged = _policyFingerprint.Length > 0 && fingerprint != _policyFingerprint;
             _policyFingerprint = fingerprint;
+
+            var previous = _state?.DailyLimit;
+            var next = state.DailyLimit;
+            var sameDay = previous is not null && next is not null && previous.DayStartUtc == next.DayStartUtc;
+            var localUsed = _serverUsedSeconds + _localActiveSeconds;
+            var serverUsed = next?.UsedTodaySeconds ?? 0;
+            _localActiveSeconds = sameDay ? Math.Max(0, localUsed - serverUsed) : 0;
+            _serverUsedSeconds = serverUsed;
+            if (!sameDay) _appliedUsageIds.Clear();
+
             _state = state;
-            _localActiveSeconds = 0;
             _localAppSeconds.Clear();
             _store.Save(state);
             ComputeAndWriteLocked();
@@ -88,19 +102,25 @@ public sealed class LockRuntime
                 _state = _state with
                 {
                     ManualLock = false,
+                    UnlockStartUtc = now,
+                    UnlockUntilUtc = LockRules.NextLockCycleUtc(_state.Schedules, TimeZoneInfo.Local, now, _state.DailyLimit),
+                    BonusStartUtc = null,
                     BonusUntilUtc = null,
-                    BonusMinutes = null,
-                    UnlockUntilUtc = LockRules.NextLockCycleUtc(_state.Schedules, TimeZoneInfo.Local, now, _state.DailyLimit)
+                    BonusMinutes = null
                 };
             }
             else if (option == "bonus")
             {
                 var bonusMinutes = Math.Clamp(minutes ?? 15, 1, 1440);
+                var (bonusStart, bonusEnd) = LockEngine.ExtendBonus(
+                    _state.BonusStartUtc, _state.BonusUntilUtc, now, bonusMinutes);
                 _state = _state with
                 {
-                    ManualLock = true,
+                    ManualLock = false,
+                    UnlockStartUtc = null,
                     UnlockUntilUtc = null,
-                    BonusUntilUtc = now.AddMinutes(bonusMinutes),
+                    BonusStartUtc = bonusStart,
+                    BonusUntilUtc = bonusEnd,
                     BonusMinutes = bonusMinutes
                 };
             }
@@ -112,15 +132,15 @@ public sealed class LockRuntime
         }
     }
 
-    public void AddLocalUsage(string identity, int seconds, bool alwaysAllowed = false)
+    public void AddLocalUsage(Guid id, string identity, int seconds, bool alwaysAllowed, bool countsTowardLimit)
     {
         if (seconds <= 0) return;
         lock (_gate)
         {
+            if (id != Guid.Empty && !_appliedUsageIds.Add(id)) return;
+            if (countsTowardLimit) _localActiveSeconds += seconds;
             if (alwaysAllowed)
                 _localAppSeconds.TryAdd(identity, 0);
-            else
-                _localActiveSeconds += seconds;
             if (!string.IsNullOrWhiteSpace(identity))
                 _localAppSeconds[identity] = _localAppSeconds.GetValueOrDefault(identity) + seconds;
         }
@@ -142,10 +162,25 @@ public sealed class LockRuntime
         if (_state is null) return null;
         var now = DateTime.UtcNow;
         var daily = _state.DailyLimit;
-        if (daily is not null && now >= daily.DayEndUtc)
-            daily = daily with { UsedTodaySeconds = 0, DayStartUtc = daily.DayEndUtc, DayEndUtc = daily.DayEndUtc.AddDays(1) };
+        while (daily is not null && now >= daily.DayEndUtc)
+        {
+            daily = daily with
+            {
+                TodayMinutes = daily.TomorrowMinutes ?? daily.TodayMinutes,
+                TomorrowMinutes = daily.TomorrowMinutes ?? daily.TodayMinutes,
+                UsedTodaySeconds = 0,
+                DayStartUtc = daily.DayEndUtc,
+                DayEndUtc = daily.DayEndUtc.AddDays(1)
+            };
+            _serverUsedSeconds = 0;
+            _localActiveSeconds = 0;
+            _appliedUsageIds.Clear();
+        }
         if (daily is not null)
-            daily = daily with { UsedTodaySeconds = Math.Max(0, daily.UsedTodaySeconds) + _localActiveSeconds };
+        {
+            var used = Math.Max(_serverUsedSeconds + _localActiveSeconds, Math.Max(0, daily.UsedTodaySeconds));
+            daily = daily with { UsedTodaySeconds = used };
+        }
 
         var usage = (_state.AppUsage ?? []).ToList();
         foreach (var pair in _localAppSeconds)
@@ -177,10 +212,12 @@ public sealed class LockRuntime
         var now = DateTime.UtcNow;
         var state = AdjustedStateLocked() ?? _state;
         var tz = TimeZoneInfo.Local;
-        var evaluation = LockRules.Evaluate(state, tz, now);
-        var next = LockRules.NextLockUtc(state.ManualLock, state.UnlockUntilUtc, state.BonusUntilUtc, state.Schedules, tz, now);
+        var result = LockEngine.Evaluate(new LockEngineInput(
+            state.ManualLock, state.UnlockStartUtc, state.UnlockUntilUtc,
+            state.BonusStartUtc, state.BonusUntilUtc, state.BonusMinutes,
+            state.Schedules, state.DailyLimit, now, tz));
         string? unlockSchedule = null;
-        if (evaluation.Reason == "override" && evaluation.EndsUtc is { } unlockEnd)
+        if (result.ActiveOverride == LockOverrideKind.Unlock && result.ActiveOverrideEndUtc is { } unlockEnd)
         {
             var cycle = LockRules.NextLockCycle(state.Schedules, tz, now, state.DailyLimit);
             if (cycle.Utc == unlockEnd && !string.IsNullOrWhiteSpace(cycle.ScheduleName))
@@ -190,22 +227,35 @@ public sealed class LockRuntime
             state.ChildId,
             state.ChildName,
             state.ParentDisplayName,
-            evaluation.IsLocked,
-            evaluation.Reason,
-            evaluation.ScheduleName,
-            evaluation.EndsUtc,
-            next,
+            result.IsLocked,
+            LockEngine.LegacyReason(result),
+            result.ScheduleName,
+            result.EndsUtc,
+            result.NextLockAtUtc,
             state.BonusUntilUtc,
             state.BonusMinutes,
             now,
-            LockRules.DailyLimitRemainingSeconds(state.DailyLimit, now),
-            state.DailyLimit is { Enabled: true } ? state.DailyLimit.TodayMinutes : null,
+            result.LimitRemainingSeconds,
+            result.LimitMinutes,
             state.SpokenWarnings,
             _settings.Value.IdleThresholdSeconds,
             state.Language,
             unlockSchedule,
             state.LunaEnabled,
-            state.Theme);
+            state.Theme,
+            result.TimeUntilLockSeconds,
+            result.TimeUntilLockKind,
+            result.TimeUntilLockIsUsage,
+            result.NextLockAtUtc,
+            result.NextScheduleLockUtc,
+            result.NextScheduleName,
+            result.ActiveOverride,
+            result.ActiveOverrideStartUtc,
+            result.ActiveOverrideEndUtc,
+            result.LimitRemainingSeconds,
+            result.LimitMinutes,
+            result.UnlockedUntilUtc,
+            result.HasPill);
         var changed = _runtime is null
             || _runtime.IsLocked != runtime.IsLocked
             || _runtime.Reason != runtime.Reason
@@ -216,11 +266,17 @@ public sealed class LockRuntime
             || _runtime.BonusMinutes != runtime.BonusMinutes
             || _runtime.DailyLimitRemainingSeconds != runtime.DailyLimitRemainingSeconds
             || _runtime.DailyLimitMinutes != runtime.DailyLimitMinutes
+            || _runtime.TimeUntilLockSeconds != runtime.TimeUntilLockSeconds
+            || _runtime.TimeUntilLockKind != runtime.TimeUntilLockKind
+            || _runtime.ActiveOverride != runtime.ActiveOverride
+            || _runtime.ActiveOverrideEndUtc != runtime.ActiveOverrideEndUtc
+            || _runtime.HasPill != runtime.HasPill
             || !string.Equals(_runtime.Theme, runtime.Theme, StringComparison.Ordinal);
         _runtime = runtime;
         _writer.Save(runtime);
         if (changed)
-            _logger.LogInformation("Runtime lock state: locked={Locked} reason={Reason} next={Next}", runtime.IsLocked, runtime.Reason, runtime.NextLockUtc);
+            _logger.LogInformation("Runtime lock state: locked={Locked} reason={Reason} next={Next} timeUntil={TimeUntil} kind={Kind}",
+                runtime.IsLocked, runtime.Reason, runtime.NextLockAtUtc, runtime.TimeUntilLockSeconds, runtime.TimeUntilLockKind);
         return runtime;
     }
 }

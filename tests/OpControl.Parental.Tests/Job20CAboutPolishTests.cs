@@ -177,7 +177,7 @@ public class Job20CAboutPolishTests
                 Visits: [], History: [], RecentMessages: [], UnreadMessages: 0);
             var state = new RuntimeLockStateDto(Child, "Ana", "Mom", false, "none", null, null,
                 DateTime.UtcNow.AddHours(2), null, null, DateTime.UtcNow,
-                DailyLimitRemainingSeconds: 16800, DailyLimitMinutes: 360);
+                DailyLimitRemainingSeconds: 16800, DailyLimitMinutes: 360, LimitRemainingSeconds: 16800, LimitMinutes: 360);
             return Task.FromResult(new KidSnapshot(summary, state, [], true));
         }
 

@@ -55,6 +55,7 @@ public sealed class MyOpControlWindow : Window
     private readonly HashSet<Guid> _seenRequested = new();
     private Control? _messagesEmpty;
     private TextBlock? _homeTimeLeft;
+    private TextBlock? _homeNextLock;
     private TextBlock? _homeUsed;
     private ProgressBar? _homeProgress;
     private TextBlock? _sidebarDevice;
@@ -519,6 +520,17 @@ public sealed class MyOpControlWindow : Window
                 state.BonusUntilUtc,
                 state.BonusMinutes,
                 state.DailyLimitMinutes,
+                TimeUntilLockKind = (int)state.TimeUntilLockKind,
+                state.TimeUntilLockIsUsage,
+                state.NextLockAtUtc,
+                state.NextScheduleLockUtc,
+                state.NextScheduleName,
+                ActiveOverride = (int)state.ActiveOverride,
+                state.ActiveOverrideStartUtc,
+                state.ActiveOverrideEndUtc,
+                state.LimitMinutes,
+                state.UnlockedUntilUtc,
+                state.HasPill,
                 state.SpokenWarnings,
                 state.Language,
                 state.UnlockScheduleName,
@@ -530,16 +542,26 @@ public sealed class MyOpControlWindow : Window
 
     private void UpdateVolatileHomeValues()
     {
-        if (_screen != Screen.Home || _homeTimeLeft is null) return;
+        if (_screen != Screen.Home) return;
         var summary = _snapshot.Summary;
         var state = _snapshot.State;
-        if (summary is null || !summary.ScreenTimeEnabled) return;
-        var left = state?.DailyLimitRemainingSeconds is { } seconds
-            ? Math.Max(0, seconds)
-            : Math.Max(0, summary.TodayLimitMinutes * 60 - summary.UsedTodaySeconds);
-        var text = FormatDuration(left);
-        if (!string.Equals(_homeTimeLeft.Text, text, StringComparison.Ordinal))
-            _homeTimeLeft.Text = text;
+        if (summary is null) return;
+        if (_homeTimeLeft is not null && summary.ScreenTimeEnabled)
+        {
+            var left = state?.LimitRemainingSeconds is { } seconds
+                ? Math.Max(0, seconds)
+                : Math.Max(0, summary.TodayLimitMinutes * 60 - summary.UsedTodaySeconds);
+            var text = FormatDuration(left);
+            if (!string.Equals(_homeTimeLeft.Text, text, StringComparison.Ordinal))
+                _homeTimeLeft.Text = text;
+        }
+        if (_homeNextLock is not null && state is not null && !state.IsLocked
+            && state.TimeUntilLockSeconds is { } until)
+        {
+            var text = FormatDuration(until);
+            if (!string.Equals(_homeNextLock.Text, text, StringComparison.Ordinal))
+                _homeNextLock.Text = text;
+        }
     }
 
     private void SyncTheme()
@@ -608,6 +630,7 @@ public sealed class MyOpControlWindow : Window
         _messagesEmpty = null;
         _messageRows.Clear();
         _homeTimeLeft = null;
+        _homeNextLock = null;
         _homeUsed = null;
         _homeProgress = null;
         _content.Children.Add(_screen switch
@@ -1148,7 +1171,7 @@ public sealed class MyOpControlWindow : Window
     private Control TimeLeftCard(ChildSummaryDto summary, RuntimeLockStateDto? state)
     {
         var limit = summary.TodayLimitMinutes;
-        var left = state?.DailyLimitRemainingSeconds is { } seconds
+        var left = state?.LimitRemainingSeconds is { } seconds
             ? Math.Max(0, seconds)
             : Math.Max(0, limit * 60 - summary.UsedTodaySeconds);
         var stack = new StackPanel { Spacing = 6 };
@@ -1186,27 +1209,42 @@ public sealed class MyOpControlWindow : Window
     {
         var stack = new StackPanel { Spacing = 6 };
         stack.Children.Add(Text(Loc.T("Client.Kid.NextLock"), 11, _palette.Muted, FontWeight.Bold));
-        if (state?.BonusUntilUtc is { } bonus && bonus > DateTime.UtcNow)
+        if (state?.IsLocked == true)
+        {
+            stack.Children.Add(Text(Loc.T("Client.Kid.Status.Locked"), 26, _palette.Danger, FontWeight.Bold, LunaThemes.Display));
+            stack.Children.Add(Text(state.Reason switch
+            {
+                "daily-limit" => Loc.T("Client.Kid.NextLockDaily"),
+                "schedule" when !string.IsNullOrWhiteSpace(state.ScheduleName) => Loc.T("Client.Kid.ReasonSchedule", state.ScheduleName),
+                _ => Loc.T("Client.Kid.NextLock")
+            }, 11, _palette.Muted));
+        }
+        else if (state?.TimeUntilLockSeconds is { } until && until > 0)
+        {
+            _homeNextLock = Text(FormatDuration(until), 26, _palette.Text, FontWeight.Bold, LunaThemes.Display);
+            stack.Children.Add(_homeNextLock);
+            var detail = state.TimeUntilLockKind == LockEngineTimeKind.DailyLimit
+                ? Loc.T("Client.Kid.NextLockDaily")
+                : state.NextLockAtUtc is { } at
+                    ? Loc.T("Client.Kid.NextLockUntil", at.ToLocalTime().ToString("t", CultureInfo.CurrentCulture))
+                    : Loc.T("Client.Kid.NextLock");
+            stack.Children.Add(Text(detail, 11, _palette.Muted));
+        }
+        else
+        {
+            stack.Children.Add(Text(Loc.T("Client.Kid.NoLocks"), 14, _palette.Muted, FontWeight.SemiBold));
+        }
+
+        if (state?.ActiveOverride == LockOverrideKind.Bonus && state.ActiveOverrideEndUtc is { } bonus)
         {
             stack.Children.Add(Text(Loc.T("Client.Kid.BonusActive", state.BonusMinutes ?? 0,
                 state.ParentDisplayName ?? Loc.T("Client.Kid.YourParents"),
                 bonus.ToLocalTime().ToString("t", CultureInfo.CurrentCulture)), 14, _palette.Text, FontWeight.Bold));
         }
-        else if (state?.Reason == "override" && state.EndsUtc is { } ends && ends > DateTime.UtcNow)
+        else if (state?.ActiveOverride == LockOverrideKind.Unlock && state.ActiveOverrideEndUtc is { } ends)
         {
             stack.Children.Add(Text(Loc.T("Client.Kid.ParentUnlock", ends.ToLocalTime().ToString("t", CultureInfo.CurrentCulture)),
                 14, _palette.Success, FontWeight.Bold));
-        }
-        else if (state?.NextLockUtc is { } next && next > DateTime.UtcNow)
-        {
-            stack.Children.Add(Text(next.ToLocalTime().ToString("t", CultureInfo.CurrentCulture),
-                26, _palette.Text, FontWeight.Bold, LunaThemes.Display));
-            stack.Children.Add(Text(Loc.T("Client.Kid.NextLockUntil", next.ToLocalTime().ToString("t", CultureInfo.CurrentCulture)),
-                11, _palette.Muted));
-        }
-        else
-        {
-            stack.Children.Add(Text(Loc.T("Client.Kid.NoLocks"), 14, _palette.Muted, FontWeight.SemiBold));
         }
         var weekdays = summary.Weekdays;
         if (weekdays.Count > 0)
@@ -1990,6 +2028,7 @@ public sealed class MyOpControlWindow : Window
     internal string CurrentScreenName => _screen.ToString();
     internal int RenderCountForTest => _renderCount;
     internal string? HomeTimeLeftForTest => _homeTimeLeft?.Text;
+    internal string? HomeNextLockForTest => _homeNextLock?.Text;
     internal AboutInfoDto? AboutForTest => _about;
     internal string AboutClientValueForTest => _aboutClientValue;
     internal string AboutServerValueForTest => _aboutServerValue;

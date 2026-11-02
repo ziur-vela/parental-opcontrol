@@ -31,35 +31,43 @@ public static class LockTimerStatus
         if (previous is null || current.IsLocked)
             return LockTimerChange.None;
 
-        if (current.Reason == "override" && current.EndsUtc is { } unlockedUntil && unlockedUntil > nowUtc)
+        if (current.ActiveOverride == LockOverrideKind.Unlock
+            && current.ActiveOverrideEndUtc is { } unlockedUntil && unlockedUntil > nowUtc)
         {
-            if (previous.Reason != "override" || previous.EndsUtc != unlockedUntil)
+            if (previous.ActiveOverride != LockOverrideKind.Unlock || previous.ActiveOverrideEndUtc != unlockedUntil)
                 return new LockTimerChange(LockTimerChangeKind.Unlocked, AtUtc: unlockedUntil);
             return LockTimerChange.None;
         }
 
-        if (current.BonusUntilUtc is { } bonus && bonus > nowUtc && current.BonusMinutes is { } minutes)
+        if (current.ActiveOverride == LockOverrideKind.Bonus
+            && current.ActiveOverrideEndUtc is { } bonusUntil && bonusUntil > nowUtc)
         {
-            if (previous.BonusUntilUtc != current.BonusUntilUtc || previous.BonusMinutes != current.BonusMinutes)
-                return new LockTimerChange(LockTimerChangeKind.BonusAdded, AtUtc: bonus, Minutes: minutes);
+            var minutes = current.BonusMinutes ?? 0;
+            if (previous.ActiveOverride != LockOverrideKind.Bonus
+                || previous.ActiveOverrideEndUtc != bonusUntil
+                || previous.BonusMinutes != current.BonusMinutes)
+                return new LockTimerChange(LockTimerChangeKind.BonusAdded, AtUtc: bonusUntil, Minutes: minutes);
             return LockTimerChange.None;
         }
 
-        if (current.NextLockUtc is null && current.Reason is not ("override" or "bonus"))
+        if (current.TimeUntilLockSeconds is null && current.NextScheduleLockUtc is null
+            && current.ActiveOverride == LockOverrideKind.None)
         {
             if (!previous.IsLocked
-                && (previous.Reason is "override" or "bonus" || previous.NextLockUtc is not null))
+                && (previous.ActiveOverride is LockOverrideKind.Unlock or LockOverrideKind.Bonus
+                    || previous.TimeUntilLockSeconds is not null
+                    || previous.NextScheduleLockUtc is not null))
                 return new LockTimerChange(LockTimerChangeKind.NoLockScheduled, HideAfter: true);
             return LockTimerChange.None;
         }
 
-        if (current.NextLockUtc is { } next && next > nowUtc
+        if (current.NextLockAtUtc is { } next && next > nowUtc
             && !previous.IsLocked
-            && previous.Reason is not ("override" or "bonus")
-            && current.Reason is not ("override" or "bonus")
-            && previous.NextLockUtc != next)
+            && previous.ActiveOverride == LockOverrideKind.None
+            && current.ActiveOverride == LockOverrideKind.None
+            && previous.NextLockAtUtc != next)
         {
-            var earlier = previous.NextLockUtc is not { } before || next < before;
+            var earlier = previous.NextLockAtUtc is not { } before || next < before;
             return new LockTimerChange(LockTimerChangeKind.LockTimeChanged, AtUtc: next, MakesLockEarlier: earlier);
         }
 

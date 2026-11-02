@@ -186,7 +186,9 @@ public class LockState
     public Guid FamilyId { get; set; }
     public Guid ChildId { get; set; }
     public bool ManualLock { get; set; }
+    public DateTime? UnlockStartUtc { get; set; }
     public DateTime? UnlockUntilUtc { get; set; }
+    public DateTime? BonusStartUtc { get; set; }
     public DateTime? BonusUntilUtc { get; set; }
     public int? BonusMinutes { get; set; }
     public string? OverridePinHash { get; set; }
@@ -327,6 +329,7 @@ public class UsageInterval
     public DateTime StartUtc { get; set; }
     public int DurationSeconds { get; set; }
     public bool Active { get; set; } = true;
+    public bool CountsTowardLimit { get; set; } = true;
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
 }
 

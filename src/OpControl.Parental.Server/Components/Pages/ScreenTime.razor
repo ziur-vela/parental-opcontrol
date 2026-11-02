@@ -262,6 +262,7 @@ else
     private int _usedTodaySeconds;
     private int _todayLimitMinutes;
     private bool _limitEnabled;
+    private LockStateDto? _state;
     private bool _spokenWarnings;
     private int[] _dayMinutes = [120, 120, 120, 120, 120, 240, 240];
     private List<Bucket> _buckets = [];
@@ -332,6 +333,7 @@ else
         var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
         var usage = scope.ServiceProvider.GetRequiredService<UsageService>();
         var rules = scope.ServiceProvider.GetRequiredService<RuleService>();
+        var locks = scope.ServiceProvider.GetRequiredService<LockService>();
         var child = await db.Children.AsNoTracking().Where(c => c.FamilyId == _familyId).OrderBy(c => c.CreatedUtc).FirstOrDefaultAsync();
         if (child is null) { _childId = Guid.Empty; return; }
         _childId = child.Id;
@@ -362,6 +364,7 @@ else
         _averageSeconds = _activeSeconds / dayCount;
 
         var daily = await usage.BuildDailyLimitAsync(_familyId, child.Id, tz, now);
+        _state = await locks.GetStateAsync(_familyId, child.Id, null, ct: default);
         _todayLimitMinutes = daily.TodayMinutes;
         _usedTodaySeconds = daily.UsedTodaySeconds;
         var limit = await usage.EnsureLimitAsync(_familyId, child.Id);
@@ -544,7 +547,7 @@ else
         get
         {
             if (!_limitEnabled) return L["Home.NoDailyLimitSet"];
-            var remaining = Math.Max(0, _todayLimitMinutes * 60 - _usedTodaySeconds);
+            var remaining = _state?.LimitRemainingSeconds ?? Math.Max(0, _todayLimitMinutes * 60 - _usedTodaySeconds);
             return remaining == 0 ? L["ScreenTime.LimitReachedMidnight"] : L["Home.TimeLeftToday", FormatDuration(remaining)];
         }
     }

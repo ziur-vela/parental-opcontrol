@@ -100,7 +100,7 @@ public class Job20GTimerTests
         var schedules = new[] { Schedule(DayMask(now), 22 * 60, 6 * 60, "Bedtime") };
         var end = LockRules.NextLockCycleUtc(schedules, Utc, now);
         Assert.Equal(new DateTime(2026, 10, 20, 6, 0, 0, DateTimeKind.Utc), end);
-        Assert.False(LockRules.Evaluate(true, end, null, schedules, Utc, now).IsLocked);
+        Assert.False(LockRules.Evaluate(false, end, null, schedules, Utc, now).IsLocked);
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public class Job20GTimerTests
         var end = LockRules.NextLockCycleUtc([], Utc, now);
         Assert.Equal(new DateTime(2026, 10, 20, 0, 0, 0, DateTimeKind.Utc), end);
         Assert.Equal("override",
-            LockRules.Evaluate(true, end, null, [], Utc, now).Reason);
+            LockRules.Evaluate(false, end, null, [], Utc, now).Reason);
     }
 
     [Fact]
@@ -128,32 +128,38 @@ public class Job20GTimerTests
     public void Status_message_detects_unlock_bonus_and_lock_time_changes()
     {
         var now = new DateTime(2026, 10, 19, 20, 0, 0, DateTimeKind.Utc);
-        var locked = State(now, true, "schedule", next: null);
-        var unlocked = State(now, false, "override", ends: now.AddHours(4), next: now.AddHours(4));
+        var locked = State(now, true, "schedule");
+        var unlocked = State(now, false, "override", timeUntil: 4 * 3600, until: now.AddHours(4),
+            overrideKind: LockOverrideKind.Unlock);
 
         var change = LockTimerStatus.Detect(locked, unlocked, now);
         Assert.Equal(LockTimerChangeKind.Unlocked, change.Kind);
         Assert.Equal(now.AddHours(4), change.AtUtc);
 
-        var beforeBonus = State(now, false, "unlocked", next: now.AddHours(1));
+        var beforeBonus = State(now, false, "unlocked", timeUntil: 3600, nextLock: now.AddHours(1));
         var afterBonus = beforeBonus with
         {
+            Reason = "bonus",
             BonusUntilUtc = now.AddMinutes(30),
             BonusMinutes = 30,
-            NextLockUtc = now.AddMinutes(30)
+            ActiveOverride = LockOverrideKind.Bonus,
+            ActiveOverrideEndUtc = now.AddMinutes(30),
+            TimeUntilLockSeconds = 30 * 60,
+            TimeUntilLockKind = LockEngineTimeKind.Schedule,
+            NextLockAtUtc = now.AddMinutes(30)
         };
         var bonus = LockTimerStatus.Detect(beforeBonus, afterBonus, now);
         Assert.Equal(LockTimerChangeKind.BonusAdded, bonus.Kind);
         Assert.Equal(30, bonus.Minutes);
         Assert.False(bonus.MakesLockEarlier);
 
-        var later = State(now, false, "unlocked", next: now.AddHours(3));
-        var earlier = later with { NextLockUtc = now.AddHours(1) };
+        var later = State(now, false, "unlocked", timeUntil: 3 * 3600, nextLock: now.AddHours(3));
+        var earlier = later with { TimeUntilLockSeconds = 3600, NextLockAtUtc = now.AddHours(1) };
         var changed = LockTimerStatus.Detect(later, earlier, now);
         Assert.Equal(LockTimerChangeKind.LockTimeChanged, changed.Kind);
         Assert.True(changed.MakesLockEarlier);
 
-        var noLock = State(now, false, "unlocked", next: null);
+        var noLock = State(now, false, "unlocked");
         var removed = LockTimerStatus.Detect(later, noLock, now);
         Assert.Equal(LockTimerChangeKind.NoLockScheduled, removed.Kind);
         Assert.True(removed.HideAfter);
@@ -163,10 +169,10 @@ public class Job20GTimerTests
     public void Status_message_is_silent_for_a_baseline_natural_unlock_and_warning_changes()
     {
         var now = new DateTime(2026, 10, 19, 20, 0, 0, DateTimeKind.Utc);
-        var state = State(now, false, "unlocked", next: now.AddHours(1));
+        var state = State(now, false, "unlocked", timeUntil: 3600, nextLock: now.AddHours(1));
         Assert.Equal(LockTimerChangeKind.None, LockTimerStatus.Detect(null, state, now).Kind);
         Assert.Equal(LockTimerChangeKind.None,
-            LockTimerStatus.Detect(State(now, true, "schedule", next: null), state, now).Kind);
+            LockTimerStatus.Detect(State(now, true, "schedule"), state, now).Kind);
         Assert.Equal(LockTimerChangeKind.None, LockTimerStatus.Detect(state, state, now).Kind);
     }
 
@@ -226,10 +232,17 @@ public class Job20GTimerTests
         new(Guid.NewGuid(), name, days, start, end, true);
 
     private static RuntimeLockStateDto State(
-        DateTime now, bool locked, string reason, DateTime? ends = null, DateTime? next = null) =>
+        DateTime now, bool locked, string reason, DateTime? ends = null, DateTime? nextLock = null,
+        int? timeUntil = null, DateTime? until = null, LockOverrideKind overrideKind = LockOverrideKind.None) =>
         new(
-            Guid.NewGuid(), "Emma", "Ziur", locked, reason, null, ends, next,
-            null, null, now);
+            Guid.NewGuid(), "Emma", "Ziur", locked, reason, null, ends, nextLock,
+            null, null, now,
+            TimeUntilLockSeconds: timeUntil,
+            NextLockAtUtc: nextLock,
+            ActiveOverride: overrideKind,
+            ActiveOverrideEndUtc: until,
+            HasPill: timeUntil is > 0,
+            TimeUntilLockKind: timeUntil is null ? LockEngineTimeKind.None : LockEngineTimeKind.Schedule);
 
     private static string FindRoot()
     {
