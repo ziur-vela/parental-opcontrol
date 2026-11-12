@@ -2066,6 +2066,7 @@ public sealed class LunaAppView : UserControl
         ? _messagesPanel.Children[^1] as Control : null;
 
     internal void MarkInitializedForTest() => _initialized = true;
+    internal TextBox? InputForTest => _input;
 
     internal void SetThemeForTest(string theme)
     {

@@ -286,12 +286,17 @@ public sealed class LunaChatService
         usage.PromptTokens += first.PromptTokens;
         usage.CompletionTokens += first.CompletionTokens;
         usage.WebSearches += first.WebSearchRequests;
+        if (first.WebSearchRequests > 0)
+            _logger.LogInformation("Luna web search used {Count} request(s) for child {ChildId}",
+                first.WebSearchRequests, ctx.ChildId);
 
         var blockedHost = guard is null ? null : FirstBlockedSource(first.Sources, guard.BlockedDomains);
         if (blockedHost is not null)
         {
             // A cited source is on a domain this child may not see. Drop the answer and
             // retry once without that source, exactly like a blocked reply.
+            _logger.LogInformation("Luna cited blocked source {Host} for child {ChildId}; retrying without it",
+                blockedHost, ctx.ChildId);
             LunaChatResult? sourceRetry = null;
             var retryClean = "";
             IReadOnlyList<string> retryCategories = ["source:" + blockedHost];

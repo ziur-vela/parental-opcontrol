@@ -1,6 +1,8 @@
 // Copyright (c) 2026 Ziur / OpControl IT Solutions
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
+using Avalonia.Headless;
+using Avalonia.VisualTree;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -201,6 +203,52 @@ public class Job21WebSearchTests
         Assert.Contains("\"Luna.Chat.SourcesTitle\"", en, StringComparison.Ordinal);
         Assert.Contains("Where I found this", en, StringComparison.Ordinal);
         Assert.Contains("Dónde lo encontré", es, StringComparison.Ordinal);
+    }
+
+
+    [Fact]
+    public void Luna_reply_shows_sources_and_the_input_grows_to_six_lines()
+    {
+        using var session = Avalonia.Headless.HeadlessUnitTestSession.StartNew(typeof(UiTestApp));
+        session.Dispatch(() =>
+        {
+            OpControl.Parental.Localization.Loc.SetLanguage(OpControl.Parental.Localization.Loc.English);
+            var api = new OpControl.Parental.Luna.LunaApiClient();
+            var view = new OpControl.Parental.Luna.LunaAppView(api, "night");
+            view.MarkInitializedForTest();
+            var window = new Avalonia.Controls.Window
+            {
+                Width = 960, Height = 760, WindowDecorations = Avalonia.Controls.WindowDecorations.None,
+                Content = view
+            };
+            window.Show();
+            UiHarness.Pump(250);
+            var chat = new LunaChatDto(Guid.NewGuid(), "science", "Mount Everest", false, false,
+                DateTime.UtcNow.AddMinutes(-5), DateTime.UtcNow);
+            var luna = new LunaChildMessageDto(Guid.NewGuid(), chat.Id, LunaChatRoles.Luna,
+                "Mount Everest is about 8,849 meters tall.", DateTime.UtcNow.AddMinutes(-4), "none",
+                [new LunaSourceDto("https://en.wikipedia.org/wiki/Mount_Everest", "Mount Everest - Wikipedia", "en.wikipedia.org")]);
+            view.OpenChatForTest(chat, [luna]);
+            UiHarness.Pump(600);
+
+            var label = view.GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>()
+                .First(t => t.Text == "Where I found this");
+            Assert.NotNull(label);
+            var link = view.GetVisualDescendants().OfType<Avalonia.Controls.Button>()
+                .First(b => b.Content is Avalonia.Controls.TextBlock tb && tb.Text.Contains("Mount Everest"));
+            Assert.NotNull(link);
+
+            if (view.InputForTest is { } input)
+            {
+                input.Text = "Line one\nLine two\nLine three\nLine four\nLine five\nLine six";
+                UiHarness.Pump(200);
+                Assert.True(input.Bounds.Height > 90, $"input height {input.Bounds.Height}");
+                Assert.True(input.Bounds.Height <= input.MaxHeight + 0.5);
+            }
+
+            window.Close();
+            api.Dispose();
+        }, CancellationToken.None);
     }
 
     private static string FindRoot()
