@@ -5,13 +5,33 @@ namespace OpControl.Parental.Server.Services.Luna;
 
 public sealed record LunaChatTurn(string Role, string Content);
 
+/// <summary>OpenRouter web search server-tool settings (Setup A only).</summary>
+public sealed record LunaWebSearchOptions(
+    string Engine,
+    int MaxResults,
+    int MaxTotalResults,
+    IReadOnlyList<string> ExcludedDomains)
+{
+    public LunaWebSearchOptions WithAdditionalExclusions(IEnumerable<string> domains) =>
+        this with { ExcludedDomains = ExcludedDomains.Concat(domains).Distinct(StringComparer.OrdinalIgnoreCase).ToList() };
+}
+
 public sealed record LunaChatRequest(
     string SystemPrompt,
     IReadOnlyList<LunaChatTurn> Messages,
     int MaxTokens,
-    bool Stricter = false);
+    bool Stricter = false,
+    LunaWebSearchOptions? WebSearch = null);
 
-public sealed record LunaChatResult(string Text, int PromptTokens, int CompletionTokens);
+public sealed record LunaChatSource(string Url, string? Title = null, string? Site = null);
+
+public sealed record LunaChatResult(
+    string Text,
+    int PromptTokens,
+    int CompletionTokens,
+    IReadOnlyList<LunaChatSource>? Sources = null,
+    int WebSearchRequests = 0,
+    IReadOnlyList<string>? Queries = null);
 
 public sealed record LunaProviderConfig(string Provider, string Model, string ApiKey);
 

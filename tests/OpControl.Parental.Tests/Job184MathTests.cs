@@ -114,7 +114,7 @@ public class Job184MathTests
     [Fact]
     public void Core_prompt_uses_latex_pictures_and_no_code_blocks()
     {
-        Assert.Equal("luna-core-2", LunaPrompts.Version);
+        Assert.Equal("luna-core-3", LunaPrompts.Version);
         Assert.Contains("\\frac{1}{4}", LunaPrompts.Core, StringComparison.Ordinal);
         Assert.Contains("Never write fractions like 1/4 * 5/6", LunaPrompts.Core, StringComparison.Ordinal);
         Assert.Contains("Never use code blocks", LunaPrompts.Core, StringComparison.Ordinal);

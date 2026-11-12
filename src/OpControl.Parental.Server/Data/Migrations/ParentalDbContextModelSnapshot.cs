@@ -668,6 +668,9 @@ namespace OpControl.Parental.Server.Data.Migrations
                     b.Property<DateTime>("UpdatedUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("WebSearchEnabled")
+                        .HasColumnType("boolean");
+
                     b.HasKey("ChildId");
 
                     b.HasIndex("Enabled");
@@ -1620,6 +1623,15 @@ namespace OpControl.Parental.Server.Data.Migrations
                         .HasMaxLength(8000)
                         .HasColumnType("character varying(8000)");
 
+                    b.Property<string>("WebQuery")
+                        .HasColumnType("text");
+
+                    b.Property<int>("WebSearchRequests")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("WebSources")
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ChatId", "CreatedUtc");
@@ -1739,6 +1751,9 @@ namespace OpControl.Parental.Server.Data.Migrations
 
                     b.Property<DateTime>("UpdatedUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("WebSearches")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 

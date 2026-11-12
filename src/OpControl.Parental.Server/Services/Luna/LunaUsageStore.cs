@@ -11,6 +11,10 @@ public sealed class LunaUsageStore
 {
     public const decimal PromptUsdPerMillion = 0.15m;
     public const decimal CompletionUsdPerMillion = 0.60m;
+    /// <summary>OpenRouter/Exa "auto" search price, USD per search request.</summary>
+    public const decimal WebSearchUsdPerRequest = 0.007m;
+    /// <summary>Conservative token-equivalent charged to the monthly cap per search.</summary>
+    public const int WebSearchCapTokens = 1500;
 
     private readonly ParentalDbContext _db;
 
@@ -42,15 +46,34 @@ public sealed class LunaUsageStore
 
     public async Task<(int PromptTokens, int CompletionTokens)> MonthlyTokensAsync(Guid familyId, DateOnly today, CancellationToken ct = default)
     {
+        var usage = await MonthlyUsageAsync(familyId, today, ct);
+        return (usage.PromptTokens, usage.CompletionTokens);
+    }
+
+    public async Task<LunaMonthlyUsage> MonthlyUsageAsync(Guid familyId, DateOnly today, CancellationToken ct = default)
+    {
         var start = new DateOnly(today.Year, today.Month, 1);
         var rows = await _db.LunaUsageDays.AsNoTracking()
             .Where(u => u.FamilyId == familyId && u.Date >= start && u.Date <= today)
-            .Select(u => new { u.PromptTokens, u.CompletionTokens })
+            .Select(u => new { u.PromptTokens, u.CompletionTokens, u.WebSearches })
             .ToListAsync(ct);
-        return (rows.Sum(r => r.PromptTokens), rows.Sum(r => r.CompletionTokens));
+        return new LunaMonthlyUsage(rows.Sum(r => r.PromptTokens), rows.Sum(r => r.CompletionTokens),
+            rows.Sum(r => r.WebSearches));
     }
 
-    public static decimal ApproxCost(int promptTokens, int completionTokens) =>
+    public static decimal ApproxCost(int promptTokens, int completionTokens, int webSearches = 0) =>
         Math.Round(promptTokens / 1_000_000m * PromptUsdPerMillion
-            + completionTokens / 1_000_000m * CompletionUsdPerMillion, 4);
+            + completionTokens / 1_000_000m * CompletionUsdPerMillion
+            + webSearches * WebSearchUsdPerRequest, 4);
+
+    public static int CapTokens(LunaMonthlyUsage usage) =>
+        usage.PromptTokens + usage.CompletionTokens + usage.WebSearches * WebSearchCapTokens;
+}
+
+public sealed record LunaMonthlyUsage(int PromptTokens, int CompletionTokens, int WebSearches)
+{
+    public int TotalTokens => PromptTokens + CompletionTokens;
+    public int CapTokens => LunaUsageStore.CapTokens(this);
+    public decimal CostUsd => LunaUsageStore.ApproxCost(PromptTokens, CompletionTokens, WebSearches);
+    public decimal WebSearchCostUsd => Math.Round(WebSearches * LunaUsageStore.WebSearchUsdPerRequest, 4);
 }

@@ -1584,4 +1584,14 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Activity.Tamper.BrowserPolicy" xml:space="preserve"><value>Se quitaron las reglas del navegador y se restauraron</value></data>
   <data name="Alert.BrowserPolicyRemoved.Title" xml:space="preserve"><value>Se quitaron las reglas del navegador: {0}</value></data>
   <data name="Alert.BrowserPolicyRemoved.Detail" xml:space="preserve"><value>Se quitaron las reglas del navegador en {0}. Se restauraron automáticamente.</value></data>
+  <data name="Luna.Error.WebSearchSetupB" xml:space="preserve"><value>La búsqueda web solo está disponible con la configuración A (OpenRouter).</value></data>
+  <data name="Luna.Child.WebSearch" xml:space="preserve"><value>Luna puede buscar en la web</value></data>
+  <data name="Luna.Child.WebSearchOn" xml:space="preserve"><value>La búsqueda web está activada</value></data>
+  <data name="Luna.Child.WebSearchOff" xml:space="preserve"><value>La búsqueda web está desactivada</value></data>
+  <data name="Luna.Child.WebSearchDetail" xml:space="preserve"><value>{0} puede consultar la web cuando la respuesta necesita datos actuales. Luna muestra hasta tres fuentes debajo de la respuesta.</value></data>
+  <data name="Luna.Child.WebSearchSetupB" xml:space="preserve"><value>La búsqueda web necesita la configuración A (OpenRouter). No está disponible con la configuración B.</value></data>
+  <data name="Luna.Child.WebSearchSaved" xml:space="preserve"><value>Ajuste de búsqueda web guardado.</value></data>
+  <data name="Luna.Setup.MonthlySearches" xml:space="preserve"><value>{0} búsquedas web este mes</value></data>
+  <data name="Luna.Review.WebSearch" xml:space="preserve"><value>Búsqueda web · {0} fuentes</value></data>
+  <data name="Luna.Review.WebSearchQuery" xml:space="preserve"><value>Búsqueda:</value></data>
 </root>

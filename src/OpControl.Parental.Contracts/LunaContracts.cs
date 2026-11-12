@@ -124,13 +124,16 @@ public sealed record ChildLunaDto(
     int MonthlyPromptTokens,
     int MonthlyCompletionTokens,
     int? MonthlyTokenCap,
-    decimal ApproxCostUsd);
+    decimal ApproxCostUsd,
+    bool WebSearchEnabled = false,
+    bool WebSearchAvailable = true);
 
 public sealed record ChildLunaRequest(
     bool Enabled,
     int? DailyMessageLimit,
     string? ExtraInstructions,
-    bool UnderThirteenAcknowledged);
+    bool UnderThirteenAcknowledged,
+    bool WebSearchEnabled = false);
 
 public sealed record LunaStatusDto(
     bool Enabled,
@@ -153,13 +156,17 @@ public sealed record LunaChatDto(
     DateTime CreatedUtc,
     DateTime LastMessageUtc);
 
+/// <summary>A page Luna cited while answering. Only sources that passed the child's filters are sent.</summary>
+public sealed record LunaSourceDto(string Url, string Title, string Site);
+
 public sealed record LunaChildMessageDto(
     Guid Id,
     Guid ChatId,
     string Role,
     string Text,
     DateTime CreatedUtc,
-    string Flag);
+    string Flag,
+    IReadOnlyList<LunaSourceDto>? Sources = null);
 
 public sealed record LunaParentMessageDto(
     Guid Id,
@@ -175,7 +182,9 @@ public sealed record LunaParentMessageDto(
     Guid? ReviewedByParentId,
     bool MarkedFine,
     int PromptTokens,
-    int CompletionTokens);
+    int CompletionTokens,
+    string? WebQuery = null,
+    IReadOnlyList<LunaSourceDto>? WebSources = null);
 
 public sealed record LunaParentChatDto(
     LunaChatDto Chat,
@@ -222,4 +231,6 @@ public sealed record LunaUsageDto(
     int TotalTokens,
     decimal ApproxCostUsd,
     int? MonthlyTokenCap,
-    bool CapReached);
+    bool CapReached,
+    int WebSearches = 0,
+    decimal WebSearchCostUsd = 0m);

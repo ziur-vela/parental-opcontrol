@@ -165,6 +165,27 @@ else
             </section>
 
             <section class="card">
+                <div class="card-title-row"><h2>@L["Luna.Child.WebSearch"]</h2></div>
+                <div class="luna-switch-row">
+                    <button type="button" class="toggle @(_webSearchEnabled ? "on" : "")"
+                            disabled="@(!_webSearchAvailable || _busy)"
+                            aria-pressed="@_webSearchEnabled"
+                            title="@(!_webSearchAvailable ? L["Luna.Child.WebSearchSetupB"].Value : L["Luna.Child.WebSearch"].Value)"
+                            @onclick="ToggleWebSearchAsync">
+                        <span></span>
+                    </button>
+                    <div class="luna-switch-main">
+                        <b>@(_webSearchEnabled ? L["Luna.Child.WebSearchOn"] : L["Luna.Child.WebSearchOff"])</b>
+                        <span class="muted small">@L["Luna.Child.WebSearchDetail", _childName]</span>
+                    </div>
+                </div>
+                @if (!_webSearchAvailable)
+                {
+                    <div class="luna-reason">@L["Luna.Child.WebSearchSetupB"]</div>
+                }
+            </section>
+
+            <section class="card">
                 <div class="card-title-row"><h2>@L["Luna.Child.DailyLimit"]</h2></div>
                 <div class="inline-add">
                     <label class="field" style="flex: 1 1 150px">
@@ -313,6 +334,8 @@ else
     private bool _showAck;
     private bool _ackChecked;
     private bool _publicAiChatsBlocked;
+    private bool _webSearchEnabled;
+    private bool _webSearchAvailable = true;
     private TimeZoneInfo _timeZone = TimeZoneInfo.Utc;
 
     protected override async Task OnInitializedAsync()
@@ -372,6 +395,8 @@ else
                     && c.CategoryKey == AiCategoryCatalog.Key && c.Enabled);
             _dailyLimit = _child.DailyMessageLimit;
             _extraInstructions = _child.ExtraInstructions ?? "";
+            _webSearchEnabled = _child.WebSearchEnabled;
+            _webSearchAvailable = _child.WebSearchAvailable;
             _requests = await parent.ListRequestsAsync(_familyId, _childId);
             _pendingRequest = _requests.FirstOrDefault(r => r.Status == "Pending");
             var profile = await parent.GetProfileAsync(_familyId, _childId);
@@ -441,6 +466,13 @@ else
 
     private async Task SaveInstructionsAsync() => await SaveChildAsync(_child.Enabled, false, L["Luna.Child.ExtraSaved"].Value);
 
+    private async Task ToggleWebSearchAsync()
+    {
+        if (!_webSearchAvailable) return;
+        _webSearchEnabled = !_webSearchEnabled;
+        await SaveChildAsync(_child.Enabled, false, L["Luna.Child.WebSearchSaved"].Value);
+    }
+
     private async Task SaveChildAsync(bool enabled, bool acknowledged, string? notice)
     {
         _busy = true;
@@ -451,7 +483,7 @@ else
             using var scope = Scopes.CreateScope();
             var parent = scope.ServiceProvider.GetRequiredService<LunaParentService>();
             _child = await parent.SaveChildAsync(_familyId, _parentId, _childId,
-                new ChildLunaRequest(enabled, _dailyLimit, _extraInstructions, acknowledged));
+                new ChildLunaRequest(enabled, _dailyLimit, _extraInstructions, acknowledged, _webSearchEnabled));
             _notice = notice;
             Events.PublishLunaChanged();
             await ReloadAsync();

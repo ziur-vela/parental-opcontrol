@@ -328,6 +328,10 @@ else
                 <label class="lbl">@L["Luna.Setup.MonthlyCap"]</label>
                 <input type="number" min="0" step="1000" @bind="_monthlyCap" />
                 <span class="muted tiny">@L["Luna.Setup.MonthlyUsage", _monthUsage.ToString("N0"), _monthCost.ToString("0.00")]</span>
+                @if (_monthSearches > 0)
+                {
+                    <span class="muted tiny">@L["Luna.Setup.MonthlySearches", _monthSearches]</span>
+                }
                 <span class="muted tiny">@L["Luna.Setup.CapNote"]</span>
             </div>
             <div class="stack">
@@ -375,6 +379,7 @@ else
     private LunaTestResult? _testResult;
     private int _monthUsage;
     private decimal _monthCost;
+    private int _monthSearches;
     private bool _ready;
     private TimeZoneInfo _timeZone = TimeZoneInfo.Utc;
 
@@ -424,9 +429,10 @@ else
             var tz = LunaUsageStore.ResolveZone(await usage.FamilyTimeZoneIdAsync(_familyId, firstChild.Id));
             _timeZone = tz;
             var today = LunaUsageStore.LocalDate(DateTime.UtcNow, tz);
-            var (prompt, completion) = await usage.MonthlyTokensAsync(_familyId, today);
-            _monthUsage = prompt + completion;
-            _monthCost = LunaUsageStore.ApproxCost(prompt, completion);
+            var month = await usage.MonthlyUsageAsync(_familyId, today);
+            _monthUsage = month.TotalTokens;
+            _monthSearches = month.WebSearches;
+            _monthCost = month.CostUsd;
         }
     }
 
@@ -536,9 +542,10 @@ else
         if (firstChild is null) return;
         var tz = LunaUsageStore.ResolveZone(await usage.FamilyTimeZoneIdAsync(_familyId, firstChild.Id));
         var today = LunaUsageStore.LocalDate(DateTime.UtcNow, tz);
-        var (prompt, completion) = await usage.MonthlyTokensAsync(_familyId, today);
-        _monthUsage = prompt + completion;
-        _monthCost = LunaUsageStore.ApproxCost(prompt, completion);
+        var month = await usage.MonthlyUsageAsync(_familyId, today);
+        _monthUsage = month.TotalTokens;
+        _monthSearches = month.WebSearches;
+        _monthCost = month.CostUsd;
     }
 
     private async Task ToggleGuideAsync()

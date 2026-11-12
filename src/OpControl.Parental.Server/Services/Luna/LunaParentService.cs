@@ -65,6 +65,10 @@ public sealed class LunaParentService
         var extra = (request.ExtraInstructions ?? "").Trim();
         if (extra.Length > LunaPrompts.MaxExtraInstructions) extra = extra[..LunaPrompts.MaxExtraInstructions];
         settings.ExtraInstructions = extra.Length == 0 ? null : extra;
+        var webSearchAvailable = family.Setup == LunaSetup.A && family.ChatProvider == LunaChatProviders.OpenRouter;
+        if (request.WebSearchEnabled && !webSearchAvailable)
+            throw new InvalidOperationException(AppText.Get("Luna.Error.WebSearchSetupB"));
+        settings.WebSearchEnabled = request.WebSearchEnabled && webSearchAvailable;
         settings.UpdatedUtc = now;
         await _db.SaveChangesAsync(ct);
         return await BuildDtoAsync(familyId, child, settings, day, ct);
@@ -217,12 +221,12 @@ public sealed class LunaParentService
         await ChildAsync(familyId, childId, ct);
         var tz = LunaUsageStore.ResolveZone(await _usage.FamilyTimeZoneIdAsync(familyId, childId, ct));
         var today = LunaUsageStore.LocalDate(DateTime.UtcNow, tz);
-        var (prompt, completion) = await _usage.MonthlyTokensAsync(familyId, today, ct);
+        var month = await _usage.MonthlyUsageAsync(familyId, today, ct);
         var family = await _settings.EnsureAsync(familyId, ct);
-        var total = prompt + completion;
-        return new LunaUsageDto(prompt, completion, total,
-            LunaUsageStore.ApproxCost(prompt, completion), family.MonthlyTokenCap,
-            family.MonthlyTokenCap is int cap && cap > 0 && total >= cap);
+        return new LunaUsageDto(month.PromptTokens, month.CompletionTokens, month.TotalTokens,
+            month.CostUsd, family.MonthlyTokenCap,
+            family.MonthlyTokenCap is int cap && cap > 0 && month.CapTokens >= cap,
+            month.WebSearches, month.WebSearchCostUsd);
     }
 
     private async Task<ChildLunaDto> BuildDtoAsync(Guid familyId, Child child, ChildLunaSettings settings,
@@ -234,11 +238,13 @@ public sealed class LunaParentService
         var requiresAck = family.Setup == LunaSetup.B && underThirteen && settings.UnderThirteenAcknowledgedUtc is null;
         var tz = LunaUsageStore.ResolveZone(await _usage.FamilyTimeZoneIdAsync(familyId, child.Id, ct));
         var today = LunaUsageStore.LocalDate(DateTime.UtcNow, tz);
-        var (prompt, completion) = await _usage.MonthlyTokensAsync(familyId, today, ct);
+        var month = await _usage.MonthlyUsageAsync(familyId, today, ct);
+        var webSearchAvailable = family.Setup == LunaSetup.A && family.ChatProvider == LunaChatProviders.OpenRouter;
         return new ChildLunaDto(child.Id, settings.Enabled, settings.EnabledByParentId, settings.EnabledUtc,
             settings.UnderThirteenAcknowledgedUtc, settings.DailyMessageLimit, settings.ExtraInstructions, settings.Theme,
             setupValid, requiresAck, LunaUsageStore.MessagesLeft(settings, day), day.ExtraAllowed,
-            prompt, completion, family.MonthlyTokenCap, LunaUsageStore.ApproxCost(prompt, completion));
+            month.PromptTokens, month.CompletionTokens, family.MonthlyTokenCap, month.CostUsd,
+            settings.WebSearchEnabled && webSearchAvailable, webSearchAvailable);
     }
 
     private async Task<(ChildLunaSettings Settings, LunaUsageDay Day)> LoadAsync(Guid familyId, Guid childId,
@@ -270,5 +276,6 @@ public sealed class LunaParentService
     private static LunaParentMessageDto ToParentDto(LunaMessage m) =>
         new(m.Id, m.ChatId, m.Role, m.Text, m.ShownText, m.CreatedUtc, m.Flag.ToString(),
             m.FlagCategories, m.FlagScores, m.ReviewedUtc, m.ReviewedByParentId, m.MarkedFine,
-            m.PromptTokens, m.CompletionTokens);
+            m.PromptTokens, m.CompletionTokens, m.WebQuery,
+            LunaWebSearchData.ParseSources(m.WebSources));
 }

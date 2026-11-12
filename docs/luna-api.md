@@ -115,12 +115,15 @@ Returns up to 500 messages, oldest first. `text` is what the child saw: for Luna
     "role": "child",
     "text": "Can you help me with fractions?",
     "createdUtc": "2026-10-24T17:01:00Z",
-    "flag": "none"
+    "flag": "none",
+    "sources": null
   }
 ]
 ```
 
 `flag`: `none`, `blocked`, `replyBlocked`, `urgent`.
+
+`sources` is set on Luna messages when the answer used web search: at most **3** approved pages, each `{ "url": "https://…", "title": "…", "site": "example.org" }`. The app labels them "Where I found this" / "Dónde lo encontré" and opens them in the default browser; the DNS filter still applies.
 
 ### `POST /api/luna/chats/{chatId}/messages`
 
@@ -155,7 +158,8 @@ Behaviour:
 - 3 blocked messages in 10 minutes start a 15-minute cool-down; the response then has `cooldown: true` and a `notice`.
 - Device locked → `notice` is the "Luna is resting" text and the model is not called.
 - Daily limit reached → `limitReached: true`, no model call, `notice` contains the limit text. `POST /api/luna/more-requests` asks the parents.
-- Monthly family token cap reached → no model call, `notice` explains the pause.
+- Monthly family token cap reached → no model call, `notice` explains the pause. Web search requests count toward the cap at a conservative 1,500 token-equivalents each, and their cash cost is included in the monthly estimate.
+- Web search (Setup A only, when the per-child switch is on): OpenRouter's `openrouter:web_search` server tool with engine `exa`, `max_results` 5, `max_total_results` 10, and `excluded_domains` built from the adult, gambling and public-AI categories plus the child's blocked website rules. Every cited URL is checked before the reply is accepted; if any cited domain is blocked for the child, the answer is dropped and retried once without that source, then the fixed fallback is used and parents get a `luna-flagged` alert. Setup B never sends the tool.
 - `400` when the text is empty or over 1,000 characters.
 
 ### `POST /api/luna/more-requests`
@@ -256,25 +260,28 @@ Owner only. Makes one tiny real chat call and one tiny moderation call with the 
   "monthlyPromptTokens": 0,
   "monthlyCompletionTokens": 0,
   "monthlyTokenCap": null,
-  "approxCostUsd": 0.0
+  "approxCostUsd": 0.0,
+  "webSearchEnabled": false,
+  "webSearchAvailable": true
 }
 ```
 
 ### `POST /api/children/{childId}/luna`
 
 ```json
-{ "enabled": true, "dailyMessageLimit": 60, "extraInstructions": "Be encouraging.", "underThirteenAcknowledged": false }
+{ "enabled": true, "dailyMessageLimit": 60, "extraInstructions": "Be encouraging.", "underThirteenAcknowledged": false, "webSearchEnabled": false }
 ```
 
 - Enabling requires `setupValid`: every key the setup needs is saved and the last Test connection passed.
 - Under-13 rule: when the family uses Setup B and the child is under 13 **or has no date of birth**, the request must set `underThirteenAcknowledged: true` the first time (or an acknowledgement must already exist). Otherwise `400`.
 - `dailyMessageLimit` 1–500, default 60. Extra instructions max 1,000 characters.
+- `webSearchEnabled` is off by default and only accepted for Setup A (OpenRouter). Setup B returns `400` (`Luna.Error.WebSearchSetupB`); `webSearchAvailable` tells the dashboard whether to enable the switch.
 - Returns the child Luna object above.
 
 ### Chats and messages
 
 - `GET /api/children/{childId}/luna/chats` — all chats, including hidden, newest first.
-- `GET /api/children/{childId}/luna/chats/{chatId}` — returns `{"chat":{…},"messages":[…]}`, parents see both `text` (raw) and `shownText` (what the child saw), `flag`, `flagCategories`, `flagScores`, `reviewedUtc`, `reviewedByParentId`, `markedFine`, token counts.
+- `GET /api/children/{childId}/luna/chats/{chatId}` — returns `{"chat":{…},"messages":[…]}`, parents see both `text` (raw) and `shownText` (what the child saw), `flag`, `flagCategories`, `flagScores`, `reviewedUtc`, `reviewedByParentId`, `markedFine`, token counts. When web search was used the message also carries `webQuery` (the saved search text) and `webSources` (every cited page), which the review page shows in a collapsed "Web search" box.
 - `POST /api/children/{childId}/luna/chats/{chatId}/delete` — parents can delete (children can only hide).
 - `POST /api/children/{childId}/luna/clear` — deletes all Luna chats and messages for the child.
 
@@ -327,11 +334,13 @@ POST body: `{"text":"…"}` (max 4,000). Parent edits set `updatedBy` to the par
   "totalTokens": 0,
   "approxCostUsd": 0.0,
   "monthlyTokenCap": null,
-  "capReached": false
+  "capReached": false,
+  "webSearches": 0,
+  "webSearchCostUsd": 0.0
 }
 ```
 
-The counter is per **family** for the current local month. `approxCostUsd` is an estimate from constant per-million rates in code, not a billing figure.
+The counter is per **family** for the current local month. `approxCostUsd` is an estimate from constant per-million rates plus search requests (USD 0.007 each at the Exa "auto" rate), not a billing figure. `webSearches` is the number of search requests; each also counts as 1,500 token-equivalents toward `monthlyTokenCap`.
 
 ## Alerts and push
 
@@ -350,3 +359,5 @@ New alert types:
 - Provider errors map to non-technical messages: bad key, no credit, model not found, rate limited, provider down, moderation timeout. The child always receives the fixed refusal, never a raw provider error.
 - OpenAI moderation uses per-category score thresholds (not the `flagged` boolean). Llama Guard 4 categories map: `S3`, `S4`, `S11` urgent; `S1`, `S2`, `S3`, `S4`, `S9`, `S10`, `S11`, `S12`, `S14` blocked; `S5`, `S6`, `S7`, `S8`, `S13` pass on their own. Values live in `LunaSafety`.
 - The core tutor prompt is versioned in code (`LunaPrompts.Version`); parent extra instructions are appended after it.
+- Web search and ZDR: `"provider":{"zdr":true}` is still sent on every OpenRouter inference. OpenRouter's ZDR enforcement covers model inference; the Exa search backend applies its own retention policy, and OpenRouter does not document ZDR for third-party search backends. Exa's own API has a `moderation` flag, but OpenRouter's `openrouter:web_search` parameters do not expose it, so no safe-search flag is available through this surface.
+- The Exa domain-filter limit is **1,200** domains per request (Exa `excludeDomains` maxItems). The adult/gambling lists are larger, so the request sends the child's blocked rules first and then a root-domain subset, capped at 1,200; the cited-source post-check covers the rest.

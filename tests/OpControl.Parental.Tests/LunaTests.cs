@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
@@ -187,6 +188,7 @@ public class LunaTests
         var settings = new LunaSettingsService(db, providers, zdr, NullLogger<LunaSettingsService>.Instance, alerts);
         var usage = new LunaUsageStore(db);
         var chat = new LunaChatService(db, providers, settings, usage,
+            new LunaWebSearchGuard(db, new MemoryCache(new MemoryCacheOptions())),
             NewLocks(db, alerts), alerts, NullLogger<LunaChatService>.Instance);
         var parentSvc = new LunaParentService(db, settings, usage);
         return new Harness(db, family, child, parent, device, providers, zdr, settings, chat, parentSvc,

@@ -203,6 +203,29 @@ else
                                         <div class="luna-original-text">@message.Text</div>
                                     </details>
                                 }
+
+                                @if (isLuna && (!string.IsNullOrWhiteSpace(message.WebQuery) || message.WebSources is { Count: > 0 }))
+                                {
+                                    <details class="luna-original luna-websearch">
+                                        <summary>@L["Luna.Review.WebSearch", message.WebSources?.Count ?? 0]</summary>
+                                        @if (!string.IsNullOrWhiteSpace(message.WebQuery))
+                                        {
+                                            <div class="luna-flag-note"><b>@L["Luna.Review.WebSearchQuery"]</b> @message.WebQuery</div>
+                                        }
+                                        @if (message.WebSources is { Count: > 0 })
+                                        {
+                                            <ul class="luna-source-list">
+                                                @foreach (var source in message.WebSources)
+                                                {
+                                                    <li>
+                                                        <a href="@source.Url" target="_blank" rel="noopener noreferrer">@source.Title</a>
+                                                        <span class="muted tiny">@source.Site</span>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        }
+                                    </details>
+                                }
                             </div>
                         </div>
                     }

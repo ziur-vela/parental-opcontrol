@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Ziur / OpControl IT Solutions
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
+using System.Diagnostics;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Automation;
@@ -9,6 +10,7 @@ using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
@@ -476,7 +478,11 @@ public sealed class LunaAppView : UserControl
                 _messagesPanel.Children.Add(ChildBubble(message.Text, Flagged(message.Flag),
                     message.CreatedUtc, Loc.T("Client.Messages.Status.Sent"), out _));
             else
+            {
                 _messagesPanel.Children.Add(LunaBubble(message.Text));
+                if (message.Sources is { Count: > 0 } sources)
+                    _messagesPanel.Children.Add(LunaSourcesRow(sources));
+            }
         }
         _emptyLabel = null;
         if (_messages.Count == 0)
@@ -528,7 +534,10 @@ public sealed class LunaAppView : UserControl
             {
                 PlaceholderText = Loc.T("Luna.Chat.Placeholder"),
                 MaxLength = 1000,
-                Height = 46,
+                AcceptsReturn = true,
+                TextWrapping = TextWrapping.Wrap,
+                MinHeight = 46,
+                MaxHeight = 150,
                 FontFamily = LunaThemes.Body,
                 FontSize = 14,
                 Background = LunaBrushes.B(_palette.InputBg),
@@ -536,15 +545,17 @@ public sealed class LunaAppView : UserControl
                 BorderBrush = LunaBrushes.B(_palette.Surface2),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(14),
-                Padding = new Thickness(12, 0, 10, 0),
-                VerticalContentAlignment = VerticalAlignment.Center,
+                Padding = new Thickness(12, 12, 10, 12),
+                VerticalContentAlignment = VerticalAlignment.Top,
                 Margin = new Thickness(0, 0, 8, 0),
                 IsEnabled = !_cooldown
             };
-            _input.KeyDown += OnInputKeyDown;
+            _input.AddHandler(KeyDownEvent, OnInputKeyDown, RoutingStrategies.Tunnel);
+            _input.AddHandler(TextInputEvent, OnInputTextInput, RoutingStrategies.Tunnel);
             Grid.SetColumn(_input, 0);
             inputRow.Children.Add(_input);
             var ask = PillButton(Loc.T("Luna.Chat.Ask"), _palette.Accent, _palette.AccentInk, 46, 96);
+            ask.VerticalAlignment = VerticalAlignment.Bottom;
             ask.IsEnabled = !_cooldown;
             ask.Click += (_, _) => _ = SendFromInputAsync();
             Grid.SetColumn(ask, 1);
@@ -841,6 +852,58 @@ public sealed class LunaAppView : UserControl
         Grid.SetColumn(bubble, 1);
         grid.Children.Add(bubble);
         return grid;
+    }
+
+    private Control LunaSourcesRow(IReadOnlyList<LunaSourceDto> sources)
+    {
+        var stack = new StackPanel
+        {
+            Spacing = 3,
+            Margin = new Thickness(52, -4, 40, 0),
+            HorizontalAlignment = HorizontalAlignment.Left
+        };
+        stack.Children.Add(Text(Loc.T("Luna.Chat.SourcesTitle"), 11, _palette.Muted, FontWeight.SemiBold, wrap: true));
+        foreach (var source in sources.Take(3))
+        {
+            if (!Uri.TryCreate(source.Url, UriKind.Absolute, out var uri)
+                || uri.Scheme is not ("http" or "https")) continue;
+            var label = string.IsNullOrWhiteSpace(source.Title) ? source.Site : source.Title;
+            if (string.IsNullOrWhiteSpace(label)) label = uri.Host;
+            var link = new Button
+            {
+                Content = new TextBlock
+                {
+                    Text = label,
+                    FontFamily = LunaThemes.Body,
+                    FontSize = 11.5,
+                    Foreground = LunaBrushes.B(_palette.Accent),
+                    TextDecorations = TextDecorations.Underline,
+                    TextWrapping = TextWrapping.Wrap
+                },
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Padding = new Thickness(0),
+                Cursor = new Cursor(StandardCursorType.Hand),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                HorizontalContentAlignment = HorizontalAlignment.Left
+            };
+            link.Click += (_, _) => OpenSource(uri);
+            stack.Children.Add(link);
+        }
+        return stack;
+    }
+
+    private static void OpenSource(Uri uri)
+    {
+        if (uri.Scheme is not ("http" or "https")) return;
+        try
+        {
+            Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            LunaLog.Exception("open-source", ex);
+        }
     }
 
     internal static ColumnDefinitions BubbleColumns(bool withFace)
@@ -1162,6 +1225,8 @@ public sealed class LunaAppView : UserControl
             {
                 _messages.Add(luna);
                 AddStreamingReply(luna.Text);
+                if (luna.Sources is { Count: > 0 } sources)
+                    _messagesPanel?.Children.Add(LunaSourcesRow(sources));
             }
             _requestSent = false;
             await RefreshChatsQuietAsync();
@@ -1287,13 +1352,28 @@ public sealed class LunaAppView : UserControl
         return parts;
     }
 
+    private bool _suppressEnterText;
+
     private void OnInputKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Enter && !e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        if (e.Key is Key.ImeProcessed or Key.None) return;
+        if (e.Key != Key.Enter) return;
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Shift)) return;
+        e.Handled = true;
+        _suppressEnterText = true;
+        _ = SendFromInputAsync();
+    }
+
+    private void OnInputTextInput(object? sender, TextInputEventArgs e)
+    {
+        if (string.IsNullOrEmpty(e.Text)) return;
+        if (_suppressEnterText && (e.Text == "\r" || e.Text == "\n" || e.Text == "\r\n"))
         {
             e.Handled = true;
-            _ = SendFromInputAsync();
+            _suppressEnterText = false;
+            return;
         }
+        _suppressEnterText = false;
     }
 
     private Control LimitPanel()

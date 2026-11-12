@@ -9,7 +9,7 @@ namespace OpControl.Parental.Server.Services.Luna;
 /// </summary>
 public static class LunaPrompts
 {
-    public const string Version = "luna-core-2";
+    public const string Version = "luna-core-3";
     public const int MaxExtraInstructions = 1000;
     public const int MaxTitleLength = 40;
     public const int MaxInputCharacters = 1000;
@@ -64,6 +64,10 @@ public static class LunaPrompts
 
         Age: match the child's age and reading level. Reply in the language the child writes in.
 
+        Web search: you may search the web only when the answer needs current or specific facts. Prefer encyclopedias,
+        museums, governments, schools and science sources. Never search for personal information about real private
+        people, and never put the child's personal details in a query. When you use web results, cite the page.
+
         Safety and privacy:
         - Never ask for personal information such as a full name, address, school, phone number, password or photos.
           If the child shares personal information, gently tell them not to share that online and move on.
@@ -83,6 +87,10 @@ public static class LunaPrompts
     public const string StricterInstruction =
         "Your previous answer was not suitable for a child. Answer again more simply and safely. " +
         "Do not include anything sexual, violent, hateful or unsafe. Keep it kind and focused on learning.";
+
+    public static string SourceBlockedInstruction(string host) =>
+        "Your previous answer used a source this child is not allowed to see (" + host + "). " +
+        "Answer again using only safe, educational sources. Do not cite or mention that source.";
 
     public static string SubjectMode(string subject) =>
         Subjects.TryGetValue(subject, out var mode) ? mode : Subjects[Contracts.LunaSubjects.Curious];

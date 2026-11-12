@@ -15,17 +15,20 @@ public sealed class LunaChatService
     private readonly ILunaProviderFactory _providers;
     private readonly LunaSettingsService _settings;
     private readonly LunaUsageStore _usage;
+    private readonly LunaWebSearchGuard _searchGuard;
     private readonly LockService _locks;
     private readonly AlertService _alerts;
     private readonly ILogger<LunaChatService> _logger;
 
     public LunaChatService(ParentalDbContext db, ILunaProviderFactory providers, LunaSettingsService settings,
-        LunaUsageStore usage, LockService locks, AlertService alerts, ILogger<LunaChatService> logger)
+        LunaUsageStore usage, LunaWebSearchGuard searchGuard, LockService locks, AlertService alerts,
+        ILogger<LunaChatService> logger)
     {
         _db = db;
         _providers = providers;
         _settings = settings;
         _usage = usage;
+        _searchGuard = searchGuard;
         _locks = locks;
         _alerts = alerts;
         _logger = logger;
@@ -116,8 +119,7 @@ public sealed class LunaChatService
             .ThenBy(m => m.Role == LunaChatRoles.Child ? 0 : 1)
             .Take(500)
             .ToListAsync(ct);
-        return rows.Select(m => new LunaChildMessageDto(m.Id, m.ChatId, m.Role,
-            m.Role == LunaChatRoles.Child ? m.Text : m.ShownText, m.CreatedUtc, m.Flag.ToString())).ToList();
+        return rows.Select(ToChild).ToList();
     }
 
     public async Task<LunaMessageResponse> SendAsync(LunaTokenContext ctx, Guid chatId, string? rawText,
@@ -152,9 +154,8 @@ public sealed class LunaChatService
                 AppText.Get("Luna.Child.Limit", language, FirstName(child.Name)), null);
         }
 
-        var month = await _usage.MonthlyTokensAsync(ctx.FamilyId, usage.Date, ct);
-        var monthUsed = month.PromptTokens + month.CompletionTokens;
-        if (familySettings.MonthlyTokenCap is int cap && cap > 0 && monthUsed >= cap)
+        var month = await _usage.MonthlyUsageAsync(ctx.FamilyId, usage.Date, ct);
+        if (familySettings.MonthlyTokenCap is int cap && cap > 0 && month.CapTokens >= cap)
         {
             await MonthlyCapAlertAsync(ctx.FamilyId, ctx.ChildId, child.Name, ct);
             return new LunaMessageResponse(chatId, nullMessage(), null,
@@ -251,7 +252,21 @@ public sealed class LunaChatService
         var history = await BuildTurnsAsync(chat.Id, text, ct);
         var system = LunaPrompts.Build(chat.Subject,
             LunaPrompts.AgeFrom(child.DateOfBirth, now), childSettings.ExtraInstructions, learner?.Text, chat.Summary);
-        var request = new LunaChatRequest(system, history, LunaLimits.MaxOutputTokens);
+
+        // Web search is Setup A (OpenRouter) only. The engine cap is 1,200 excluded
+        // domains; the cited-source post-check below is the real guarantee.
+        LunaSearchGuardResult? guard = null;
+        LunaWebSearchOptions? search = null;
+        if (childSettings.WebSearchEnabled
+            && familySettings.Setup == LunaSetup.A
+            && familySettings.ChatProvider == LunaChatProviders.OpenRouter)
+        {
+            guard = await _searchGuard.BuildAsync(ctx.FamilyId, ctx.ChildId, ct);
+            search = new LunaWebSearchOptions(LunaWebSearchGuard.Engine, LunaWebSearchGuard.MaxResults,
+                LunaWebSearchGuard.MaxTotalResults, guard.ExcludedDomains);
+        }
+
+        var request = new LunaChatRequest(system, history, LunaLimits.MaxOutputTokens, WebSearch: search);
 
         LunaChatResult first;
         try
@@ -270,6 +285,95 @@ public sealed class LunaChatService
         if (clean.Length == 0) clean = AppText.Get("Luna.Child.ReplyFallback", language);
         usage.PromptTokens += first.PromptTokens;
         usage.CompletionTokens += first.CompletionTokens;
+        usage.WebSearches += first.WebSearchRequests;
+
+        var blockedHost = guard is null ? null : FirstBlockedSource(first.Sources, guard.BlockedDomains);
+        if (blockedHost is not null)
+        {
+            // A cited source is on a domain this child may not see. Drop the answer and
+            // retry once without that source, exactly like a blocked reply.
+            LunaChatResult? sourceRetry = null;
+            var retryClean = "";
+            IReadOnlyList<string> retryCategories = ["source:" + blockedHost];
+            IReadOnlyList<LunaChatSource>? retrySources = null;
+            var retryUrgent = false;
+            try
+            {
+                var retrySearch = search?.WithAdditionalExclusions([blockedHost]);
+                var stricter = new LunaChatRequest(
+                    system + "\n\n" + LunaPrompts.SourceBlockedInstruction(blockedHost),
+                    history, LunaLimits.MaxOutputTokens, true, retrySearch);
+                sourceRetry = await chatProvider.CompleteAsync(config, stricter, ct);
+                usage.PromptTokens += sourceRetry.PromptTokens;
+                usage.CompletionTokens += sourceRetry.CompletionTokens;
+                usage.WebSearches += sourceRetry.WebSearchRequests;
+                var stripped = LunaSafety.StripConcernMarkers(sourceRetry.Text);
+                retryClean = stripped.Text;
+                if (stripped.Kinds.Count > 0) retryUrgent = true;
+                retrySources = sourceRetry.Sources;
+                if (guard is not null && FirstBlockedSource(retrySources, guard.BlockedDomains) is not null)
+                    retryClean = "";
+                var retryModeration = await moderator.ModerateAsync(retryClean, ct);
+                var retryClassification = Classify(familySettings, retryModeration);
+                retryCategories = retryClassification.Categories.Count > 0
+                    ? retryClassification.Categories
+                    : retryCategories;
+                retryUrgent |= retryClassification.Urgent;
+                if (retryClassification.Blocked && !retryUrgent) retryClean = "";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Luna source retry failed for child {ChildId}", ctx.ChildId);
+                await MarkSetupBrokenAsync(chat.FamilyId, ex, ct);
+                retryClean = "";
+            }
+
+            var childMessage = await SaveExchangeAsync(chat, usage, child, text, null, LunaMessageFlag.None,
+                null, null, 0, 0, now, ct);
+            usage.Messages++;
+            usage.UpdatedUtc = now;
+            LunaMessage lunaMessage;
+            if (retryUrgent)
+            {
+                var urgentText = UrgentText(familySettings, language);
+                lunaMessage = await AddLunaAsync(chat, retryClean, urgentText, LunaMessageFlag.Urgent,
+                    LunaSafety.Describe(retryCategories), null,
+                    first.PromptTokens + (sourceRetry?.PromptTokens ?? 0),
+                    first.CompletionTokens + (sourceRetry?.CompletionTokens ?? 0), now, ct,
+                    QueryFor(text, first, sourceRetry), LunaWebSearchData.SerializeSources(retrySources),
+                    first.WebSearchRequests + (sourceRetry?.WebSearchRequests ?? 0));
+                await _db.SaveChangesAsync(ct);
+                await UrgentAlertAsync(ctx.FamilyId, ctx.ChildId, child.Name, chat.Id, ct);
+            }
+            else if (retryClean.Length > 0)
+            {
+                lunaMessage = await AddLunaAsync(chat, retryClean, retryClean, LunaMessageFlag.None, null, null,
+                    first.PromptTokens + (sourceRetry?.PromptTokens ?? 0),
+                    first.CompletionTokens + (sourceRetry?.CompletionTokens ?? 0), now, ct,
+                    QueryFor(text, first, sourceRetry), LunaWebSearchData.SerializeSources(retrySources),
+                    first.WebSearchRequests + (sourceRetry?.WebSearchRequests ?? 0));
+                await _db.SaveChangesAsync(ct);
+            }
+            else
+            {
+                var fallback = AppText.Get("Luna.Child.ReplyFallback", language);
+                lunaMessage = await AddLunaAsync(chat, clean, fallback, LunaMessageFlag.ReplyBlocked,
+                    LunaSafety.Describe(retryCategories), null, first.PromptTokens, first.CompletionTokens, now, ct,
+                    QueryFor(text, first, null), LunaWebSearchData.SerializeSources(first.Sources),
+                    first.WebSearchRequests);
+                await _db.SaveChangesAsync(ct);
+                await FlaggedAlertAsync(ctx.FamilyId, ctx.ChildId, ctx.DeviceId, child.Name, chat.Id, true, ct);
+            }
+
+            var turnFlagged = retryUrgent || lunaMessage.Flag == LunaMessageFlag.ReplyBlocked;
+            await MaybeTitleAsync(chat, child, text, retryClean.Length > 0 ? retryClean : lunaMessage.ShownText,
+                familySettings, moderator, chatProvider, config, language, turnFlagged, ct);
+            await MaybeSummarizeAsync(chat, child, chatProvider, config, ct);
+            return new LunaMessageResponse(chatId, ToChild(childMessage), ToChild(lunaMessage),
+                LunaUsageStore.MessagesLeft(childSettings, usage), false,
+                usage.CooldownUntilUtc > now, retryUrgent, null,
+                WarningText(childSettings, usage, language));
+        }
 
         // 7. Output moderation on the full reply plus the model's concern marker.
         LunaModerationResult outputModeration;
@@ -349,14 +453,18 @@ public sealed class LunaChatService
                 var urgentText = UrgentText(familySettings, language);
                 lunaMessage = await AddLunaAsync(chat, retryClean, urgentText, LunaMessageFlag.Urgent,
                     LunaSafety.Describe(retryCategories), null,
-                    first.PromptTokens + (retry?.PromptTokens ?? 0), first.CompletionTokens + (retry?.CompletionTokens ?? 0), now, ct);
+                    first.PromptTokens + (retry?.PromptTokens ?? 0), first.CompletionTokens + (retry?.CompletionTokens ?? 0), now, ct,
+                    QueryFor(text, first, retry), LunaWebSearchData.SerializeSources(retry?.Sources ?? first.Sources),
+                    first.WebSearchRequests);
                 await _db.SaveChangesAsync(ct);
                 await UrgentAlertAsync(ctx.FamilyId, ctx.ChildId, child.Name, chat.Id, ct);
             }
             else if (retryClean.Length > 0)
             {
                 lunaMessage = await AddLunaAsync(chat, retryClean, retryClean, LunaMessageFlag.None, null, null,
-                    first.PromptTokens, first.CompletionTokens, now, ct);
+                    first.PromptTokens, first.CompletionTokens, now, ct,
+                    QueryFor(text, first, retry), LunaWebSearchData.SerializeSources(retry?.Sources ?? first.Sources),
+                    first.WebSearchRequests);
                 await _db.SaveChangesAsync(ct);
             }
             else
@@ -364,7 +472,9 @@ public sealed class LunaChatService
                 var fallback = AppText.Get("Luna.Child.ReplyFallback", language);
                 lunaMessage = await AddLunaAsync(chat, clean, fallback, LunaMessageFlag.ReplyBlocked,
                     LunaSafety.Describe(output.Categories), ScoresJson(output.Scores),
-                    first.PromptTokens, first.CompletionTokens, now, ct);
+                    first.PromptTokens, first.CompletionTokens, now, ct,
+                    QueryFor(text, first, retry), LunaWebSearchData.SerializeSources(retry?.Sources ?? first.Sources),
+                    first.WebSearchRequests);
                 await _db.SaveChangesAsync(ct);
                 await FlaggedAlertAsync(ctx.FamilyId, ctx.ChildId, ctx.DeviceId, child.Name, chat.Id, true, ct);
             }
@@ -382,7 +492,8 @@ public sealed class LunaChatService
         // Safe reply.
         var safeChild = await SaveExchangeAsync(chat, usage, child, text, null, LunaMessageFlag.None, null, null, 0, 0, now, ct);
         var safeLuna = await AddLunaAsync(chat, clean, clean, LunaMessageFlag.None, null, null,
-            first.PromptTokens, first.CompletionTokens, now, ct);
+            first.PromptTokens, first.CompletionTokens, now, ct,
+            QueryFor(text, first, null), LunaWebSearchData.SerializeSources(first.Sources), first.WebSearchRequests);
         usage.Messages++;
         usage.UpdatedUtc = now;
         await _db.SaveChangesAsync(ct);
@@ -425,6 +536,24 @@ public sealed class LunaChatService
     }
 
     // ---- helpers ----
+
+    private static string? FirstBlockedSource(IReadOnlyList<LunaChatSource>? sources, IReadOnlySet<string> blocked)
+    {
+        foreach (var source in sources ?? [])
+        {
+            if (LunaWebSearchGuard.IsBlocked(source.Url, blocked))
+                return LunaWebSearchGuard.HostOf(source.Url) ?? "source";
+        }
+        return null;
+    }
+
+    private static string? QueryFor(string childText, LunaChatResult first, LunaChatResult? retry)
+    {
+        var queries = (retry?.Queries ?? first.Queries ?? []);
+        var joined = LunaWebSearchData.SerializeQueries(queries);
+        if (joined is not null) return joined;
+        return first.WebSearchRequests + (retry?.WebSearchRequests ?? 0) > 0 ? childText : null;
+    }
 
     private async Task<(Device Device, Child Child, ChildLunaSettings Settings, LunaUsageDay Usage)> LoadAsync(
         LunaTokenContext ctx, CancellationToken ct)
@@ -495,7 +624,8 @@ public sealed class LunaChatService
     }
 
     private async Task<LunaMessage> AddLunaAsync(LunaChat chat, string text, string shown, LunaMessageFlag flag,
-        string? categories, string? scores, int promptTokens, int completionTokens, DateTime now, CancellationToken ct)
+        string? categories, string? scores, int promptTokens, int completionTokens, DateTime now, CancellationToken ct,
+        string? webQuery = null, string? webSources = null, int webSearchRequests = 0)
     {
         var created = NextMessageUtc(chat, now);
         var message = new LunaMessage
@@ -511,7 +641,10 @@ public sealed class LunaChatService
             FlagCategories = categories,
             FlagScores = scores,
             PromptTokens = promptTokens,
-            CompletionTokens = completionTokens
+            CompletionTokens = completionTokens,
+            WebQuery = webQuery,
+            WebSources = webSources,
+            WebSearchRequests = webSearchRequests
         };
         _db.LunaMessages.Add(message);
         chat.LastMessageUtc = created;
@@ -528,7 +661,8 @@ public sealed class LunaChatService
         JsonSerializer.Serialize(scores);
 
     private static LunaChildMessageDto ToChild(LunaMessage m) =>
-        new(m.Id, m.ChatId, m.Role, m.Role == LunaChatRoles.Child ? m.Text : m.ShownText, m.CreatedUtc, m.Flag.ToString());
+        new(m.Id, m.ChatId, m.Role, m.Role == LunaChatRoles.Child ? m.Text : m.ShownText, m.CreatedUtc,
+            m.Flag.ToString(), m.Role == LunaChatRoles.Luna ? LunaWebSearchData.ParseSources(m.WebSources, 3) : null);
 
     private static LunaChatDto ToDto(LunaChat c) =>
         new(c.Id, c.Subject, c.Title, c.TitleSetByChild, c.HiddenByChild, c.CreatedUtc, c.LastMessageUtc);

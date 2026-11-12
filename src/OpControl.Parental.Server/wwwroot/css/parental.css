@@ -1038,3 +1038,6 @@ body:has(.legal-text) .auth-card { width: min(880px, 100%); }
 .browser-rules-card { margin-top: 18px; }
 .browser-block-helper { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
 .browser-block-helper .muted { max-width: 46ch; }
+.luna-websearch { margin-top: 6px; }
+.luna-source-list { margin: 4px 0 0; padding-left: 18px; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+.luna-source-list a { color: var(--text); overflow-wrap: anywhere; }

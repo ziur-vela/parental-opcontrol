@@ -658,6 +658,7 @@ public class ChildLunaSettings
     public int DailyMessageLimit { get; set; } = 60;
     public string? ExtraInstructions { get; set; }
     public string Theme { get; set; } = LunaThemes.Night;
+    public bool WebSearchEnabled { get; set; }
     public DateTime UpdatedUtc { get; set; } = DateTime.UtcNow;
 }
 
@@ -707,6 +708,9 @@ public class LunaMessage
     public bool MarkedFine { get; set; }
     public int PromptTokens { get; set; }
     public int CompletionTokens { get; set; }
+    public string? WebQuery { get; set; }
+    public string? WebSources { get; set; }
+    public int WebSearchRequests { get; set; }
 }
 
 public class LunaLearnerProfile
@@ -728,6 +732,7 @@ public class LunaUsageDay
     public int ExtraAllowed { get; set; }
     public int PromptTokens { get; set; }
     public int CompletionTokens { get; set; }
+    public int WebSearches { get; set; }
     public DateTime? CooldownUntilUtc { get; set; }
     public DateTime UpdatedUtc { get; set; } = DateTime.UtcNow;
 }

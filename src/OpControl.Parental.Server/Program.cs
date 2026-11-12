@@ -198,6 +198,7 @@ else
 }
 builder.Services.AddScoped<LunaSettingsService>();
 builder.Services.AddScoped<LunaUsageStore>();
+builder.Services.AddScoped<LunaWebSearchGuard>();
 builder.Services.AddScoped<LunaChatService>();
 builder.Services.AddScoped<LunaParentService>();
 builder.Services.AddHostedService<LunaTokenSweeper>();

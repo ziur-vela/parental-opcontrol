@@ -1584,4 +1584,14 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Activity.Tamper.BrowserPolicy" xml:space="preserve"><value>Browser rules were removed and restored</value></data>
   <data name="Alert.BrowserPolicyRemoved.Title" xml:space="preserve"><value>Browser rules removed: {0}</value></data>
   <data name="Alert.BrowserPolicyRemoved.Detail" xml:space="preserve"><value>The browser rules were removed on {0}. They were restored automatically.</value></data>
+  <data name="Luna.Error.WebSearchSetupB" xml:space="preserve"><value>Web search is only available with Setup A (OpenRouter).</value></data>
+  <data name="Luna.Child.WebSearch" xml:space="preserve"><value>Luna can search the web</value></data>
+  <data name="Luna.Child.WebSearchOn" xml:space="preserve"><value>Web search is on</value></data>
+  <data name="Luna.Child.WebSearchOff" xml:space="preserve"><value>Web search is off</value></data>
+  <data name="Luna.Child.WebSearchDetail" xml:space="preserve"><value>{0} can look things up when the answer needs current facts. Luna shows up to three sources under the answer.</value></data>
+  <data name="Luna.Child.WebSearchSetupB" xml:space="preserve"><value>Web search needs Setup A (OpenRouter). It is not available with Setup B.</value></data>
+  <data name="Luna.Child.WebSearchSaved" xml:space="preserve"><value>Web search setting saved.</value></data>
+  <data name="Luna.Setup.MonthlySearches" xml:space="preserve"><value>{0} web searches this month</value></data>
+  <data name="Luna.Review.WebSearch" xml:space="preserve"><value>Web search · {0} sources</value></data>
+  <data name="Luna.Review.WebSearchQuery" xml:space="preserve"><value>Search:</value></data>
 </root>
