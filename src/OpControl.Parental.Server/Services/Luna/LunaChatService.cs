@@ -16,19 +16,21 @@ public sealed class LunaChatService
     private readonly LunaSettingsService _settings;
     private readonly LunaUsageStore _usage;
     private readonly LunaWebSearchGuard _searchGuard;
+    private readonly LunaActivityStore _activity;
     private readonly LockService _locks;
     private readonly AlertService _alerts;
     private readonly ILogger<LunaChatService> _logger;
 
     public LunaChatService(ParentalDbContext db, ILunaProviderFactory providers, LunaSettingsService settings,
-        LunaUsageStore usage, LunaWebSearchGuard searchGuard, LockService locks, AlertService alerts,
-        ILogger<LunaChatService> logger)
+        LunaUsageStore usage, LunaWebSearchGuard searchGuard, LunaActivityStore activity, LockService locks,
+        AlertService alerts, ILogger<LunaChatService> logger)
     {
         _db = db;
         _providers = providers;
         _settings = settings;
         _usage = usage;
         _searchGuard = searchGuard;
+        _activity = activity;
         _locks = locks;
         _alerts = alerts;
         _logger = logger;
@@ -47,6 +49,14 @@ public sealed class LunaChatService
         var (notice, warning) = StateText(child, settings, usage, left, lockState.IsLocked, language, now);
         return new LunaStatusDto(settings.Enabled, FirstName(child.Name), settings.Theme, left,
             usage.CooldownUntilUtc, left <= 0, language, HelplineFor(familySettings, language), notice, warning);
+    }
+
+    public async Task<LunaActivityDto> GetActivityAsync(LunaTokenContext ctx, Guid chatId, CancellationToken ct = default)
+    {
+        var exists = await _db.LunaChats.AsNoTracking()
+            .AnyAsync(c => c.Id == chatId && c.FamilyId == ctx.FamilyId && c.ChildId == ctx.ChildId, ct);
+        if (!exists) throw new InvalidOperationException(AppText.Get("Luna.Error.ChatNotFound"));
+        return new LunaActivityDto(_activity.Get(ctx.ChildId, chatId));
     }
 
     public Task<List<LunaChatDto>> ListChatsAsync(LunaTokenContext ctx, CancellationToken ct = default) =>
@@ -268,10 +278,15 @@ public sealed class LunaChatService
 
         var request = new LunaChatRequest(system, history, LunaLimits.MaxOutputTokens, WebSearch: search);
 
+        if (search is not null)
+            _activity.Set(ctx.ChildId, chatId,
+                LunaSearchIntent.LikelyNeedsSearch(text) ? LunaActivityStore.Searching : LunaActivityStore.Thinking);
+
         LunaChatResult first;
         try
         {
             first = await chatProvider.CompleteAsync(config, request, ct);
+            if (search is not null) _activity.Set(ctx.ChildId, chatId, LunaActivityStore.Thinking);
         }
         catch (LunaProviderException ex)
         {

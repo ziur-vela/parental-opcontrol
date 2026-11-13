@@ -253,7 +253,7 @@ public class Job185HotfixTests
             return Task.FromResult(new KidSnapshot(summary, state, _messages.ToList(), true));
         }
 
-        public Task<PinPipeResponse> SendMessageAsync(string text, CancellationToken ct)
+        public Task<PinPipeResponse> SendMessageAsync(string text, CancellationToken ct, Guid? clientMessageId = null)
         {
             var message = new ChildMessageDto(Guid.NewGuid(), Child, null, MessageDirection.ChildToParent,
                 null, string.Empty, text, null, false, false, DateTime.UtcNow, null, null, null, null,

@@ -165,6 +165,12 @@ internal static class Theme
     /// <summary>Fredoka 500 for the lock reason line.</summary>
     public static Font LockReason(float pixels) => MakePx(DisplayMedium, "Segoe UI Semibold", pixels);
 
+    /// <summary>Fredoka 600 in points, for the kid message popup.</summary>
+    public static Font KidDisplay(float size) => Make(DisplaySemiBold, "Segoe UI Semibold", size);
+
+    /// <summary>Nunito 800 in points, for the kid message popup.</summary>
+    public static Font KidBody(float size) => Make(BodyExtraBold, "Segoe UI", size);
+
     /// <summary>Nunito 700 for the lock hint.</summary>
     public static Font LockHint(float pixels) => MakePx(BodyBold, "Segoe UI", pixels);
 

@@ -19,7 +19,7 @@ public sealed record KidSnapshot(
 public interface IKidDataSource
 {
     Task<KidSnapshot> LoadAsync(CancellationToken ct);
-    Task<PinPipeResponse> SendMessageAsync(string text, CancellationToken ct);
+    Task<PinPipeResponse> SendMessageAsync(string text, CancellationToken ct, Guid? clientMessageId = null);
     Task MarkSeenAsync(Guid messageId, CancellationToken ct);
     Task MarkAcknowledgedAsync(Guid messageId, CancellationToken ct);
     Task SetThemeAsync(string theme, CancellationToken ct);
@@ -42,8 +42,8 @@ public sealed class PipeKidDataSource : IKidDataSource
         return new KidSnapshot(response.Summary, response.State, response.Messages ?? [], response.Online == true);
     }
 
-    public Task<PinPipeResponse> SendMessageAsync(string text, CancellationToken ct) =>
-        SendAsync(new PinPipeRequest("message-send", Text: text), ct, 25);
+    public Task<PinPipeResponse> SendMessageAsync(string text, CancellationToken ct, Guid? clientMessageId = null) =>
+        SendAsync(new PinPipeRequest("message-send", Text: text, ClientMessageId: clientMessageId), ct, 25);
 
     public Task MarkSeenAsync(Guid messageId, CancellationToken ct) =>
         SendAsync(new PinPipeRequest("message-seen", MessageId: messageId), ct);

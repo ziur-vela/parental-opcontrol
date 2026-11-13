@@ -181,7 +181,7 @@ public class Job20CAboutPolishTests
             return Task.FromResult(new KidSnapshot(summary, state, [], true));
         }
 
-        public Task<PinPipeResponse> SendMessageAsync(string text, CancellationToken ct) =>
+        public Task<PinPipeResponse> SendMessageAsync(string text, CancellationToken ct, Guid? clientMessageId = null) =>
             Task.FromResult(new PinPipeResponse(true));
 
         public Task MarkSeenAsync(Guid messageId, CancellationToken ct) => Task.CompletedTask;

@@ -62,6 +62,9 @@ public class Job19FDeleteChatsTests
         public Task<LunaMessageResponse> SendMessageAsync(Guid chatId, string text, CancellationToken ct = default) =>
             throw new NotSupportedException();
 
+        public Task<LunaActivityDto> GetActivityAsync(Guid chatId, CancellationToken ct = default) =>
+            Task.FromResult(new LunaActivityDto("thinking"));
+
         public Task<LunaMoreRequestDto> RequestMoreAsync(CancellationToken ct = default) =>
             Task.FromResult(new LunaMoreRequestDto(Guid.NewGuid(), Guid.Empty, DateTime.UtcNow, "Pending", null, null));
 

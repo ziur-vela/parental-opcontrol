@@ -91,6 +91,18 @@ public sealed class MessageService
     {
         var text = NormalizeText(request.Text, null);
         var now = DateTime.UtcNow;
+        if (request.ClientMessageId is { } clientId)
+        {
+            var duplicate = await _db.ChildMessages.AsNoTracking()
+                .FirstOrDefaultAsync(m => m.FamilyId == device.FamilyId && m.DeviceId == device.Id
+                    && m.ClientMessageId == clientId, ct);
+            if (duplicate is not null)
+            {
+                var duplicateName = await _db.Children.AsNoTracking()
+                    .Where(c => c.Id == duplicate.ChildId).Select(c => c.Name).FirstOrDefaultAsync(ct) ?? "";
+                return ToDto(duplicate, null, duplicateName, null);
+            }
+        }
         var since = now - RateLimitWindow;
         var recent = await _db.ChildMessages.AsNoTracking()
             .Where(m => m.FamilyId == device.FamilyId && m.ChildId == device.ChildId
@@ -113,10 +125,25 @@ public sealed class MessageService
             Direction = MessageDirection.ChildToParent,
             SenderParentId = null,
             Text = text,
+            ClientMessageId = request.ClientMessageId,
             CreatedUtc = now
         };
         _db.ChildMessages.Add(message);
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException) when (request.ClientMessageId is { } raceId)
+        {
+            _db.Entry(message).State = EntityState.Detached;
+            var duplicate = await _db.ChildMessages.AsNoTracking()
+                .FirstOrDefaultAsync(m => m.FamilyId == device.FamilyId && m.DeviceId == device.Id
+                    && m.ClientMessageId == raceId, ct);
+            if (duplicate is null) throw;
+            var duplicateName = await _db.Children.AsNoTracking()
+                .Where(c => c.Id == duplicate.ChildId).Select(c => c.Name).FirstOrDefaultAsync(ct) ?? "";
+            return ToDto(duplicate, null, duplicateName, null);
+        }
 
         var dto = ToDto(message, null, childName, null);
         _events.PublishMessage(dto);

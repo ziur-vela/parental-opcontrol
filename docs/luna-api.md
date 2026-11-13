@@ -125,6 +125,16 @@ Returns up to 500 messages, oldest first. `text` is what the child saw: for Luna
 
 `sources` is set on Luna messages when the answer used web search: at most **3** approved pages, each `{ "url": "https://…", "title": "…", "site": "example.org" }`. The app labels them "Where I found this" / "Dónde lo encontré" and opens them in the default browser; the DNS filter still applies.
 
+### `GET /api/luna/chats/{chatId}/activity`
+
+Lightweight short-lived status for the child app while a message is in flight:
+
+```json
+{ "state": "idle" }
+```
+
+`state` is `idle`, `thinking` or `searching`. The server sets `thinking` when a web-search-capable turn starts, `searching` when the turn is likely to use current facts, and back to `thinking` after the provider returns. The app polls about every 700 ms while waiting and shows the web-search animation only for `searching`; if no search happens it only shows the normal thinking animation. This endpoint is intentionally not part of the 10/min message rate limit.
+
 ### `POST /api/luna/chats/{chatId}/messages`
 
 Rate limit: **10 requests per minute per child**.

@@ -695,6 +695,9 @@ namespace OpControl.Parental.Server.Data.Migrations
                     b.Property<Guid>("ChildId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ClientMessageId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("CreatedUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -754,6 +757,10 @@ namespace OpControl.Parental.Server.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ChildId", "ParentReadUtc");
+
+                    b.HasIndex("DeviceId", "ClientMessageId")
+                        .IsUnique()
+                        .HasFilter("\"ClientMessageId\" IS NOT NULL");
 
                     b.HasIndex("ChildId", "Direction", "CreatedUtc");
 

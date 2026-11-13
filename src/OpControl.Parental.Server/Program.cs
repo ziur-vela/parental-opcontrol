@@ -199,6 +199,7 @@ else
 builder.Services.AddScoped<LunaSettingsService>();
 builder.Services.AddScoped<LunaUsageStore>();
 builder.Services.AddScoped<LunaWebSearchGuard>();
+builder.Services.AddSingleton<LunaActivityStore>();
 builder.Services.AddScoped<LunaChatService>();
 builder.Services.AddScoped<LunaParentService>();
 builder.Services.AddHostedService<LunaTokenSweeper>();
@@ -1154,6 +1155,12 @@ app.MapPatch("/api/luna/chats/{chatId:guid}", async (Guid chatId, LunaUpdateChat
 {
     var context = LunaFromClaims(user);
     return context is null ? Results.Unauthorized() : Results.Ok(await chat.UpdateChatAsync(context, chatId, request, ct));
+}).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = LunaTokenAuthenticationHandler.SchemeName });
+
+app.MapGet("/api/luna/chats/{chatId:guid}/activity", async (Guid chatId, ClaimsPrincipal user, LunaChatService chat, CancellationToken ct) =>
+{
+    var context = LunaFromClaims(user);
+    return context is null ? Results.Unauthorized() : Results.Ok(await chat.GetActivityAsync(context, chatId, ct));
 }).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = LunaTokenAuthenticationHandler.SchemeName });
 
 app.MapGet("/api/luna/chats/{chatId:guid}/messages", async (Guid chatId, ClaimsPrincipal user, LunaChatService chat, CancellationToken ct) =>

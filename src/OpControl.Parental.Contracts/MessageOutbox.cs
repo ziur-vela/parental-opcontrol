@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace OpControl.Parental.Contracts;
 
-public sealed record MessageOutboxEntry(string Text, DateTime CreatedUtc);
+public sealed record MessageOutboxEntry(string Text, DateTime CreatedUtc, Guid? ClientMessageId = null);
 
 /// <summary>Local pending-message queue shared by the service and the helper.</summary>
 public static class MessageOutbox

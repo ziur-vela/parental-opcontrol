@@ -336,7 +336,7 @@ public class Job19IMessageFlickerTests
             return Task.FromResult(new KidSnapshot(summary, state, Messages.ToList(), true));
         }
 
-        public Task<PinPipeResponse> SendMessageAsync(string text, CancellationToken ct)
+        public Task<PinPipeResponse> SendMessageAsync(string text, CancellationToken ct, Guid? clientMessageId = null)
         {
             Sent.Add(text);
             var message = new ChildMessageDto(Guid.NewGuid(), Child, null, MessageDirection.ChildToParent,

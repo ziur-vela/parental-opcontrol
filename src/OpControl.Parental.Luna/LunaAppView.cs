@@ -1139,7 +1139,7 @@ public sealed class LunaAppView : UserControl
         string.Equals(flag, "blocked", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(flag, "urgent", StringComparison.OrdinalIgnoreCase);
 
-    private (Control Bubble, ThinkingView Thinking, TextBlock Status)? AddPendingChild(string text)
+    private (Control Bubble, LunaWaitingView Waiting, TextBlock Status)? AddPendingChild(string text)
     {
         if (_messagesPanel is null || _chat is null) return null;
         if (_emptyLabel is not null)
@@ -1152,8 +1152,8 @@ public sealed class LunaAppView : UserControl
         var bubble = ChildBubble(text, flagged: false, local.CreatedUtc,
             Loc.T("Client.Messages.Sending"), out var statusText);
         _messagesPanel.Children.Add(bubble);
-        var thinking = new ThinkingView(_palette);
-        _messagesPanel.Children.Add(thinking);
+        var waiting = new LunaWaitingView(_palette);
+        _messagesPanel.Children.Add(waiting);
         _followTail = true;
         _userScrolledUp = false;
         _pendingNewMessage = false;
@@ -1161,7 +1161,7 @@ public sealed class LunaAppView : UserControl
         _replyFollowMode = ReplyFollowMode.None;
         HideNewMessagePill();
         ScrollToEndSoon();
-        return (bubble, thinking, statusText);
+        return (bubble, waiting, statusText);
     }
 
     /// <summary>
@@ -1183,13 +1183,21 @@ public sealed class LunaAppView : UserControl
         _notice = null;
         var pending = AddPendingChild(text);
         if (pending is null) { _sending = false; return; }
-        var (bubble, thinking, statusText) = pending.Value;
+        var (bubble, waiting, statusText) = pending.Value;
         var local = _messages[^1];
+        using var activityCts = new CancellationTokenSource();
+        var activityPoll = PollActivityAsync(_chat.Id, waiting, activityCts.Token);
         try
         {
             var response = await _api.SendMessageAsync(_chat.Id, text);
-            thinking.Stop();
-            _messagesPanel?.Children.Remove(thinking);
+            activityCts.Cancel();
+            if (waiting.SearchingShown)
+            {
+                waiting.ShowThinking();
+                await Task.Delay(350);
+            }
+            waiting.Stop();
+            _messagesPanel?.Children.Remove(waiting);
             statusText.Text = Loc.T("Client.Messages.Status.Sent");
             if (response.ChildMessage is { } child)
             {
@@ -1209,8 +1217,8 @@ public sealed class LunaAppView : UserControl
                 && !string.IsNullOrWhiteSpace(response.Notice))
             {
                 _pausedDetail = response.Notice;
-                thinking.Stop();
-                _messagesPanel?.Children.Remove(thinking);
+                waiting.Stop();
+                _messagesPanel?.Children.Remove(waiting);
                 ShowPaused();
                 return;
             }
@@ -1235,12 +1243,14 @@ public sealed class LunaAppView : UserControl
         {
             LunaLog.Exception("send", ex);
             statusText.Text = Loc.T("Client.Messages.Status.Failed");
-            thinking.Stop();
-            _messagesPanel?.Children.Remove(thinking);
+            waiting.Stop();
+            _messagesPanel?.Children.Remove(waiting);
             _messagesPanel?.Children.Add(NoticeBanner(Loc.T("Luna.Chat.SendError")));
         }
         finally
         {
+            activityCts.Cancel();
+            try { await activityPoll; } catch (OperationCanceledException) { }
             _sending = false;
             if (_limitReached)
             {
@@ -1353,6 +1363,26 @@ public sealed class LunaAppView : UserControl
     }
 
     private bool _suppressEnterText;
+
+    private async Task PollActivityAsync(Guid chatId, LunaWaitingView waiting, CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try { await Task.Delay(650, ct); }
+            catch (OperationCanceledException) { return; }
+            try
+            {
+                var activity = await _api.GetActivityAsync(chatId, ct);
+                if (string.Equals(activity.State, "searching", StringComparison.OrdinalIgnoreCase))
+                    waiting.ShowSearching();
+                else if (string.Equals(activity.State, "thinking", StringComparison.OrdinalIgnoreCase))
+                    waiting.ShowThinking();
+            }
+            catch (OperationCanceledException) { return; }
+            catch (LunaApiException) { return; }
+            catch (Exception ex) { LunaLog.Exception("activity-poll", ex); return; }
+        }
+    }
 
     private void OnInputKeyDown(object? sender, KeyEventArgs e)
     {
@@ -2114,7 +2144,7 @@ public sealed class LunaAppView : UserControl
         if (_screen == Screen.Chat) ShowChat();
     }
 
-    internal (Control Bubble, ThinkingView Thinking, TextBlock Status)? AddPendingChildForTest(string text) => AddPendingChild(text);
+    internal (Control Bubble, LunaWaitingView Waiting, TextBlock Status)? AddPendingChildForTest(string text) => AddPendingChild(text);
 
     internal void DeliverReplyForTest(string text) => AddStreamingReply(text);
 

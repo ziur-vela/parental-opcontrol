@@ -570,7 +570,8 @@ public sealed record ParentMessageRequest(
 
 public sealed record DeviceMessageRequest(
     string Text,
-    string? Preset = null);
+    string? Preset = null,
+    Guid? ClientMessageId = null);
 
 public sealed record MessageReadRequest(Guid ChildId);
 
@@ -585,7 +586,8 @@ public sealed record PinPipeRequest(
     string? Tab = null,
     bool? MessagesOnly = null,
     string? Theme = null,
-    string? Language = null);
+    string? Language = null,
+    Guid? ClientMessageId = null);
 
 public sealed record PinPipeResponse(
     bool Ok,

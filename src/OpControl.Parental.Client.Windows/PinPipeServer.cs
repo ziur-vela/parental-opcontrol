@@ -167,7 +167,7 @@ public sealed class PinPipeServer : BackgroundService
                     _logger.LogInformation("message-send rejected: empty");
                     return new PinPipeResponse(false, Loc.T("Client.Messages.Placeholder"));
                 }
-                var result = await _messages.SendAsync(request.Text, ct);
+                var result = await _messages.SendAsync(request.Text, ct, request.ClientMessageId);
                 _logger.LogInformation("message-send result ok={Ok} queued={Queued} error={Error}",
                     result.Ok, result.Queued, result.Error ?? "");
                 return new PinPipeResponse(result.Ok, result.Error, Message: result.Message, Queued: result.Queued);

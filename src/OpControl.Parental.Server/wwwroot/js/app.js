@@ -132,3 +132,53 @@ window.ocpVisitsScrollSet = function (value) {
     var el = document.querySelector('.visits-scroll');
     if (el) el.scrollTop = value;
 };
+
+// Job 21b: keep the parent message thread at the newest message, but never yank
+// a parent who scrolled up; show a small jump button instead.
+(function () {
+    var state = {};
+    function thread(id) { return document.getElementById(id); }
+    function pill(id) { return document.getElementById(id); }
+    function atBottom(el) {
+        return !el || el.scrollHeight - el.scrollTop - el.clientHeight <= 24;
+    }
+    window.ocpMessages = {
+        afterRender: function (threadId, pillId, token) {
+            var el = thread(threadId);
+            if (!el) return;
+            var st = state[threadId] || (state[threadId] = { token: null, bottom: true });
+            var button = pill(pillId);
+            var first = st.token === null;
+            var changed = st.token !== token;
+            var wasBottom = st.bottom;
+            st.token = token;
+            st.bottom = atBottom(el);
+            if (first || (changed && wasBottom)) {
+                el.scrollTop = el.scrollHeight;
+                st.bottom = true;
+                if (button) button.hidden = true;
+            } else if (changed && !wasBottom && button) {
+                button.hidden = false;
+            }
+            if (!el.dataset.ocpScrollBound) {
+                el.dataset.ocpScrollBound = '1';
+                el.addEventListener('scroll', function () {
+                    st.bottom = atBottom(el);
+                    if (st.bottom && button) button.hidden = true;
+                }, { passive: true });
+            }
+        },
+        scrollToBottom: function (threadId, pillId) {
+            var el = thread(threadId);
+            if (el) el.scrollTop = el.scrollHeight;
+            var button = pill(pillId);
+            if (button) button.hidden = true;
+            var st = state[threadId];
+            if (st) st.bottom = true;
+        },
+        scrollToDay: function (dayId) {
+            var el = document.getElementById(dayId);
+            if (el) el.scrollIntoView({ block: 'start' });
+        }
+    };
+})();

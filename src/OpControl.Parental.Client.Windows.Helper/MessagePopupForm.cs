@@ -1,15 +1,20 @@
 // Copyright (c) 2026 Ziur / OpControl IT Solutions
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
-using System.Drawing;
+using System.Drawing.Drawing2D;
 using OpControl.Parental.Contracts;
 using OpControl.Parental.Localization;
 
 namespace OpControl.Parental.Helper;
 
+/// <summary>Themed parent-message popup in the child's Night sky / Moon gray theme.</summary>
 public sealed class MessagePopupForm : Form
 {
     private readonly ChildMessageDto _message;
+    private readonly MessagePopupPalette _palette;
+    private readonly Panel _bubble;
+    private readonly Button _primary;
+    private readonly Button _reply;
 
     public event Action<ChildMessageDto>? Seen;
     public event Action<ChildMessageDto>? Acknowledged;
@@ -18,17 +23,18 @@ public sealed class MessagePopupForm : Form
     public MessagePopupForm(ChildMessageDto message)
     {
         _message = message;
+        _palette = MessagePopupTheme.For(MessagePopupTheme.Resolve());
         AutoScaleMode = AutoScaleMode.None;
         FormBorderStyle = FormBorderStyle.None;
         ShowInTaskbar = false;
         TopMost = true;
         StartPosition = FormStartPosition.CenterScreen;
-        BackColor = Theme.Bg;
-        ForeColor = Theme.Text;
-        Padding = new Padding(18, 16, 18, 16);
-        Width = 460;
-        Height = 286;
-        MinimumSize = new Size(380, 220);
+        BackColor = _palette.Background;
+        ForeColor = _palette.Text;
+        Padding = new Padding(22, 18, 22, 18);
+        Width = 486;
+        Height = 316;
+        MinimumSize = new Size(400, 250);
         KeyPreview = true;
 
         var layout = new TableLayoutPanel
@@ -56,18 +62,18 @@ public sealed class MessagePopupForm : Form
 
         var eyebrow = new Label
         {
-            Text = Loc.T("Client.Messages.PopupTitle"),
+            Text = Loc.T("Client.Messages.PopupTitle").ToUpperInvariant(),
             Font = Theme.Mono(9f, FontStyle.Bold),
-            ForeColor = Theme.Label,
+            ForeColor = _palette.Accent,
             AutoSize = true,
             BackColor = Color.Transparent,
-            Margin = new Padding(0, 0, 0, 6)
+            Margin = new Padding(0, 0, 0, 4)
         };
         var sender = new Label
         {
             Text = MessageDisplay.Sender(message),
-            Font = Theme.Sans(15f, FontStyle.Bold),
-            ForeColor = Theme.Text,
+            Font = Theme.KidDisplay(18f),
+            ForeColor = _palette.Text,
             AutoSize = true,
             BackColor = Color.Transparent
         };
@@ -75,7 +81,7 @@ public sealed class MessagePopupForm : Form
         {
             Text = MessageDisplay.Time(message),
             Font = Theme.Mono(9f),
-            ForeColor = Theme.Muted,
+            ForeColor = _palette.Muted,
             AutoSize = true,
             BackColor = Color.Transparent,
             Margin = new Padding(0, 2, 0, 10)
@@ -84,18 +90,26 @@ public sealed class MessagePopupForm : Form
         head.Controls.Add(sender, 0, 1);
         head.Controls.Add(time, 0, 2);
 
+        _bubble = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = _palette.Bubble,
+            Margin = new Padding(0, 4, 0, 14),
+            Padding = new Padding(16, 12, 16, 12)
+        };
+        _bubble.Resize += (_, _) => Round(_bubble, ScaleRadius(18));
         var body = new Label
         {
             Text = MessageDisplay.Body(message),
-            Font = Theme.Sans(12.5f),
-            ForeColor = Theme.Text,
+            Font = Theme.KidBody(12.5f),
+            ForeColor = _palette.BubbleInk,
             AutoSize = false,
             Dock = DockStyle.Fill,
-            TextAlign = ContentAlignment.TopLeft,
-            BackColor = Theme.Panel,
-            Padding = new Padding(12, 10, 12, 10),
-            Margin = new Padding(0, 4, 0, 12)
+            TextAlign = ContentAlignment.MiddleLeft,
+            BackColor = Color.Transparent,
+            UseMnemonic = false
         };
+        _bubble.Controls.Add(body);
 
         var buttons = new FlowLayoutPanel
         {
@@ -106,47 +120,48 @@ public sealed class MessagePopupForm : Form
             BackColor = Color.Transparent,
             Margin = new Padding(0)
         };
-        var primary = new Button
+        _primary = new Button
         {
             Text = message.RequireAck ? Loc.T("Client.Messages.GotIt") : Loc.T("Client.Messages.Close"),
-            AutoSize = true,
-            MinimumSize = new Size(120, 42),
-            Margin = new Padding(8, 0, 0, 0)
+            AutoSize = false,
+            Size = new Size(message.RequireAck ? 148 : 124, 46),
+            Margin = new Padding(10, 0, 0, 0)
         };
-        Theme.StyleButton(primary, primary: true);
-        primary.Click += (_, _) =>
+        StyleButton(_primary, primary: true);
+        _primary.Click += (_, _) =>
         {
             if (message.RequireAck) Acknowledged?.Invoke(message);
             Close();
         };
 
-        var reply = new Button
+        _reply = new Button
         {
             Text = Loc.T("Client.Messages.Reply"),
-            AutoSize = true,
-            MinimumSize = new Size(110, 42)
+            AutoSize = false,
+            Size = new Size(124, 46)
         };
-        Theme.StyleButton(reply);
-        reply.Click += (_, _) =>
+        StyleButton(_reply, primary: false);
+        _reply.Click += (_, _) =>
         {
             ReplyClicked?.Invoke();
             Close();
         };
 
-        buttons.Controls.Add(primary);
-        buttons.Controls.Add(reply);
+        buttons.Controls.Add(_primary);
+        buttons.Controls.Add(_reply);
 
         layout.Controls.Add(head, 0, 0);
-        layout.Controls.Add(body, 0, 1);
+        layout.Controls.Add(_bubble, 0, 1);
         layout.Controls.Add(buttons, 0, 2);
         Controls.Add(layout);
 
+        Resize += (_, _) => Round(this, ScaleRadius(22));
         Paint += (_, e) =>
         {
-            using var pen = new Pen(Theme.Line2, 1);
-            e.Graphics.DrawRectangle(pen, 0, 0, Width - 1, Height - 1);
-            using var accent = new Pen(Theme.Brand, 2);
-            e.Graphics.DrawLine(accent, 0, 0, Width, 0);
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            using var pen = new Pen(_palette.Border, 1.5f);
+            using var path = RoundedPath(new RectangleF(0, 0, Width - 1, Height - 1), 22f);
+            e.Graphics.DrawPath(pen, path);
         };
 
         KeyDown += (_, e) =>
@@ -155,7 +170,49 @@ public sealed class MessagePopupForm : Form
         };
 
         Dpi.ScaleForm(this);
+        Round(this, ScaleRadius(22));
+        Round(_bubble, ScaleRadius(18));
+        RoundButton(_primary);
+        RoundButton(_reply);
         ScrollbarTheme.Attach(this);
+    }
+
+    private void StyleButton(Button button, bool primary)
+    {
+        button.FlatStyle = FlatStyle.Flat;
+        button.FlatAppearance.BorderSize = primary ? 0 : 1;
+        button.FlatAppearance.BorderColor = _palette.Border;
+        button.BackColor = primary ? _palette.Bubble : _palette.Secondary;
+        button.ForeColor = primary ? _palette.BubbleInk : _palette.SecondaryInk;
+        button.Font = Theme.KidBody(11.5f);
+        button.Cursor = Cursors.Hand;
+        button.UseVisualStyleBackColor = false;
+        button.Resize += (_, _) => RoundButton(button);
+    }
+
+    private int ScaleRadius(int radius) => Math.Max(2, (int)Math.Round(radius * DeviceDpi / 96.0));
+
+    private void RoundButton(Button button) => Round(button, button.Height / 2);
+
+    private static void Round(Control control, int radius)
+    {
+        if (control.Width <= 0 || control.Height <= 0) return;
+        using var path = RoundedPath(new RectangleF(0, 0, control.Width, control.Height), radius);
+        var old = control.Region;
+        control.Region = new Region(path);
+        old?.Dispose();
+    }
+
+    private static GraphicsPath RoundedPath(RectangleF bounds, float radius)
+    {
+        var path = new GraphicsPath();
+        var diameter = radius * 2f;
+        path.AddArc(bounds.X, bounds.Y, diameter, diameter, 180, 90);
+        path.AddArc(bounds.Right - diameter, bounds.Y, diameter, diameter, 270, 90);
+        path.AddArc(bounds.Right - diameter, bounds.Bottom - diameter, diameter, diameter, 0, 90);
+        path.AddArc(bounds.X, bounds.Bottom - diameter, diameter, diameter, 90, 90);
+        path.CloseFigure();
+        return path;
     }
 
     protected override CreateParams CreateParams
@@ -164,6 +221,7 @@ public sealed class MessagePopupForm : Form
         {
             var parameters = base.CreateParams;
             parameters.ExStyle |= 0x00000080; // WS_EX_TOOLWINDOW, but still accepts input
+            parameters.ClassStyle |= 0x00020000; // CS_DROPSHADOW
             return parameters;
         }
     }

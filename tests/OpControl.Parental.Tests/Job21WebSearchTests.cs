@@ -372,6 +372,7 @@ public class Job21WebSearchTests
         var usage = new LunaUsageStore(db);
         var chat = new LunaChatService(db, providers, settings, usage,
             new LunaWebSearchGuard(db, new MemoryCache(new MemoryCacheOptions())),
+            new LunaActivityStore(),
             new LockService(db, new NullHub(), new DashboardEventBus(), new RuleService(db, alerts),
                 new UsageService(db, alerts), alerts, NullLogger<LockService>.Instance),
             alerts, NullLogger<LunaChatService>.Instance);

@@ -604,6 +604,7 @@ public class ChildMessage
     public MessageDirection Direction { get; set; }
     public Guid? SenderParentId { get; set; }
     public string Text { get; set; } = "";
+    public Guid? ClientMessageId { get; set; }
     public string? Preset { get; set; }
     public bool SpeakAloud { get; set; }
     public bool RequireAck { get; set; }

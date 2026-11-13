@@ -27,6 +27,7 @@ public interface ILunaApiClient
     Task<LunaChatDto> UpdateChatAsync(Guid chatId, LunaUpdateChatRequest request, CancellationToken ct = default);
     Task<List<LunaChildMessageDto>> GetMessagesAsync(Guid chatId, CancellationToken ct = default);
     Task<LunaMessageResponse> SendMessageAsync(Guid chatId, string text, CancellationToken ct = default);
+    Task<LunaActivityDto> GetActivityAsync(Guid chatId, CancellationToken ct = default);
     Task<LunaMoreRequestDto> RequestMoreAsync(CancellationToken ct = default);
     Task SetThemeAsync(string theme, CancellationToken ct = default);
 }
@@ -127,6 +128,9 @@ public sealed class LunaApiClient : ILunaApiClient, IDisposable
 
     public Task<LunaMessageResponse> SendMessageAsync(Guid chatId, string text, CancellationToken ct = default) =>
         SendAsync<LunaMessageResponse>(HttpMethod.Post, $"/api/luna/chats/{chatId}/messages", new LunaMessageRequest(text), ct);
+
+    public Task<LunaActivityDto> GetActivityAsync(Guid chatId, CancellationToken ct = default) =>
+        GetAsync<LunaActivityDto>($"/api/luna/chats/{chatId}/activity", ct);
 
     public Task<LunaMoreRequestDto> RequestMoreAsync(CancellationToken ct = default) =>
         SendAsync<LunaMoreRequestDto>(HttpMethod.Post, "/api/luna/more-requests", null, ct);

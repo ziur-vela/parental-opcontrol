@@ -455,7 +455,7 @@ public class Job20HLockEngineTests
         public Task<KidSnapshot> LoadAsync(CancellationToken ct) =>
             Task.FromResult(new KidSnapshot(_summary, _state, [], true));
 
-        public Task<PinPipeResponse> SendMessageAsync(string text, CancellationToken ct) =>
+        public Task<PinPipeResponse> SendMessageAsync(string text, CancellationToken ct, Guid? clientMessageId = null) =>
             Task.FromResult(new PinPipeResponse(true));
 
         public Task MarkSeenAsync(Guid messageId, CancellationToken ct) => Task.CompletedTask;

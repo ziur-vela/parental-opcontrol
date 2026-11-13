@@ -480,6 +480,8 @@ public class ParentalDbContext : IdentityDbContext<ParentUser, IdentityRole<Guid
             e.HasIndex(x => new { x.ChildId, x.Direction, x.CreatedUtc });
             e.HasIndex(x => new { x.ChildId, x.ParentReadUtc });
             e.HasIndex(x => new { x.DeviceId, x.Direction, x.DeliveredUtc });
+            e.HasIndex(x => new { x.DeviceId, x.ClientMessageId }).IsUnique()
+                .HasFilter("\"ClientMessageId\" IS NOT NULL");
         });
 
         builder.Entity<LunaFamilySettings>(e =>

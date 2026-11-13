@@ -92,7 +92,7 @@ public sealed class MessageSyncService
     public async Task MarkAcknowledgedAsync(Guid messageId, CancellationToken ct) =>
         await MarkAsync(messageId, "ack", ct);
 
-    public async Task<SendMessageResult> SendAsync(string text, CancellationToken ct)
+    public async Task<SendMessageResult> SendAsync(string text, CancellationToken ct, Guid? clientMessageId = null)
     {
         var value = (text ?? "").Trim();
         if (value.Length == 0)
@@ -106,10 +106,11 @@ public sealed class MessageSyncService
             return new SendMessageResult(false, false, Loc.T("Client.Messages.RateLimited", RateLimitRemainingMinutes()), null);
         }
         _logger.LogInformation("message-send reserve ok length={Length}", value.Length);
+        clientMessageId ??= Guid.NewGuid();
 
         try
         {
-            var message = await PostChildMessageAsync(value, ct);
+            var message = await PostChildMessageAsync(value, clientMessageId.Value, ct);
             if (message is not null)
             {
                 UpsertThread(message);
@@ -134,7 +135,7 @@ public sealed class MessageSyncService
             _logger.LogWarning(ex, "Child message could not be sent; queueing locally");
         }
 
-        QueueOutbox(value);
+        QueueOutbox(value, clientMessageId.Value);
         RecordSent();
         _logger.LogInformation("message-send queued offline length={Length}", value.Length);
         return new SendMessageResult(false, true, Loc.T("Client.Messages.SendFailed"), null);
@@ -144,6 +145,9 @@ public sealed class MessageSyncService
     {
         var pending = MessageOutbox.Read(ClientPaths.MessageOutboxFile);
         if (pending.Count == 0) return;
+        pending = pending.Select(entry => entry.ClientMessageId is null
+            ? entry with { ClientMessageId = Guid.NewGuid() }
+            : entry).ToList();
         _logger.LogInformation("message-outbox flush count={Count}", pending.Count);
         var remaining = new List<MessageOutboxEntry>();
         for (var i = 0; i < pending.Count; i++)
@@ -151,7 +155,7 @@ public sealed class MessageSyncService
             ct.ThrowIfCancellationRequested();
             try
             {
-                var message = await PostChildMessageAsync(pending[i].Text, ct);
+                var message = await PostChildMessageAsync(pending[i].Text, pending[i].ClientMessageId!.Value, ct);
                 if (message is not null)
                 {
                     UpsertThread(message);
@@ -192,7 +196,7 @@ public sealed class MessageSyncService
         catch { return null; }
     }
 
-    private async Task<ChildMessageDto?> PostChildMessageAsync(string text, CancellationToken ct)
+    private async Task<ChildMessageDto?> PostChildMessageAsync(string text, Guid clientMessageId, CancellationToken ct)
     {
         var (client, credential) = CreateClient();
         if (client is null || credential is null) return null;
@@ -200,7 +204,7 @@ public sealed class MessageSyncService
         {
             var request = new HttpRequestMessage(HttpMethod.Post, Url("/api/device/messages"))
             {
-                Content = JsonContent.Create(new DeviceMessageRequest(text), options: JsonOptions)
+                Content = JsonContent.Create(new DeviceMessageRequest(text, ClientMessageId: clientMessageId), options: JsonOptions)
             };
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", credential.Credential);
             using var response = await client.SendAsync(request, ct);
@@ -414,13 +418,13 @@ public sealed class MessageSyncService
         }
     }
 
-    private void QueueOutbox(string text)
+    private void QueueOutbox(string text, Guid clientMessageId)
     {
         lock (_gate)
         {
             try
             {
-                MessageOutbox.Append(ClientPaths.MessageOutboxFile, new MessageOutboxEntry(text, DateTime.UtcNow));
+                MessageOutbox.Append(ClientPaths.MessageOutboxFile, new MessageOutboxEntry(text, DateTime.UtcNow, clientMessageId));
             }
             catch (Exception ex)
             {

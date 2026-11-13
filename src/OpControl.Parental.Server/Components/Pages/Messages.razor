@@ -64,41 +64,64 @@ else
         }
         else
         {
-            <div class="message-thread" aria-live="polite">
-                @foreach (var message in _messages)
-                {
-                    var fromChild = message.Direction == MessageDirection.ChildToParent;
-                    <div class="msg-row @(fromChild ? "from-child" : "from-parent")">
-                        <div class="msg-bubble">
-                            <div class="msg-head">
-                                <span class="msg-sender">@message.SenderName</span>
-                                <span class="msg-time">@FormatTime(message.CreatedUtc)</span>
-                                <details class="msg-status-details">
-                                    <summary class="msg-status @StatusClass(MessageStatusRules.ForDisplay(message))"
-                                             title="@string.Join(" · ", StatusDetails(message))"
-                                             aria-label="@StatusLabel(MessageStatusRules.ForDisplay(message))">
-                                        @MessageStatusRules.Icon(MessageStatusRules.ForDisplay(message))
-                                    </summary>
-                                    <div class="msg-status-pop">
-                                        @foreach (var line in StatusDetails(message))
-                                        {
-                                            <div>@line</div>
-                                        }
+            var days = DayGroups;
+            <div class="message-day-tools">
+                <label class="msg-day-picker-label">
+                    <span class="muted tiny">@L["Messages.JumpToDay"]</span>
+                    <select class="msg-day-picker" @bind="_selectedDay" @bind:after="ScrollToSelectedDayAsync">
+                        @foreach (var day in days)
+                        {
+                            <option value="@day.Id">@day.Label</option>
+                        }
+                    </select>
+                </label>
+            </div>
+            <div class="message-thread-wrap">
+                <div id="message-thread" class="message-thread" aria-live="polite" data-token="@ScrollToken">
+                    @foreach (var day in days)
+                    {
+                        <div id="@day.Id" class="msg-day-group">
+                            <div class="msg-day-label"><span>@day.Label</span></div>
+                            @foreach (var message in day.Messages)
+                            {
+                                var fromChild = message.Direction == MessageDirection.ChildToParent;
+                                <div class="msg-row @(fromChild ? "from-child" : "from-parent")">
+                                    <div class="msg-bubble">
+                                        <div class="msg-head">
+                                            <span class="msg-sender">@message.SenderName</span>
+                                            <span class="msg-time">@FormatTime(message.CreatedUtc)</span>
+                                            <details class="msg-status-details">
+                                                <summary class="msg-status @StatusClass(MessageStatusRules.ForDisplay(message))"
+                                                         title="@string.Join(" · ", StatusDetails(message))"
+                                                         aria-label="@StatusLabel(MessageStatusRules.ForDisplay(message))">
+                                                    @MessageStatusRules.Icon(MessageStatusRules.ForDisplay(message))
+                                                </summary>
+                                                <div class="msg-status-pop">
+                                                    @foreach (var line in StatusDetails(message))
+                                                    {
+                                                        <div>@line</div>
+                                                    }
+                                                </div>
+                                            </details>
+                                            @if (message.Direction == MessageDirection.ParentToChild && message.AcknowledgedUtc is not null)
+                                            {
+                                                <span class="state-pill ack-pill">@L["Messages.Status.Ack"]</span>
+                                            }
+                                            <button type="button" class="msg-delete" title="@L["Messages.Delete"]"
+                                                    aria-label="@L["Messages.Delete"]" @onclick="() => DeleteAsync(message)">
+                                                ×
+                                            </button>
+                                        </div>
+                                        <div class="msg-text">@message.Text</div>
                                     </div>
-                                </details>
-                                @if (message.Direction == MessageDirection.ParentToChild && message.AcknowledgedUtc is not null)
-                                {
-                                    <span class="state-pill ack-pill">@L["Messages.Status.Ack"]</span>
-                                }
-                                <button type="button" class="msg-delete" title="@L["Messages.Delete"]"
-                                        aria-label="@L["Messages.Delete"]" @onclick="() => DeleteAsync(message)">
-                                    ×
-                                </button>
-                            </div>
-                            <div class="msg-text">@message.Text</div>
+                                </div>
+                            }
                         </div>
-                    </div>
-                }
+                    }
+                </div>
+                <button type="button" id="msg-new-message" class="msg-new-message" @onclick="ScrollToNewestAsync">
+                    @L["Messages.NewMessage"] <span aria-hidden="true">↓</span>
+                </button>
             </div>
         }
     </section>
@@ -144,6 +167,55 @@ else
     private List<ChildMessageDto> _messages = [];
     private string? _targetDeviceId;
     private string? _error;
+    private string _selectedDay = "";
+
+    private sealed record MessageDay(DateOnly Date, string Id, string Label, List<ChildMessageDto> Messages);
+
+    private List<MessageDay> DayGroups
+    {
+        get
+        {
+            var tz = TimeZoneResolver.Resolve(_timeZoneId);
+            var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz));
+            return MessageDayGrouping.Group(_messages, message => message.CreatedUtc, tz, today, DayLabel)
+                .Select(group => new MessageDay(group.Date, group.Id, group.Label, group.Items.ToList()))
+                .ToList();
+        }
+    }
+
+    private void EnsureSelectedDay()
+    {
+        if (_messages.Count == 0) { _selectedDay = ""; return; }
+        var tz = TimeZoneResolver.Resolve(_timeZoneId);
+        var days = _messages.Select(message => DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(
+            DateTime.SpecifyKind(message.CreatedUtc, DateTimeKind.Utc), tz))).Distinct().ToList();
+        var newest = "msg-day-" + days.Max().ToString("yyyy-MM-dd");
+        if (string.IsNullOrEmpty(_selectedDay) || days.All(d => "msg-day-" + d.ToString("yyyy-MM-dd") != _selectedDay))
+            _selectedDay = newest;
+    }
+
+    private string DayLabel(DateOnly date, DateOnly today) =>
+        MessageDayGrouping.Label(date, today, L["Messages.Today"], L["Messages.Yesterday"],
+            System.Globalization.CultureInfo.CurrentCulture);
+
+    private string ScrollToken => _messages.Count == 0
+        ? "0"
+        : _messages.Count + ":" + _messages[^1].Id;
+
+    private async Task ScrollToSelectedDayAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(_selectedDay))
+            await JS.InvokeVoidAsync("ocpMessages.scrollToDay", _selectedDay);
+    }
+
+    private async Task ScrollToNewestAsync() =>
+        await JS.InvokeVoidAsync("ocpMessages.scrollToBottom", "message-thread", "msg-new-message");
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_childId == Guid.Empty || _messages.Count == 0) return;
+        await JS.InvokeVoidAsync("ocpMessages.afterRender", "message-thread", "msg-new-message", ScrollToken);
+    }
 
     private Guid? TargetDevice => Guid.TryParse(_targetDeviceId, out var id) ? id : null;
 
@@ -216,6 +288,7 @@ else
                 _suppressMessageEvents = false;
             }
             _messages = await messages.GetThreadAsync(_familyId, _childId, 300);
+            EnsureSelectedDay();
             _error = null;
         }
         catch (Exception ex)

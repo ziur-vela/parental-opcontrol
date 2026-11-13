@@ -74,7 +74,7 @@ public sealed class MyOpControlWindow : Window
     private sealed class MessageRow
     {
         public required Guid Id { get; init; }
-        public required StackPanel Root { get; init; }
+        public required Control Root { get; init; }
         public required TextBlock Body { get; init; }
         public required TextBlock Header { get; init; }
         public required StackPanel Meta { get; init; }
@@ -1650,9 +1650,13 @@ public sealed class MyOpControlWindow : Window
             _messagesEmpty = Text(Loc.T("Client.Messages.Empty"), 12, _palette.Muted);
             _messagesPanel.Children.Add(_messagesEmpty);
         }
+        DateOnly? lastDay = null;
         for (var index = 0; index < messages.Count; index++)
         {
-            var row = CreateMessageRow(messages[index], index);
+            var day = DateOnly.FromDateTime(messages[index].CreatedUtc.ToLocalTime());
+            var showDay = lastDay != day;
+            var row = CreateMessageRow(messages[index], index, showDay);
+            lastDay = day;
             _messageRows[messages[index].Id] = row;
             _messagesPanel.Children.Add(row.Root);
         }
@@ -1725,7 +1729,13 @@ public sealed class MyOpControlWindow : Window
         {
             if (row.Message.CreatedUtc <= message.CreatedUtc) index = row.Index + 1;
         }
-        var added = CreateMessageRow(message, index);
+        var previous = _messageRows.Values
+            .Where(row => row.Message.CreatedUtc < message.CreatedUtc)
+            .OrderByDescending(row => row.Message.CreatedUtc)
+            .FirstOrDefault();
+        var showDay = previous is null
+            || previous.Message.CreatedUtc.ToLocalTime().Date != message.CreatedUtc.ToLocalTime().Date;
+        var added = CreateMessageRow(message, index, showDay);
         _messagesPanel.Children.Insert(Math.Min(index, _messagesPanel.Children.Count), added.Root);
         foreach (var row in _messageRows.Values.Where(row => row.Index >= index))
             row.Index++;
@@ -1733,7 +1743,7 @@ public sealed class MyOpControlWindow : Window
         _messageRowAdds++;
     }
 
-    private MessageRow CreateMessageRow(ChildMessageDto message, int index)
+    private MessageRow CreateMessageRow(ChildMessageDto message, int index, bool showDay = false)
     {
         var own = message.Direction == MessageDirection.ChildToParent;
         var stack = new StackPanel
@@ -1763,10 +1773,21 @@ public sealed class MyOpControlWindow : Window
             HorizontalAlignment = own ? HorizontalAlignment.Right : HorizontalAlignment.Left
         };
         stack.Children.Add(meta);
+        Control root = stack;
+        if (showDay)
+        {
+            var wrapper = new StackPanel { Spacing = 6 };
+            var dayLabel = Text(FriendlyMessageDay(message.CreatedUtc), 10, _palette.Muted,
+                FontWeight.Bold, wrap: false);
+            dayLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            wrapper.Children.Add(dayLabel);
+            wrapper.Children.Add(stack);
+            root = wrapper;
+        }
         var row = new MessageRow
         {
             Id = message.Id,
-            Root = stack,
+            Root = root,
             Body = bubbleText,
             Header = header,
             Meta = meta,
@@ -1775,6 +1796,14 @@ public sealed class MyOpControlWindow : Window
         };
         FillMessageMeta(row);
         return row;
+    }
+
+    private static string FriendlyMessageDay(DateTime utc)
+    {
+        var local = utc.ToLocalTime().Date;
+        if (local == DateTime.Today) return Loc.T("Client.Messages.Today");
+        if (local == DateTime.Today.AddDays(-1)) return Loc.T("Client.Messages.Yesterday");
+        return local.ToString("ddd d MMM", CultureInfo.CurrentCulture);
     }
 
     private void UpdateMessageRow(MessageRow row, ChildMessageDto message)
@@ -1848,7 +1877,7 @@ public sealed class MyOpControlWindow : Window
         if (_sendStatus is not null) _sendStatus.Text = Loc.T("Client.Messages.Sending");
         try
         {
-            var result = await _data.SendMessageAsync(text, CancellationToken.None);
+            var result = await _data.SendMessageAsync(text, CancellationToken.None, Guid.NewGuid());
             if (!result.Ok)
             {
                 if (_sendStatus is not null) _sendStatus.Text = result.Error ?? Loc.T("Client.Messages.SendFailed");

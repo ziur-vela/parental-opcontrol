@@ -189,6 +189,7 @@ public class LunaTests
         var usage = new LunaUsageStore(db);
         var chat = new LunaChatService(db, providers, settings, usage,
             new LunaWebSearchGuard(db, new MemoryCache(new MemoryCacheOptions())),
+            new LunaActivityStore(),
             NewLocks(db, alerts), alerts, NullLogger<LunaChatService>.Instance);
         var parentSvc = new LunaParentService(db, settings, usage);
         return new Harness(db, family, child, parent, device, providers, zdr, settings, chat, parentSvc,
@@ -879,6 +880,32 @@ public class LunaTests
         var result = await h.Chat.SendAsync(ctx, chat.Id, "Hello", default);
         Assert.Contains("month", result.Notice, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(0, h.Providers.Chat.Calls);
+    }
+
+    [Fact]
+    public async Task Activity_reports_searching_while_the_provider_is_working()
+    {
+        await using var h = await NewHarnessAsync();
+        var child = await h.Db.ChildLunaSettings.SingleAsync();
+        child.WebSearchEnabled = true;
+        await h.Db.SaveChangesAsync();
+        var gate = new TaskCompletionSource();
+        h.Providers.Chat.Handler = _ =>
+        {
+            gate.Task.GetAwaiter().GetResult();
+            return new LunaChatResult("A searched answer", 2, 2,
+                [new LunaChatSource("https://example.org/page", "Example")], 1);
+        };
+        var (chat, ctx) = await NewChatAsync(h);
+        var sending = Task.Run(() => h.Chat.SendAsync(ctx, chat.Id,
+            "What is the latest space news this week?", default));
+        await Task.Delay(300);
+        var during = await h.Chat.GetActivityAsync(ctx, chat.Id, default);
+        Assert.Equal(LunaActivityStore.Searching, during.State);
+        gate.SetResult();
+        await sending;
+        var after = await h.Chat.GetActivityAsync(ctx, chat.Id, default);
+        Assert.Equal(LunaActivityStore.Thinking, after.State);
     }
 
     [Fact]

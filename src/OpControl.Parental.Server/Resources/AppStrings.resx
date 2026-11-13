@@ -1594,4 +1594,8 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Luna.Setup.MonthlySearches" xml:space="preserve"><value>{0} web searches this month</value></data>
   <data name="Luna.Review.WebSearch" xml:space="preserve"><value>Web search · {0} sources</value></data>
   <data name="Luna.Review.WebSearchQuery" xml:space="preserve"><value>Search:</value></data>
+  <data name="Messages.Today" xml:space="preserve"><value>Today</value></data>
+  <data name="Messages.Yesterday" xml:space="preserve"><value>Yesterday</value></data>
+  <data name="Messages.JumpToDay" xml:space="preserve"><value>Jump to day</value></data>
+  <data name="Messages.NewMessage" xml:space="preserve"><value>New message</value></data>
 </root>

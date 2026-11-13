@@ -159,6 +159,8 @@ public sealed record LunaChatDto(
 /// <summary>A page Luna cited while answering. Only sources that passed the child's filters are sent.</summary>
 public sealed record LunaSourceDto(string Url, string Title, string Site);
 
+public sealed record LunaActivityDto(string State);
+
 public sealed record LunaChildMessageDto(
     Guid Id,
     Guid ChatId,

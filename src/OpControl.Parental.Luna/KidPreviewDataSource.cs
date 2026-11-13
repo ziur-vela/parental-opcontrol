@@ -121,7 +121,7 @@ public sealed class KidPreviewDataSource : IKidDataSource
     public Task<KidSnapshot> LoadAsync(CancellationToken ct) =>
         Task.FromResult(new KidSnapshot(_summary, _state, _messages.ToList(), true));
 
-    public Task<PinPipeResponse> SendMessageAsync(string text, CancellationToken ct)
+    public Task<PinPipeResponse> SendMessageAsync(string text, CancellationToken ct, Guid? clientMessageId = null)
     {
         var message = new ChildMessageDto(Guid.NewGuid(), _summary.ChildId, null,
             MessageDirection.ChildToParent, null, _summary.ChildName, text, null, false, false,

@@ -342,4 +342,18 @@ public class MessageTests
         public Task AddToGroupAsync(string connectionId, string groupName, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task RemoveFromGroupAsync(string connectionId, string groupName, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
+
+    [Fact]
+    public async Task Duplicate_child_send_with_the_same_client_id_creates_one_message()
+    {
+        await using var db = NewDb();
+        var seed = await SeedAsync(db, "idempotent");
+        var messages = NewMessages(db);
+        var key = Guid.NewGuid();
+        var first = await messages.SendFromChildAsync(seed.Device, new DeviceMessageRequest("ya voy", ClientMessageId: key));
+        var second = await messages.SendFromChildAsync(seed.Device, new DeviceMessageRequest("ya voy", ClientMessageId: key));
+        Assert.Equal(first.Id, second.Id);
+        Assert.Equal(1, await db.ChildMessages.CountAsync(m => m.DeviceId == seed.Device.Id));
+    }
+
 }
