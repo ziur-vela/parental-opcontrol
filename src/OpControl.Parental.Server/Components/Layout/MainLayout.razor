@@ -93,11 +93,14 @@
             <NavLink class="nav-link" href="/settings"><span class="nav-ico">⚙</span> @L["Nav.Settings"]</NavLink>
         </nav>
         <div class="sidebar-foot">
-            <div class="sidebar-version-title">@L["Layout.VersionLabel"]</div>
-            <a class="pill-soft sidebar-version-box" href="/about">
-                <span>@Build.DisplayVersion</span>
-                <span class="beta-badge">@L["Layout.Beta"]</span>
-            </a>
+            <div class="sidebar-version-card">
+                <div class="sidebar-version-card-head">
+                    <span class="sidebar-version-label">@L["Layout.VersionLabel"]</span>
+                    <span class="beta-badge">@L["Layout.Beta"]</span>
+                </div>
+                <div class="sidebar-version-value">@VersionDisplay.VersionLabel(Build.Version)</div>
+                <div class="sidebar-version-meta">@VersionDisplay.BuildLine(Build.BuildDate, Build.ShortCommit, CurrentLanguage)</div>
+            </div>
             <a class="legal-line" href="/about">@L["Legal.ShortLine"]</a>
         </div>
     </aside>
@@ -161,6 +164,8 @@
     }
 
     private bool IsSpanish => System.Globalization.CultureInfo.CurrentUICulture.Name.StartsWith("es", StringComparison.OrdinalIgnoreCase);
+
+    private string CurrentLanguage => IsSpanish ? AppCulture.Spanish : AppCulture.English;
 
     private string CurrentPath
     {

@@ -994,6 +994,17 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="AboutPage.NoDevices" xml:space="preserve"><value>No devices have reported a version yet.</value></data>
   <data name="AboutPage.NotReported" xml:space="preserve"><value>Not reported</value></data>
   <data name="AboutPage.LastSeen" xml:space="preserve"><value>last seen</value></data>
+  <data name="AboutPage.Component" xml:space="preserve"><value>Component</value></data>
+  <data name="AboutPage.VersionColumn" xml:space="preserve"><value>Version</value></data>
+  <data name="AboutPage.StatusColumn" xml:space="preserve"><value>Status</value></data>
+  <data name="AboutPage.LastSeenColumn" xml:space="preserve"><value>Last seen</value></data>
+  <data name="AboutPage.Running" xml:space="preserve"><value>Running</value></data>
+  <data name="AboutPage.UpToDate" xml:space="preserve"><value>Up to date</value></data>
+  <data name="AboutPage.UpdateAvailable" xml:space="preserve"><value>Update available</value></data>
+  <data name="AboutPage.OfflineSuffix" xml:space="preserve"><value xml:space="preserve"> (offline)</value></data>
+  <data name="AboutPage.Today" xml:space="preserve"><value>Today</value></data>
+  <data name="AboutPage.Yesterday" xml:space="preserve"><value>Yesterday</value></data>
+  <data name="AboutPage.Build" xml:space="preserve"><value>build</value></data>
   <data name="AboutPage.LicenseTitle" xml:space="preserve"><value>License</value></data>
   <data name="AboutPage.LicenseName" xml:space="preserve"><value>PolyForm Noncommercial License 1.0.0</value></data>
   <data name="AboutPage.LicenseSummary" xml:space="preserve"><value>Parental OpControl is free for personal and other non-commercial use under the PolyForm Noncommercial License 1.0.0.</value></data>
@@ -1002,7 +1013,7 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="AboutPage.CreditsTitle" xml:space="preserve"><value>Credits</value></data>
   <data name="AboutPage.BuiltWithAiTitle" xml:space="preserve"><value>Built with AI</value></data>
   <data name="AboutPage.BetaBadge" xml:space="preserve"><value>BETA</value></data>
-  <data name="AboutPage.BetaNotice" xml:space="preserve"><value>This release is in beta. Report anything that looks wrong to Hendry.</value></data>
+  <data name="AboutPage.BetaNotice" xml:space="preserve"><value>Parental OpControl is in beta. Features may change. Report anything that looks wrong to Hendry.</value></data>
   <data name="AboutPage.ThirdParty" xml:space="preserve"><value>Third-party components</value></data>
   <data name="AboutPage.ThirdPartyHint" xml:space="preserve"><value>This list is generated from the actual dependencies of the dashboard, the client and the bundled fonts. Each component keeps its own license.</value></data>
   <data name="AboutPage.ThirdPartyEmpty" xml:space="preserve"><value>No third-party components were found.</value></data>

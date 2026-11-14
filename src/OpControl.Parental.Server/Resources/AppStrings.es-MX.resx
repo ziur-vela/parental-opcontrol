@@ -994,6 +994,17 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="AboutPage.NoDevices" xml:space="preserve"><value>Ningún dispositivo ha reportado una versión todavía.</value></data>
   <data name="AboutPage.NotReported" xml:space="preserve"><value>Sin reportar</value></data>
   <data name="AboutPage.LastSeen" xml:space="preserve"><value>visto por última vez</value></data>
+  <data name="AboutPage.Component" xml:space="preserve"><value>Componente</value></data>
+  <data name="AboutPage.VersionColumn" xml:space="preserve"><value>Versión</value></data>
+  <data name="AboutPage.StatusColumn" xml:space="preserve"><value>Estado</value></data>
+  <data name="AboutPage.LastSeenColumn" xml:space="preserve"><value>Visto por última vez</value></data>
+  <data name="AboutPage.Running" xml:space="preserve"><value>En ejecución</value></data>
+  <data name="AboutPage.UpToDate" xml:space="preserve"><value>Actualizado</value></data>
+  <data name="AboutPage.UpdateAvailable" xml:space="preserve"><value>Actualización disponible</value></data>
+  <data name="AboutPage.OfflineSuffix" xml:space="preserve"><value xml:space="preserve"> (sin conexión)</value></data>
+  <data name="AboutPage.Today" xml:space="preserve"><value>Hoy</value></data>
+  <data name="AboutPage.Yesterday" xml:space="preserve"><value>Ayer</value></data>
+  <data name="AboutPage.Build" xml:space="preserve"><value>compilación</value></data>
   <data name="AboutPage.LicenseTitle" xml:space="preserve"><value>Licencia</value></data>
   <data name="AboutPage.LicenseName" xml:space="preserve"><value>PolyForm Noncommercial License 1.0.0</value></data>
   <data name="AboutPage.LicenseSummary" xml:space="preserve"><value>Parental OpControl es gratis para uso personal y otros usos no comerciales bajo la PolyForm Noncommercial License 1.0.0.</value></data>
@@ -1002,7 +1013,7 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="AboutPage.CreditsTitle" xml:space="preserve"><value>Créditos</value></data>
   <data name="AboutPage.BuiltWithAiTitle" xml:space="preserve"><value>Construido con IA</value></data>
   <data name="AboutPage.BetaBadge" xml:space="preserve"><value>BETA</value></data>
-  <data name="AboutPage.BetaNotice" xml:space="preserve"><value>Esta versión está en beta. Reporta a Hendry cualquier cosa que se vea mal.</value></data>
+  <data name="AboutPage.BetaNotice" xml:space="preserve"><value>Parental OpControl está en beta. Las funciones pueden cambiar. Reporta a Hendry cualquier cosa que se vea mal.</value></data>
   <data name="AboutPage.ThirdParty" xml:space="preserve"><value>Componentes de terceros</value></data>
   <data name="AboutPage.ThirdPartyHint" xml:space="preserve"><value>Esta lista se genera a partir de las dependencias reales del panel, el cliente y las fuentes incluidas. Cada componente conserva su propia licencia.</value></data>
   <data name="AboutPage.ThirdPartyEmpty" xml:space="preserve"><value>No se encontraron componentes de terceros.</value></data>

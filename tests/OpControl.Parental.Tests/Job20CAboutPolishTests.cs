@@ -19,7 +19,7 @@ public class Job20CAboutPolishTests
     private static readonly Guid Child = Guid.Parse("11111111-1111-1111-1111-111111111111");
 
     [Fact]
-    public void Server_version_is_shown_with_a_single_v()
+    public void Server_version_is_shown_without_a_v_for_kids()
     {
         using var session = HeadlessUnitTestSession.StartNew(typeof(UiTestApp));
         session.Dispatch(() =>
@@ -30,7 +30,8 @@ public class Job20CAboutPolishTests
             window.Show();
             UiHarness.Pump(300);
 
-            Assert.StartsWith("v0.17.18", window.AboutServerValueForTest);
+            Assert.StartsWith("0.17.18", window.AboutServerValueForTest);
+            Assert.DoesNotContain("v0.17.18", window.AboutServerValueForTest);
             Assert.DoesNotContain("vv", window.AboutServerValueForTest);
             window.Close();
         }, CancellationToken.None).GetAwaiter().GetResult();

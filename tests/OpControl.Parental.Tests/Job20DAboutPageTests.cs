@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OpControl.Parental.Server.Components.Shared;
@@ -139,7 +140,9 @@ public class Job20DAboutPageTests
     {
         var layout = File.ReadAllText(Path.Combine(Root, "src", "OpControl.Parental.Server", "Components",
             "Layout", "MainLayout.razor"));
-        Assert.Contains("<a class=\"pill-soft sidebar-version-box\" href=\"/about\">", layout, StringComparison.Ordinal);
+        Assert.Contains("sidebar-version-card", layout, StringComparison.Ordinal);
+        Assert.Contains("sidebar-version-value", layout, StringComparison.Ordinal);
+        Assert.Contains("sidebar-version-meta", layout, StringComparison.Ordinal);
         Assert.Contains("beta-badge", layout, StringComparison.Ordinal);
         Assert.DoesNotContain("Layout.VersionDetails", layout, StringComparison.Ordinal);
         Assert.Contains("href=\"/about\">@L[\"Legal.ShortLine\"]", layout, StringComparison.Ordinal);
@@ -245,6 +248,10 @@ public class Job20DAboutPageTests
             services.AddLocalization();
             services.AddDbContext<ParentalDbContext>(options => options.UseInMemoryDatabase(database));
             services.AddSingleton<BuildInfo>();
+            services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
+            services.AddSingleton<DashboardEventBus>();
+            services.AddSingleton<DevicePresenceService>();
+            services.AddSingleton<ReleaseCatalog>();
             services.AddSingleton<AuthenticationStateProvider>(
                 new FixedAuthStateProvider(role, permissions));
 

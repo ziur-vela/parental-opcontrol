@@ -36,7 +36,9 @@ public class Job20BAboutTests
 
             Assert.Equal("About", window.CurrentScreenName);
             Assert.StartsWith(local.ClientVersion, window.AboutClientValueForTest);
-            Assert.Contains("v0.17.17", window.AboutServerValueForTest);
+            Assert.StartsWith("0.17.17", window.AboutServerValueForTest);
+            Assert.DoesNotContain("v0.17.17", window.AboutServerValueForTest);
+            Assert.Contains("27 Oct 2026", window.AboutServerValueForTest);
             window.Close();
         }, CancellationToken.None).GetAwaiter().GetResult();
     }

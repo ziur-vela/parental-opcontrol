@@ -973,15 +973,23 @@ public sealed class MyOpControlWindow : Window
         brandRow.Children.Add(opcLogo);
         stack.Children.Add(Card(brandRow));
 
-        var version = new StackPanel { Spacing = 8 };
-        version.Children.Add(Text(Loc.T("Client.Kid.About.Version"), 14, _palette.Text, FontWeight.Bold, LunaThemes.Display));
-        _aboutClientValue = VersionValue(NormalizeVersion(about.ClientVersion), about.ClientBuildDate);
-        InfoRow(version, Loc.T("Client.Kid.About.Client"), _aboutClientValue, beta: true);
+        var version = new StackPanel { Spacing = 10 };
+        var versionHead = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        versionHead.Children.Add(Text(Loc.T("Client.Kid.About.Version"), 14, _palette.Text, FontWeight.Bold, LunaThemes.Display));
+        var versionBeta = BetaPill();
+        versionBeta.HorizontalAlignment = HorizontalAlignment.Right;
+        versionBeta.VerticalAlignment = VerticalAlignment.Center;
+        Grid.SetColumn(versionBeta, 1);
+        versionHead.Children.Add(versionBeta);
+        version.Children.Add(versionHead);
+        _aboutClientValue = KidVersionValue(NormalizeVersion(about.ClientVersion), about.ClientBuildDate);
+        InfoRow(version, Loc.T("Client.Kid.About.Client"), _aboutClientValue);
         var serverVersion = NormalizeVersion(about.ServerVersion);
         _aboutServerValue = string.IsNullOrWhiteSpace(serverVersion)
             ? Loc.T("Client.Kid.About.ServerUnavailable")
-            : VersionValue("v" + serverVersion, about.ServerBuildDate);
-        InfoRow(version, Loc.T("Client.Kid.About.Server"), _aboutServerValue, beta: true);
+            : KidVersionValue(serverVersion, about.ServerBuildDate);
+        InfoRow(version, Loc.T("Client.Kid.About.Server"), _aboutServerValue);
+        version.Children.Add(Text(Loc.T("Client.Kid.About.VersionNote"), 12, _palette.Muted, FontWeight.SemiBold));
         stack.Children.Add(Card(version));
 
         var license = new StackPanel { Spacing = 8 };
@@ -1094,27 +1102,24 @@ public sealed class MyOpControlWindow : Window
     private static string NormalizeVersion(string? version) =>
         (version ?? string.Empty).Trim().TrimStart('v', 'V');
 
-    private string VersionValue(string version, string? buildDate) =>
-        string.IsNullOrWhiteSpace(buildDate) || string.Equals(buildDate, "unknown", StringComparison.OrdinalIgnoreCase)
-            ? version
-            : $"{version} · {Loc.T("Client.Kid.About.Build")} {buildDate}";
-
-    private void InfoRow(StackPanel parent, string label, string value, bool beta = false)
+    private static string KidVersionValue(string version, string? buildDate)
     {
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") };
+        if (string.IsNullOrWhiteSpace(buildDate) || string.Equals(buildDate, "unknown", StringComparison.OrdinalIgnoreCase))
+            return version;
+        if (DateTime.TryParse(buildDate, System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out var date))
+            return $"{version} · {date.ToString("d MMM yyyy", System.Globalization.CultureInfo.CurrentCulture)}";
+        return $"{version} · {buildDate}";
+    }
+
+    private void InfoRow(StackPanel parent, string label, string value)
+    {
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
         row.Children.Add(Text(label, 11.5, _palette.Muted, FontWeight.Bold, wrap: false));
         var text = Text(value, 12.5, _palette.Text, FontWeight.SemiBold);
         text.Margin = new Thickness(14, 0, 0, 0);
         Grid.SetColumn(text, 1);
         row.Children.Add(text);
-        if (beta)
-        {
-            var pill = BetaPill();
-            pill.Margin = new Thickness(10, 0, 0, 0);
-            pill.VerticalAlignment = VerticalAlignment.Center;
-            Grid.SetColumn(pill, 2);
-            row.Children.Add(pill);
-        }
         parent.Children.Add(row);
     }
 

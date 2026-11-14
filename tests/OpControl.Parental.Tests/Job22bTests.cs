@@ -159,8 +159,8 @@ public class Job22bTests
             Assert.Contains($"name=\"{key}\"", es, StringComparison.Ordinal);
         }
         Assert.Contains("Apagar", es, StringComparison.Ordinal);
-        Assert.Contains("This release is in beta. Report anything that looks wrong to Hendry.", en, StringComparison.Ordinal);
-        Assert.Contains("Esta versión está en beta. Reporta a Hendry cualquier cosa que se vea mal.", es, StringComparison.Ordinal);
+        Assert.Contains("Parental OpControl is in beta. Features may change. Report anything that looks wrong to Hendry.", en, StringComparison.Ordinal);
+        Assert.Contains("Parental OpControl está en beta. Las funciones pueden cambiar. Reporta a Hendry cualquier cosa que se vea mal.", es, StringComparison.Ordinal);
 
         var devices = File.ReadAllText(Path.Combine(root, "src", "OpControl.Parental.Server", "Components", "Pages", "Devices.razor"));
         Assert.Contains("DevicePowerAction.Restart", devices, StringComparison.Ordinal);
@@ -181,10 +181,10 @@ public class Job22bTests
         Assert.True(File.Exists(Path.Combine(root, "src", "OpControl.Parental.Client.Windows.Helper", "PowerNoticeForm.cs")));
 
         var layout = File.ReadAllText(Path.Combine(root, "src", "OpControl.Parental.Server", "Components", "Layout", "MainLayout.razor"));
-        Assert.Contains("sidebar-version-box", layout, StringComparison.Ordinal);
-        Assert.Contains("sidebar-version-title", layout, StringComparison.Ordinal);
+        Assert.Contains("sidebar-version-card", layout, StringComparison.Ordinal);
+        Assert.Contains("sidebar-version-label", layout, StringComparison.Ordinal);
         var about = File.ReadAllText(Path.Combine(root, "src", "OpControl.Parental.Server", "Components", "Shared", "AboutPanel.razor"));
-        Assert.Contains("about-beta-note", about, StringComparison.Ordinal);
+        Assert.Contains("about-beta-banner", about, StringComparison.Ordinal);
         Assert.Contains("AboutPage.BetaBadge", about, StringComparison.Ordinal);
         var kid = File.ReadAllText(Path.Combine(root, "src", "OpControl.Parental.Luna", "MyOpControlWindow.cs"));
         Assert.Contains("BetaPill", kid, StringComparison.Ordinal);

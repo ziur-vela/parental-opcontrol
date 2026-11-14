@@ -159,8 +159,8 @@ public class Job22Tests
         Assert.Contains("<value>BETA</value>", es, StringComparison.Ordinal);
         Assert.Contains("© 2026 OpControl · License", en, StringComparison.Ordinal);
         Assert.Contains("© 2026 OpControl · Licencia", es, StringComparison.Ordinal);
-        Assert.Contains("This release is in beta. Report anything that looks wrong to Hendry.", en, StringComparison.Ordinal);
-        Assert.Contains("Esta versión está en beta. Reporta a Hendry cualquier cosa que se vea mal.", es, StringComparison.Ordinal);
+        Assert.Contains("Parental OpControl is in beta. Features may change. Report anything that looks wrong to Hendry.", en, StringComparison.Ordinal);
+        Assert.Contains("Parental OpControl está en beta. Las funciones pueden cambiar. Reporta a Hendry cualquier cosa que se vea mal.", es, StringComparison.Ordinal);
     }
 
     [Fact]
