@@ -93,11 +93,11 @@
             <NavLink class="nav-link" href="/settings"><span class="nav-ico">⚙</span> @L["Nav.Settings"]</NavLink>
         </nav>
         <div class="sidebar-foot">
-            <div class="sidebar-version-head">
-                <span class="sidebar-version-title">@L["Layout.VersionLabel"]</span>
+            <div class="sidebar-version-title">@L["Layout.VersionLabel"]</div>
+            <a class="pill-soft sidebar-version-box" href="/about">
+                <span>@Build.DisplayVersion</span>
                 <span class="beta-badge">@L["Layout.Beta"]</span>
-            </div>
-            <a class="pill-soft" href="/about">@Build.DisplayVersion</a>
+            </a>
             <a class="legal-line" href="/about">@L["Legal.ShortLine"]</a>
         </div>
     </aside>

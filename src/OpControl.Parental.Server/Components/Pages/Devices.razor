@@ -13,6 +13,7 @@
 @inject IServiceScopeFactory Scopes
 @inject DevicePresenceService Presence
 @inject DeviceMetricsFocusService MetricsFocus
+@inject DevicePowerService PowerService
 @inject DashboardEventBus Events
 @inject OpControl.Parental.Server.Services.ReleaseCatalog Releases
 @inject IJSRuntime JS
@@ -172,6 +173,62 @@
                         }
                     </div>
 
+                    <div class="device-power">
+                        <div class="device-power-head">
+                            <span class="eyebrow">@L["Devices.Power"]</span>
+                            @{
+                                var power = PowerFor(device.DeviceId);
+                                var pending = power is { Status: DevicePowerStatus.Pending or DevicePowerStatus.Accepted };
+                            }
+                            @if (pending && power is not null)
+                            {
+                                var remaining = power.RunAtUtc - DateTime.UtcNow;
+                                if (remaining < TimeSpan.Zero) remaining = TimeSpan.Zero;
+                                var clock = Countdown(remaining);
+                                <span class="power-pending @(remaining <= TimeSpan.Zero ? "waiting" : "")">
+                                    @(remaining <= TimeSpan.Zero
+                                        ? L["Devices.PowerRunning", ActionLabel(power.Action)]
+                                        : L["Devices.PowerPending", ActionLabel(power.Action), clock])
+                                </span>
+                                @if (remaining > TimeSpan.Zero)
+                                {
+                                    <button type="button" class="btn btn-ghost power-cancel" disabled="@(_powerBusy || !device.Online)"
+                                            title="@(device.Online ? null : L["Devices.PowerOffline"].Value)"
+                                            @onclick="() => CancelPowerAsync(device.DeviceId, power.Id)">
+                                        @L["Devices.PowerCancelPending", ActionLabel(power.Action), clock]
+                                    </button>
+                                }
+                            }
+                        </div>
+                        <div class="device-power-actions">
+                            <button type="button" class="btn btn-ghost power-btn"
+                                    disabled="@(!device.Online || _powerBusy || pending)"
+                                    title="@PowerButtonTitle(device.Online, pending)"
+                                    @onclick="() => OpenPowerDialog(device, DevicePowerAction.Restart)">
+                                <span class="power-ico">⟳</span> @L["Devices.Restart"]
+                            </button>
+                            <button type="button" class="btn btn-ghost power-btn"
+                                    disabled="@(!device.Online || _powerBusy || pending)"
+                                    title="@PowerButtonTitle(device.Online, pending)"
+                                    @onclick="() => OpenPowerDialog(device, DevicePowerAction.Sleep)">
+                                <span class="power-ico">☾</span> @L["Devices.Sleep"]
+                            </button>
+                            <button type="button" class="btn btn-ghost power-btn"
+                                    disabled="@(!device.Online || _powerBusy || pending)"
+                                    title="@PowerButtonTitle(device.Online, pending)"
+                                    @onclick="() => OpenPowerDialog(device, DevicePowerAction.PowerOff)">
+                                <span class="power-ico">⏻</span> @L["Devices.PowerOff"]
+                            </button>
+                        </div>
+                        @if (power is not null && !pending)
+                        {
+                            <div class="power-result @PowerTone(power.Status)">
+                                @L["Devices.PowerResultDetail", ActionLabel(power.Action), StatusLabel(power.Status),
+                                    string.IsNullOrWhiteSpace(power.ResultDetail) ? "" : power.ResultDetail]
+                            </div>
+                        }
+                    </div>
+
                     <div class="device-card-foot">
                         @if (_canMessage)
                         {
@@ -191,6 +248,38 @@
     }
 </div>
 
+@if (_powerDialog is { } dialog)
+{
+    <div class="modal-backdrop">
+        <section class="card modal power-dialog">
+            <div class="card-title-row">
+                <h2>@PowerDialogTitle(dialog)</h2>
+                <span class="pill-soft">@ActionLabel(dialog.Action)</span>
+            </div>
+            <p class="muted">@(dialog.Action == DevicePowerAction.Sleep ? L["Devices.PowerSleepHelp"] : L["Devices.PowerConfirmHelp"])</p>
+            @if (dialog.Action != DevicePowerAction.Sleep)
+            {
+                <div class="power-delay">
+                    <span class="eyebrow">@L["Devices.PowerWhen"]</span>
+                    <div class="segmented">
+                        <button type="button" class="seg @(dialog.DelaySeconds <= 5 ? "active" : "")" @onclick="() => SetDelay(5)">@L["Devices.PowerNow"]</button>
+                        <button type="button" class="seg @(dialog.DelaySeconds == 60 ? "active" : "")" @onclick="() => SetDelay(60)">@L["Devices.PowerIn1Min"]</button>
+                        <button type="button" class="seg @(dialog.DelaySeconds == 300 ? "active" : "")" @onclick="() => SetDelay(300)">@L["Devices.PowerIn5Min"]</button>
+                    </div>
+                </div>
+            }
+            @if (_error is not null)
+            {
+                <div class="alert danger">@_error</div>
+            }
+            <div class="button-row">
+                <button type="button" class="btn btn-danger" disabled="@_powerBusy" @onclick="ConfirmPowerAsync">@L["Devices.PowerConfirm"]</button>
+                <button type="button" class="btn btn-ghost" disabled="@_powerBusy" @onclick="ClosePowerDialog">@L["Common.Cancel"]</button>
+            </div>
+        </section>
+    </div>
+}
+
 @code {
     private Guid _familyId;
     private List<DeviceStatusDto> _devices = [];
@@ -206,7 +295,25 @@
     private Dictionary<Guid, string> _reportedZoneDisplay = [];
     private Dictionary<Guid, MetricsView> _metrics = [];
     private Dictionary<Guid, List<DeviceWarningDto>> _warnings = [];
+    private Dictionary<Guid, PowerView> _power = [];
     private string _familyLanguage = AppCulture.English;
+    private Guid _parentId;
+    private string _parentName = "";
+    private PowerDialog? _powerDialog;
+    private bool _powerBusy;
+    private string? _powerError;
+    private bool _hasPendingPower;
+    private Timer? _ticker;
+
+    private sealed record PowerView(
+        Guid Id,
+        DevicePowerAction Action,
+        DevicePowerStatus Status,
+        DateTime RunAtUtc,
+        DateTime CreatedUtc,
+        string? ResultDetail);
+
+    private sealed record PowerDialog(DeviceStatusDto Device, DevicePowerAction Action, int DelaySeconds);
 
     private sealed record MetricsView(
         int CpuPercent,
@@ -312,8 +419,15 @@
         _isOwner = string.Equals(auth.User.FindFirst("family_role")?.Value, "Owner", StringComparison.OrdinalIgnoreCase);
         _canMessage = _isOwner || (int.TryParse(auth.User.FindFirst("permissions")?.Value, out var messagePermissions)
             && (messagePermissions & (int)OpControl.Parental.Contracts.ParentPermissions.Messaging) != 0);
+        Guid.TryParse(auth.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out _parentId);
+        _parentName = auth.User.FindFirst("display_name")?.Value ?? "";
         Events.DeviceStatusChanged += OnStatus;
         Events.DeviceMetricsChanged += OnMetrics;
+        Events.PowerChanged += OnPower;
+        _ticker = new Timer(_ =>
+        {
+            if (_hasPendingPower) _ = InvokeAsync(StateHasChanged);
+        }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
         await RefreshAsync();
         await MetricsFocus.EnterAsync(_devices.Select(d => d.DeviceId));
     }
@@ -321,6 +435,8 @@
     private void OnStatus(DeviceStatusDto status) => _ = InvokeAsync(async () => { await RefreshAsync(); StateHasChanged(); });
 
     private void OnMetrics(Guid deviceId) => _ = InvokeAsync(async () => { await RefreshAsync(); StateHasChanged(); });
+
+    private void OnPower(Guid deviceId) => _ = InvokeAsync(async () => { await RefreshAsync(); StateHasChanged(); });
 
     private async Task RefreshAsync()
     {
@@ -367,6 +483,121 @@
             .Where(c => c.FamilyId == _familyId)
             .ToDictionaryAsync(c => c.Id, c => c.Name);
         _familyLanguage = AppCulture.Normalize(await db.Families.AsNoTracking().Where(f => f.Id == _familyId).Select(f => f.DefaultLanguage).FirstOrDefaultAsync());
+        var powerSince = DateTime.UtcNow.AddDays(-7);
+        var powerRows = await db.DevicePowerCommands.AsNoTracking()
+            .Where(c => c.FamilyId == _familyId && c.CreatedUtc >= powerSince)
+            .OrderByDescending(c => c.CreatedUtc)
+            .ToListAsync();
+        _power = powerRows
+            .GroupBy(c => c.DeviceId)
+            .ToDictionary(g => g.Key, g => new PowerView(g.First().Id, g.First().Action, g.First().Status,
+                g.First().RunAtUtc, g.First().CreatedUtc, g.First().ResultDetail));
+        _hasPendingPower = _power.Values.Any(p => p.Status is DevicePowerStatus.Pending or DevicePowerStatus.Accepted);
+    }
+
+    private PowerView? PowerFor(Guid deviceId)
+    {
+        if (!_power.TryGetValue(deviceId, out var power)) return null;
+        if (power.Status is DevicePowerStatus.Done or DevicePowerStatus.Failed or DevicePowerStatus.Cancelled
+            && power.CreatedUtc < DateTime.UtcNow.AddHours(-24))
+            return null;
+        return power;
+    }
+
+    private string ActionLabel(DevicePowerAction action) => L[action switch
+    {
+        DevicePowerAction.Restart => "Devices.Restart",
+        DevicePowerAction.Sleep => "Devices.Sleep",
+        _ => "Devices.PowerOff"
+    }].Value;
+
+    private string StatusLabel(DevicePowerStatus status) => L["Devices.PowerStatus." + status].Value;
+
+    private static string Countdown(TimeSpan remaining)
+    {
+        var seconds = Math.Max(0, (int)remaining.TotalSeconds);
+        var span = TimeSpan.FromSeconds(seconds);
+        return $"{(int)span.TotalMinutes}:{span.Seconds:00}";
+    }
+
+    private string PowerButtonTitle(bool online, bool pending) =>
+        !online ? L["Devices.PowerOffline"].Value
+        : pending ? L["Error.PowerPending"].Value
+        : "";
+
+    private static string PowerTone(DevicePowerStatus status) => status switch
+    {
+        DevicePowerStatus.Done => "ok",
+        DevicePowerStatus.Failed => "danger",
+        DevicePowerStatus.Cancelled => "warn",
+        _ => "muted"
+    };
+
+    private void OpenPowerDialog(DeviceStatusDto device, DevicePowerAction action)
+    {
+        _powerError = null;
+        _powerDialog = new PowerDialog(device, action, action == DevicePowerAction.Sleep ? 5 : 60);
+    }
+
+    private void SetDelay(int seconds)
+    {
+        if (_powerDialog is null) return;
+        _powerDialog = _powerDialog with { DelaySeconds = seconds };
+    }
+
+    private void ClosePowerDialog()
+    {
+        _powerDialog = null;
+        _powerError = null;
+    }
+
+    private string PowerDialogTitle(PowerDialog dialog) => L[dialog.Action switch
+    {
+        DevicePowerAction.Restart => "Devices.RestartConfirmTitle",
+        DevicePowerAction.Sleep => "Devices.SleepConfirmTitle",
+        _ => "Devices.PowerOffConfirmTitle"
+    }, dialog.Device.Name, ChildName(dialog.Device.ChildId)].Value;
+
+    private async Task ConfirmPowerAsync()
+    {
+        if (_powerDialog is not { } dialog) return;
+        _powerBusy = true;
+        _powerError = null;
+        try
+        {
+            await PowerService.RequestAsync(_familyId, dialog.Device.DeviceId, _parentId, _parentName,
+                dialog.Action, dialog.DelaySeconds);
+            _powerDialog = null;
+            _error = null;
+            await RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            _powerError = ex.Message;
+        }
+        finally
+        {
+            _powerBusy = false;
+        }
+    }
+
+    private async Task CancelPowerAsync(Guid deviceId, Guid commandId)
+    {
+        _powerBusy = true;
+        _error = null;
+        try
+        {
+            await PowerService.CancelAsync(_familyId, deviceId, commandId, _parentId, _parentName);
+            await RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _powerBusy = false;
+        }
     }
 
     private string SeenText(DeviceStatusDto device) =>
@@ -428,6 +659,8 @@
     {
         Events.DeviceStatusChanged -= OnStatus;
         Events.DeviceMetricsChanged -= OnMetrics;
+        Events.PowerChanged -= OnPower;
+        _ticker?.Dispose();
         await MetricsFocus.LeaveAsync(_devices.Select(d => d.DeviceId));
     }
 }

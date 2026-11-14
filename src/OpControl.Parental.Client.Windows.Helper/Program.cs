@@ -9,6 +9,11 @@ internal static class Program
     private static void Main(string[] args)
     {
 #if DEBUG
+        if (args.Any(a => string.Equals(a, "--power-preview", StringComparison.OrdinalIgnoreCase)))
+        {
+            OpControl.Parental.Helper.PowerPreview.Run(args);
+            return;
+        }
         if (args.Any(a => string.Equals(a, "--lock-preview", StringComparison.OrdinalIgnoreCase)))
         {
             OpControl.Parental.Helper.LockPreview.Run(args);

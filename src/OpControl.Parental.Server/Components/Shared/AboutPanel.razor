@@ -42,7 +42,6 @@
         </div>
         <a class="about-release-link" href="https://github.com/ziur-vela/parental-opcontrol/releases/tag/v@(Build.Version)" target="_blank" rel="noopener">@L["AboutPage.ReleaseNotes"] ↗</a>
     </div>
-    <p class="about-beta-note">@L["AboutPage.BetaNotice"]</p>
     <div class="about-devices">
         <h3 class="about-subhead">@L["AboutPage.ClientVersions"]</h3>
         @if (_devices.Count == 0)
@@ -60,6 +59,7 @@
                     </div>
                     <div class="about-device-meta">
                         <span class="pill-soft">@ClientVersion(device.Version)</span>
+                        <span class="beta-badge">@L["AboutPage.BetaBadge"]</span>
                         @if (device.LastSeenUtc is { } seen)
                         {
                             <span class="muted tiny">@($"{L["AboutPage.LastSeen"]} {seen:yyyy-MM-dd}")</span>
@@ -69,6 +69,7 @@
             }
         }
     </div>
+    <p class="about-beta-note">@L["AboutPage.BetaNotice"]</p>
 </section>
 
 <section class="card" id="license">

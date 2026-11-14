@@ -1002,7 +1002,7 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="AboutPage.CreditsTitle" xml:space="preserve"><value>Credits</value></data>
   <data name="AboutPage.BuiltWithAiTitle" xml:space="preserve"><value>Built with AI</value></data>
   <data name="AboutPage.BetaBadge" xml:space="preserve"><value>BETA</value></data>
-  <data name="AboutPage.BetaNotice" xml:space="preserve"><value>Parental OpControl is in beta: features may change.</value></data>
+  <data name="AboutPage.BetaNotice" xml:space="preserve"><value>This release is in beta. Report anything that looks wrong to Hendry.</value></data>
   <data name="AboutPage.ThirdParty" xml:space="preserve"><value>Third-party components</value></data>
   <data name="AboutPage.ThirdPartyHint" xml:space="preserve"><value>This list is generated from the actual dependencies of the dashboard, the client and the bundled fonts. Each component keeps its own license.</value></data>
   <data name="AboutPage.ThirdPartyEmpty" xml:space="preserve"><value>No third-party components were found.</value></data>
@@ -1585,6 +1585,43 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Devices.WarningUnderMinute" xml:space="preserve"><value>under a minute</value></data>
   <data name="Devices.WarningOngoing" xml:space="preserve"><value>ongoing</value></data>
   <data name="Devices.WarningStarted" xml:space="preserve"><value>started {0}</value></data>
+  <data name="Devices.Power" xml:space="preserve"><value>Power</value></data>
+  <data name="Devices.Restart" xml:space="preserve"><value>Restart</value></data>
+  <data name="Devices.Sleep" xml:space="preserve"><value>Sleep</value></data>
+  <data name="Devices.PowerOff" xml:space="preserve"><value>Power off</value></data>
+  <data name="Devices.PowerOffline" xml:space="preserve"><value>Device is offline</value></data>
+  <data name="Devices.RestartConfirmTitle" xml:space="preserve"><value>Restart {0} ({1})?</value></data>
+  <data name="Devices.SleepConfirmTitle" xml:space="preserve"><value>Sleep {0} ({1})?</value></data>
+  <data name="Devices.PowerOffConfirmTitle" xml:space="preserve"><value>Power off {0} ({1})?</value></data>
+  <data name="Devices.PowerConfirmHelp" xml:space="preserve"><value>The child gets a notice and cannot cancel it.</value></data>
+  <data name="Devices.PowerSleepHelp" xml:space="preserve"><value>The child gets a 5-second notice.</value></data>
+  <data name="Devices.PowerWhen" xml:space="preserve"><value>When</value></data>
+  <data name="Devices.PowerNow" xml:space="preserve"><value>Now</value></data>
+  <data name="Devices.PowerIn1Min" xml:space="preserve"><value>In 1 min</value></data>
+  <data name="Devices.PowerIn5Min" xml:space="preserve"><value>In 5 min</value></data>
+  <data name="Devices.PowerConfirm" xml:space="preserve"><value>Confirm</value></data>
+  <data name="Devices.PowerPending" xml:space="preserve"><value>{0} in {1}</value></data>
+  <data name="Devices.PowerCancelPending" xml:space="preserve"><value>Cancel {0} ({1})</value></data>
+  <data name="Devices.PowerStatus.Pending" xml:space="preserve"><value>Pending</value></data>
+  <data name="Devices.PowerStatus.Accepted" xml:space="preserve"><value>Accepted</value></data>
+  <data name="Devices.PowerStatus.Done" xml:space="preserve"><value>Done</value></data>
+  <data name="Devices.PowerStatus.Failed" xml:space="preserve"><value>Failed</value></data>
+  <data name="Devices.PowerStatus.Cancelled" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="Devices.PowerResultDetail" xml:space="preserve"><value>{0}: {1} · {2}</value></data>
+  <data name="Power.NoResponse" xml:space="preserve"><value>The device did not respond.</value></data>
+  <data name="Power.NoResult" xml:space="preserve"><value>The device accepted the command but did not report the result.</value></data>
+  <data name="Power.CancelledBy" xml:space="preserve"><value>Cancelled by {0}</value></data>
+  <data name="Error.PowerNotFound" xml:space="preserve"><value>Device not found.</value></data>
+  <data name="Error.PowerWindowsOnly" xml:space="preserve"><value>Power actions are only available for Windows devices.</value></data>
+  <data name="Error.PowerOffline" xml:space="preserve"><value>This device is offline. Power actions need it online.</value></data>
+  <data name="Error.PowerPending" xml:space="preserve"><value>Another power action is already pending for this device.</value></data>
+  <data name="Error.PowerSendFailed" xml:space="preserve"><value>The power action could not be sent to the device.</value></data>
+  <data name="Error.PowerCancelTooLate" xml:space="preserve"><value>This power action can no longer be cancelled.</value></data>
+  <data name="Activity.Power.Restart" xml:space="preserve"><value>Restart requested</value></data>
+  <data name="Activity.Power.Sleep" xml:space="preserve"><value>Sleep requested</value></data>
+  <data name="Activity.Power.PowerOff" xml:space="preserve"><value>Power off requested</value></data>
+  <data name="Activity.Power.Detail" xml:space="preserve"><value>{0} · {1}</value></data>
+  <data name="Activity.Power.DetailReason" xml:space="preserve"><value>{0} · {1} · {2}</value></data>
   <data name="Alert.DeviceWarning.Title" xml:space="preserve"><value>Device warning: {0}</value></data>
   <data name="Alert.DeviceWarning.Detail" xml:space="preserve"><value>{0}: {1} at {2}% (limit {3}%).</value></data>
   <data name="Settings.AlertOnDeviceWarnings" xml:space="preserve"><value>Alert me about device warnings</value></data>

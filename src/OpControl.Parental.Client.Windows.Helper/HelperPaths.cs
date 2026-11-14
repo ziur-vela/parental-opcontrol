@@ -6,6 +6,8 @@ using OpControl.Parental.Contracts;
 
 namespace OpControl.Parental.Helper;
 
+public sealed record PowerNotice(Guid Id, DevicePowerAction Action, DateTime RunAtUtc, int NoticeSeconds);
+
 public static class HelperPaths
 {
     public static string DataDirectory =>
@@ -26,6 +28,7 @@ public static class HelperPaths
     public static string SummaryFile => Path.Combine(UserDirectory, "child-summary.json");
     public static string OnlineFile => Path.Combine(PublicDirectory, "online.json");
     public static string UiCommandFile => Path.Combine(UserDirectory, "ui-command.json");
+    public static string PowerNoticeFile => Path.Combine(UserDirectory, "power-notice.json");
     public static string WindowBoundsFile => Path.Combine(UserDirectory, "my-opcontrol-window.json");
 
     public static readonly JsonSerializerOptions JsonOptions = new()
@@ -33,6 +36,26 @@ public static class HelperPaths
         PropertyNameCaseInsensitive = true,
         Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
     };
+
+    public static PowerNotice? ReadPowerNotice()
+    {
+        try
+        {
+            if (!File.Exists(PowerNoticeFile)) return null;
+            using var stream = new FileStream(PowerNoticeFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            using var document = JsonDocument.Parse(stream);
+            var root = document.RootElement;
+            if (!root.TryGetProperty("id", out var id) || !Guid.TryParse(id.GetString(), out var commandId)) return null;
+            if (!root.TryGetProperty("action", out var actionValue) || !Enum.TryParse<DevicePowerAction>(actionValue.GetString(), true, out var action)) return null;
+            if (!root.TryGetProperty("runAtUtc", out var runAt) || !runAt.TryGetDateTime(out var runAtUtc)) return null;
+            var noticeSeconds = root.TryGetProperty("noticeSeconds", out var seconds) && seconds.TryGetInt32(out var value) ? value : 60;
+            return new PowerNotice(commandId, action, runAtUtc.ToUniversalTime(), noticeSeconds);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
     public static RuntimeLockStateDto? ReadState()
     {

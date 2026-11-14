@@ -77,6 +77,7 @@ Host.CreateDefaultBuilder(args)
         services.AddSingleton<MessageSyncService>();
         services.AddSingleton<ChildSummarySyncService>();
         services.AddSingleton<AboutInfoService>();
+        services.AddSingleton<PowerCommandService>();
         services.AddHostedService(sp => sp.GetRequiredService<HelperSupervisor>());
         services.AddHostedService(sp => sp.GetRequiredService<RuntimeLoopService>());
         services.AddHostedService(sp => sp.GetRequiredService<PinPipeServer>());

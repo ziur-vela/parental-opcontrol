@@ -215,6 +215,8 @@ builder.Services.AddSingleton<DevicePresenceService>();
 builder.Services.AddSingleton<DeviceWarningEvaluator>();
 builder.Services.AddSingleton<DeviceMetricsFocusService>();
 builder.Services.AddScoped<DeviceMetricsService>();
+builder.Services.AddScoped<DevicePowerService>();
+builder.Services.AddHostedService<DevicePowerSweeper>();
 builder.Services.AddHostedService<LockExpiryService>();
 builder.Services.AddHostedService<CategoryRefreshService>();
 builder.Services.AddHostedService<ScheduleTransitionService>();

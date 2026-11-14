@@ -104,6 +104,7 @@ public static class ClientPaths
     public static string SummaryFile => Path.Combine(UserDirectory, "child-summary.json");
     public static string OnlineFile => Path.Combine(PublicDirectory, "online.json");
     public static string UiCommandFile => Path.Combine(UserDirectory, "ui-command.json");
+    public static string PowerNoticeFile => Path.Combine(UserDirectory, "power-notice.json");
 
     public static void EnsureDataDirectory()
     {

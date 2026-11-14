@@ -139,7 +139,8 @@ public class Job20DAboutPageTests
     {
         var layout = File.ReadAllText(Path.Combine(Root, "src", "OpControl.Parental.Server", "Components",
             "Layout", "MainLayout.razor"));
-        Assert.Contains("<a class=\"pill-soft\" href=\"/about\">", layout, StringComparison.Ordinal);
+        Assert.Contains("<a class=\"pill-soft sidebar-version-box\" href=\"/about\">", layout, StringComparison.Ordinal);
+        Assert.Contains("beta-badge", layout, StringComparison.Ordinal);
         Assert.DoesNotContain("Layout.VersionDetails", layout, StringComparison.Ordinal);
         Assert.Contains("href=\"/about\">@L[\"Legal.ShortLine\"]", layout, StringComparison.Ordinal);
         Assert.DoesNotContain("Layout.ProductTagline", layout, StringComparison.Ordinal);

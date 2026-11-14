@@ -161,6 +161,23 @@ else
             .OrderByDescending(a => a.FirstSeenUtc).Take(40).ToListAsync();
         rows.AddRange(installs.Select(a => new EventRow(a.FirstSeenUtc, "＋", "accent", L["Activity.NewAppInstalled"], a.DisplayName)));
 
+        var power = await db.DevicePowerCommands.AsNoTracking()
+            .Where(c => c.FamilyId == _familyId && c.ChildId == child.Id)
+            .OrderByDescending(c => c.CreatedUtc).Take(80).ToListAsync();
+        var deviceNames = await db.Devices.AsNoTracking()
+            .Where(d => d.FamilyId == _familyId)
+            .ToDictionaryAsync(d => d.Id, d => d.Name);
+        rows.AddRange(power.Select(c =>
+        {
+            var deviceName = deviceNames.GetValueOrDefault(c.DeviceId, "");
+            var status = L["Devices.PowerStatus." + c.Status].Value;
+            var detail = string.IsNullOrWhiteSpace(c.ResultDetail)
+                ? L["Activity.Power.Detail", deviceName, status].Value
+                : L["Activity.Power.DetailReason", deviceName, status, c.ResultDetail].Value;
+            return new EventRow(c.CreatedUtc, PowerIcon(c.Action), PowerTone(c.Status),
+                PowerTitle(c.Action) + L["Activity.By", c.RequestedByName], detail);
+        }));
+
         var alerts = await db.Alerts.AsNoTracking()
             .Where(a => a.FamilyId == _familyId && a.ChildId == child.Id)
             .OrderByDescending(a => a.CreatedUtc).Take(80).ToListAsync();
@@ -300,6 +317,28 @@ else
             _ => (L["Activity.ClientTampering"], detail)
         };
     }
+
+    private string PowerTitle(DevicePowerAction action) => action switch
+    {
+        DevicePowerAction.Restart => L["Activity.Power.Restart"],
+        DevicePowerAction.Sleep => L["Activity.Power.Sleep"],
+        _ => L["Activity.Power.PowerOff"]
+    };
+
+    private static string PowerIcon(DevicePowerAction action) => action switch
+    {
+        DevicePowerAction.Restart => "⟳",
+        DevicePowerAction.Sleep => "☾",
+        _ => "⏻"
+    };
+
+    private static string PowerTone(DevicePowerStatus status) => status switch
+    {
+        DevicePowerStatus.Failed => "danger",
+        DevicePowerStatus.Cancelled => "warn",
+        DevicePowerStatus.Pending or DevicePowerStatus.Accepted => "warn",
+        _ => "accent"
+    };
 
     private static string AlertIcon(string type) => type switch
     {

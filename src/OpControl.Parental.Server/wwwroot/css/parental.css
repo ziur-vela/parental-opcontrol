@@ -158,14 +158,36 @@ code { font-family: var(--mono); background: var(--panel-2); padding: 2px 5px; f
 .content { padding: 24px; max-width: 1180px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; flex: 1; }
 .site-foot { margin-top: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-family: var(--mono); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); padding: 22px 0 8px; text-decoration: none; }
 .site-foot-main { display: flex; align-items: center; justify-content: center; gap: 10px; }
-.site-foot:hover { color: var(--text); }
+.site-foot:hover { color: var(--muted); text-decoration: none; }
 .site-foot:focus-visible { outline: 2px solid var(--brand); outline-offset: 4px; }
-.site-foot-hint { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-transform: none; color: var(--faint); text-align: center; }
-.sidebar-version-head { display: flex; align-items: center; gap: 6px; }
-.sidebar-version-title { font-family: var(--mono); font-size: 9px; letter-spacing: .16em; color: var(--faint); }
-.beta-badge { display: inline-flex; align-items: center; border: 1px solid color-mix(in srgb, var(--warn) 55%, var(--line)); background: var(--warn-soft); color: var(--warn); padding: 1px 6px; font-family: var(--mono); font-size: 8.5px; letter-spacing: .12em; text-transform: uppercase; }
+.site-foot-hint { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-transform: none; color: var(--muted); text-align: center; }
+.site-foot:hover .site-foot-hint, .site-foot:focus-visible .site-foot-hint { color: var(--text); }
+.sidebar-version-title { font-family: var(--mono); font-size: 9px; letter-spacing: .16em; color: var(--faint); text-align: center; }
+.sidebar-version-box { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; text-align: center; line-height: 1.5; }
+.beta-badge { display: inline-flex; align-items: center; border: 1px solid color-mix(in srgb, var(--warn) 55%, var(--line)); background: var(--warn-soft); color: var(--warn); padding: 2px 9px; border-radius: 999px; font-family: var(--mono); font-size: 8.5px; letter-spacing: .12em; text-transform: uppercase; }
 .about-beta-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.about-beta-note { margin: 6px 0 0; font-size: 11px; color: var(--muted); }
+.about-beta-note { margin: 8px 0 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: .04em; color: var(--warn); }
+
+/* Job 22b: per-device power controls */
+.device-power { border-top: 1px solid var(--line); padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.device-power-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+.device-power-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.power-btn { display: inline-flex; align-items: center; gap: 7px; }
+.power-ico { font-size: 14px; line-height: 1; }
+.power-pending { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; color: var(--text); }
+.power-pending.waiting { color: var(--muted); }
+.power-cancel { font-size: 10px; }
+.power-result { font-family: var(--mono); font-size: 10px; letter-spacing: .04em; color: var(--muted); }
+.power-result.ok { color: var(--value); }
+.power-result.warn { color: var(--warn); }
+.power-result.danger { color: var(--danger); }
+.power-dialog { max-width: 520px; }
+.power-delay { display: flex; flex-direction: column; gap: 6px; }
+.segmented { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line-2); }
+.seg { background: transparent; border: 0; border-right: 1px solid var(--line-2); color: var(--muted); font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; padding: 9px 12px; cursor: pointer; }
+.seg:last-child { border-right: 0; }
+.seg:hover { color: var(--text); background: var(--panel-2); }
+.seg.active { color: var(--brand-dark); background: var(--brand); }
 .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
 .page-head p { margin-top: 4px; color: var(--muted); font-family: var(--mono); font-size: 11px; letter-spacing: .04em; }
 .page-head h1 { font-size: 28px; }

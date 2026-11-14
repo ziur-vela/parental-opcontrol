@@ -990,6 +990,76 @@ namespace OpControl.Parental.Server.Data.Migrations
                     b.ToTable("DeviceAccounts");
                 });
 
+            modelBuilder.Entity("OpControl.Parental.Server.Data.DevicePowerCommand", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AcceptedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("CancelledByName")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<Guid?>("CancelledByParentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ChildId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CompletedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeviceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("NoticeSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RequestedByName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<Guid>("RequestedByParentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ResultDetail")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("RunAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceId", "CreatedUtc");
+
+                    b.HasIndex("Status", "RunAtUtc");
+
+                    b.HasIndex("FamilyId", "ChildId", "CreatedUtc");
+
+                    b.ToTable("DevicePowerCommands");
+                });
+
             modelBuilder.Entity("OpControl.Parental.Server.Data.DeviceUpdateEvent", b =>
                 {
                     b.Property<Guid>("Id")

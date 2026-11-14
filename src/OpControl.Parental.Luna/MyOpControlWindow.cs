@@ -976,12 +976,12 @@ public sealed class MyOpControlWindow : Window
         var version = new StackPanel { Spacing = 8 };
         version.Children.Add(Text(Loc.T("Client.Kid.About.Version"), 14, _palette.Text, FontWeight.Bold, LunaThemes.Display));
         _aboutClientValue = VersionValue(NormalizeVersion(about.ClientVersion), about.ClientBuildDate);
-        InfoRow(version, Loc.T("Client.Kid.About.Client"), _aboutClientValue);
+        InfoRow(version, Loc.T("Client.Kid.About.Client"), _aboutClientValue, beta: true);
         var serverVersion = NormalizeVersion(about.ServerVersion);
         _aboutServerValue = string.IsNullOrWhiteSpace(serverVersion)
             ? Loc.T("Client.Kid.About.ServerUnavailable")
             : VersionValue("v" + serverVersion, about.ServerBuildDate);
-        InfoRow(version, Loc.T("Client.Kid.About.Server"), _aboutServerValue);
+        InfoRow(version, Loc.T("Client.Kid.About.Server"), _aboutServerValue, beta: true);
         stack.Children.Add(Card(version));
 
         var license = new StackPanel { Spacing = 8 };
@@ -1099,16 +1099,33 @@ public sealed class MyOpControlWindow : Window
             ? version
             : $"{version} · {Loc.T("Client.Kid.About.Build")} {buildDate}";
 
-    private void InfoRow(StackPanel parent, string label, string value)
+    private void InfoRow(StackPanel parent, string label, string value, bool beta = false)
     {
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") };
         row.Children.Add(Text(label, 11.5, _palette.Muted, FontWeight.Bold, wrap: false));
         var text = Text(value, 12.5, _palette.Text, FontWeight.SemiBold);
         text.Margin = new Thickness(14, 0, 0, 0);
         Grid.SetColumn(text, 1);
         row.Children.Add(text);
+        if (beta)
+        {
+            var pill = BetaPill();
+            pill.Margin = new Thickness(10, 0, 0, 0);
+            pill.VerticalAlignment = VerticalAlignment.Center;
+            Grid.SetColumn(pill, 2);
+            row.Children.Add(pill);
+        }
         parent.Children.Add(row);
     }
+
+    private Border BetaPill() => new()
+    {
+        Background = new SolidColorBrush(_palette.Accent),
+        CornerRadius = new CornerRadius(999),
+        Padding = new Thickness(9, 2, 9, 2),
+        VerticalAlignment = VerticalAlignment.Center,
+        Child = Text(Loc.T("Client.Kid.About.Beta"), 9.5, _palette.AccentInk, FontWeight.Bold, LunaThemes.Display, wrap: false)
+    };
 
     private void CreditRow(StackPanel parent, ThirdPartyCreditDto component)
     {

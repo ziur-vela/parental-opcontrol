@@ -23,6 +23,7 @@ public sealed class Worker : BackgroundService
     private readonly RemoteRelayService _remote;
     private readonly MessageSyncService _messages;
     private readonly ChildSummarySyncService _summary;
+    private readonly PowerCommandService _power;
     private readonly SystemMetricsCollector _metricsCollector = new();
     private DeviceCredential? _credential;
     private ClientOptions _options = new();
@@ -47,6 +48,7 @@ public sealed class Worker : BackgroundService
         RemoteRelayService remote,
         MessageSyncService messages,
         ChildSummarySyncService summary,
+        PowerCommandService power,
         IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
@@ -64,6 +66,7 @@ public sealed class Worker : BackgroundService
         _remote = remote;
         _messages = messages;
         _summary = summary;
+        _power = power;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -233,6 +236,9 @@ public sealed class Worker : BackgroundService
         });
         connection.On<ChildMessageDto>(DeviceHubMethods.MessageStatusChanged, message => _messages.ApplyStatusUpdate(message));
         connection.On<bool>(DeviceHubMethods.MetricsModeChanged, fast => _fastMetrics = fast);
+        connection.On<DevicePowerCommandDto>(DeviceHubMethods.PowerCommand, command =>
+            _power.Handle(command, result => ReportPowerResultAsync(connection, result)));
+        connection.On<Guid>(DeviceHubMethods.PowerCancel, commandId => _power.Cancel(commandId));
 
         connection.On<DeviceStateDto>(DeviceHubMethods.DeviceStateChanged, state =>
         {
@@ -357,6 +363,11 @@ public sealed class Worker : BackgroundService
         catch { }
         await base.StopAsync(cancellationToken);
     }
+
+    private static Task ReportPowerResultAsync(HubConnection connection, DevicePowerResultDto result) =>
+        connection.State == HubConnectionState.Connected
+            ? connection.InvokeAsync(DeviceHubMethods.ReportPowerResult, result)
+            : Task.CompletedTask;
 
     private async Task ReportMetricsAsync(HubConnection connection, CancellationToken ct)
     {

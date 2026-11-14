@@ -481,6 +481,9 @@ public static class DeviceHubMethods
     public const string MessageStatusChanged = "MessageStatusChanged";
     public const string MetricsModeChanged = "MetricsModeChanged";
     public const string ReportMetrics = "ReportMetrics";
+    public const string PowerCommand = "PowerCommand";
+    public const string PowerCancel = "PowerCancel";
+    public const string ReportPowerResult = "ReportPowerResult";
 }
 
 public sealed record ChildMessageDto(

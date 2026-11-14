@@ -21,10 +21,11 @@ public sealed class ParentalHub : Hub
     private readonly MessageService _messages;
     private readonly DeviceMetricsService _metrics;
     private readonly DeviceMetricsFocusService _focus;
+    private readonly DevicePowerService _power;
     private readonly ILogger<ParentalHub> _logger;
 
     public ParentalHub(ParentalDbContext db, DevicePresenceService presence, LockService locks, MessageService messages,
-        DeviceMetricsService metrics, DeviceMetricsFocusService focus, ILogger<ParentalHub> logger)
+        DeviceMetricsService metrics, DeviceMetricsFocusService focus, DevicePowerService power, ILogger<ParentalHub> logger)
     {
         _db = db;
         _presence = presence;
@@ -32,6 +33,7 @@ public sealed class ParentalHub : Hub
         _messages = messages;
         _metrics = metrics;
         _focus = focus;
+        _power = power;
         _logger = logger;
     }
 
@@ -84,6 +86,13 @@ public sealed class ParentalHub : Hub
         var value = Context.User?.FindFirstValue(ParentalClaims.DeviceId);
         if (Guid.TryParse(value, out var deviceId))
             await _metrics.RecordAsync(deviceId, metrics, Context.ConnectionAborted);
+    }
+
+    public async Task ReportPowerResult(DevicePowerResultDto result)
+    {
+        var value = Context.User?.FindFirstValue(ParentalClaims.DeviceId);
+        if (Guid.TryParse(value, out var deviceId))
+            await _power.ApplyResultAsync(deviceId, result, Context.ConnectionAborted);
     }
 
     private async Task<Device?> CurrentDeviceAsync()

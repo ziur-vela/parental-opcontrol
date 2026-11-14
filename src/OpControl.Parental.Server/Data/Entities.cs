@@ -90,6 +90,27 @@ public class Device
     public List<DeviceAccount> Accounts { get; set; } = [];
 }
 
+/// <summary>A parent-requested power action and its result (activity history).</summary>
+public class DevicePowerCommand
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid FamilyId { get; set; }
+    public Guid ChildId { get; set; }
+    public Guid DeviceId { get; set; }
+    public DevicePowerAction Action { get; set; }
+    public DateTime RunAtUtc { get; set; }
+    public int NoticeSeconds { get; set; }
+    public Guid RequestedByParentId { get; set; }
+    public string RequestedByName { get; set; } = "";
+    public DevicePowerStatus Status { get; set; } = DevicePowerStatus.Pending;
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+    public DateTime? AcceptedUtc { get; set; }
+    public DateTime? CompletedUtc { get; set; }
+    public string? ResultDetail { get; set; }
+    public Guid? CancelledByParentId { get; set; }
+    public string? CancelledByName { get; set; }
+}
+
 /// <summary>A single peak-warning episode for a device resource.</summary>
 public class DeviceWarning
 {

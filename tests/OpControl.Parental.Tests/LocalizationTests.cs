@@ -143,7 +143,8 @@ public class LocalizationTests
             "Websites.BrowserRules.HostPlaceholder", "Websites.BrowserRules.Browsers",
             "Layout.Beta", "AboutPage.BetaBadge", "Devices.Capacity",
             "Devices.UptimeDays", "Devices.UptimeHours", "Devices.UptimeMinutes",
-            "Devices.WarningCpu", "Devices.WarningRam", "Devices.WarningMinutes"
+            "Devices.WarningCpu", "Devices.WarningRam", "Devices.WarningMinutes",
+            "Devices.PowerResultDetail", "Activity.Power.Detail", "Activity.Power.DetailReason"
         };
         Assert.All(identical, key => Assert.Contains(key, allowed));
     }

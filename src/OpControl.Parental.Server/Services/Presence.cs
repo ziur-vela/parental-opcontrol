@@ -15,6 +15,7 @@ public sealed class DashboardEventBus
     public event Action<Data.Alert>? AlertChanged;
     public event Action<Contracts.ChildMessageDto>? MessageChanged;
     public event Action<Guid>? DeviceMetricsChanged;
+    public event Action<Guid>? PowerChanged;
     public event Action? LunaChanged;
 
     public void PublishDeviceStatus(DeviceStatusDto status) => DeviceStatusChanged?.Invoke(status);
@@ -22,6 +23,7 @@ public sealed class DashboardEventBus
     public void PublishAlert(Data.Alert alert) => AlertChanged?.Invoke(alert);
     public void PublishMessage(Contracts.ChildMessageDto message) => MessageChanged?.Invoke(message);
     public void PublishDeviceMetrics(Guid deviceId) => DeviceMetricsChanged?.Invoke(deviceId);
+    public void PublishPowerChanged(Guid deviceId) => PowerChanged?.Invoke(deviceId);
     public void PublishLunaChanged() => LunaChanged?.Invoke();
 }
 

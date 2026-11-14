@@ -17,6 +17,7 @@ public class ParentalDbContext : IdentityDbContext<ParentUser, IdentityRole<Guid
     public DbSet<Device> Devices => Set<Device>();
     public DbSet<DeviceAccount> DeviceAccounts => Set<DeviceAccount>();
     public DbSet<DeviceWarning> DeviceWarnings => Set<DeviceWarning>();
+    public DbSet<DevicePowerCommand> DevicePowerCommands => Set<DevicePowerCommand>();
     public DbSet<Schedule> Schedules => Set<Schedule>();
     public DbSet<WebsiteRule> WebsiteRules => Set<WebsiteRule>();
     public DbSet<AppRule> AppRules => Set<AppRule>();
@@ -127,6 +128,19 @@ public class ParentalDbContext : IdentityDbContext<ParentUser, IdentityRole<Guid
             e.Property(x => x.DisplayName).HasMaxLength(120);
             e.HasIndex(x => new { x.DeviceId, x.OsAccountName }).IsUnique();
             e.HasOne(x => x.Device).WithMany(x => x.Accounts).HasForeignKey(x => x.DeviceId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<DevicePowerCommand>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Action).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.RequestedByName).HasMaxLength(120).IsRequired();
+            e.Property(x => x.CancelledByName).HasMaxLength(120);
+            e.Property(x => x.ResultDetail).HasMaxLength(500);
+            e.HasIndex(x => new { x.DeviceId, x.CreatedUtc });
+            e.HasIndex(x => new { x.FamilyId, x.ChildId, x.CreatedUtc });
+            e.HasIndex(x => new { x.Status, x.RunAtUtc });
         });
 
         builder.Entity<DeviceWarning>(e =>

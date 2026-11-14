@@ -23,6 +23,8 @@ public sealed class HelperContext : ApplicationContext
     private PinDialog? _pinDialog;
     private NotificationForm? _notification;
     private MessagePopupForm? _messagePopup;
+    private PowerNoticeForm? _powerNotice;
+    private Guid _powerNoticeId;
     private Process? _kidProcess;
     private NotifyIcon? _tray;
     private ToolStripControlHost? _trayHeaderHost;
@@ -72,6 +74,7 @@ public sealed class HelperContext : ApplicationContext
         var state = HelperPaths.ReadState();
         Loc.SetLanguage(state?.Language);
         UpdateRemoteNotice();
+        UpdatePowerNotice();
         CheckNotification();
         if (state is { IsLocked: true } && !_overlays.Visible)
             _overlays.Update(state);
@@ -189,6 +192,46 @@ public sealed class HelperContext : ApplicationContext
             LockEngineTimeKind.LockNow => Loc.T("Client.Pill.Tooltip.LockNow"),
             _ => Loc.T("Client.Pill.LockIn") + " " + formatted
         };
+    }
+
+    private void UpdatePowerNotice()
+    {
+        var notice = HelperPaths.ReadPowerNotice();
+        if (notice is null)
+        {
+            HidePowerNotice();
+            return;
+        }
+        if (_powerNotice is null || _powerNoticeId != notice.Id)
+        {
+            HidePowerNotice();
+            _powerNoticeId = notice.Id;
+            _powerNotice = new PowerNoticeForm();
+            _powerNotice.FormClosed += (_, _) => _powerNotice = null;
+            try
+            {
+                var owner = _overlays.Visible ? _overlays.Owner : null;
+                if (owner is { IsDisposed: false }) _powerNotice.Show(owner);
+                else _powerNotice.Show();
+                _powerNotice.BringToFront();
+                _powerNotice.Activate();
+                HelperPaths.LogEvent($"power-notice-shown id={notice.Id} action={notice.Action}");
+            }
+            catch (Exception ex)
+            {
+                HelperPaths.LogEvent($"power-notice-show-failed {ex.Message}");
+                _powerNotice = null;
+            }
+        }
+        _powerNotice?.UpdateNotice(notice, DateTime.UtcNow);
+    }
+
+    private void HidePowerNotice()
+    {
+        if (_powerNotice is null) return;
+        try { _powerNotice.HideNotice(); } catch { }
+        _powerNotice = null;
+        _powerNoticeId = Guid.Empty;
     }
 
     private void OnRemoteNoticeChanged()
