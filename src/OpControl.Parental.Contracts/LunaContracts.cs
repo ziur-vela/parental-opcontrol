@@ -14,7 +14,9 @@ public enum LunaMessageFlag
     None = 0,
     Blocked = 1,
     ReplyBlocked = 2,
-    Urgent = 3
+    Urgent = 3,
+    Declined = 4,
+    TopicFlagged = 5
 }
 
 public enum LunaMoreRequestStatus

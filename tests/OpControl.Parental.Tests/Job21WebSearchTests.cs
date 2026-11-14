@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 using Avalonia.Headless;
+using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using System.Net;
 using System.Text;
@@ -232,11 +233,22 @@ public class Job21WebSearchTests
             UiHarness.Pump(600);
 
             var label = view.GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>()
-                .First(t => t.Text == "Where I found this");
+                .First(t => t.Text == "Where I found this (1)");
             Assert.NotNull(label);
+            var header = view.GetVisualDescendants().OfType<Avalonia.Controls.Button>()
+                .First(b => b.Content is Avalonia.Controls.StackPanel panel
+                    && panel.Children.OfType<Avalonia.Controls.TextBlock>()
+                        .Any(t => t.Text == "Where I found this (1)"));
             var link = view.GetVisualDescendants().OfType<Avalonia.Controls.Button>()
-                .First(b => b.Content is Avalonia.Controls.TextBlock tb && tb.Text.Contains("Mount Everest"));
+                .First(b => b.Content is Avalonia.Controls.TextBlock tb && tb.Text?.Contains("Mount Everest") == true);
             Assert.NotNull(link);
+            Assert.False(link.IsEffectivelyVisible);
+            header.RaiseEvent(new RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
+            UiHarness.Pump(100);
+            Assert.True(link.IsEffectivelyVisible);
+            header.RaiseEvent(new RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
+            UiHarness.Pump(100);
+            Assert.False(link.IsEffectivelyVisible);
 
             if (view.InputForTest is { } input)
             {

@@ -649,6 +649,7 @@ body:has(.legal-text) .auth-card { width: min(880px, 100%); }
 .luna-chat-meta { color: var(--muted); font-size: 12px; }
 .luna-tag { font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; padding: 1px 5px; border: 1px solid var(--line-2); color: var(--muted); white-space: nowrap; }
 .luna-tag.blocked, .luna-tag.urgent { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 60%, var(--line)); }
+.luna-tag.declined { color: var(--muted); border-color: var(--line-2); }
 .luna-tag.answer-blocked { color: var(--warn); border-color: var(--warn); }
 .luna-tag.reviewed { color: var(--value); border-color: var(--line-2); }
 .luna-tag.hidden { color: var(--muted); border-color: var(--line-2); }
@@ -1050,3 +1051,14 @@ body:has(.legal-text) .auth-card { width: min(880px, 100%); }
 .luna-websearch { margin-top: 6px; }
 .luna-source-list { margin: 4px 0 0; padding-left: 18px; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
 .luna-source-list a { color: var(--text); overflow-wrap: anywhere; }
+
+/* Job 21c: readable math in parent review and Messages */
+.math-inline, .math-display { display: inline-flex; align-items: center; vertical-align: middle; }
+.math-display { margin: .15em .08em; }
+.math-frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; text-align: center; line-height: 1.05; margin: 0 .14em; }
+.math-num { border-bottom: 1px solid currentColor; padding: 0 .18em; }
+.math-den { padding: 0 .18em; }
+.math-sqrt { display: inline-flex; align-items: flex-start; }
+.math-rad { border-top: 1px solid currentColor; padding: 0 .08em 0 .04em; margin-left: 1px; }
+.math-inline sup, .math-display sup { font-size: .72em; line-height: 0; }
+.math-inline sub, .math-display sub { font-size: .72em; line-height: 0; }

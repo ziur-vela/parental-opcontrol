@@ -114,13 +114,13 @@ else
                                 <span class="luna-tag-list">
                                     @foreach (var flag in row.Flags)
                                     {
-                                        <span class="luna-tag @LunaUi.FlagClass(flag)">@L[LunaUi.FlagLabelKey(flag)]</span>
+                                        <span class="luna-tag @LunaUi.FlagClass(flag)">@FlagText(flag, row.CategoriesOf(flag))</span>
                                     }
                                     @if (row.Chat.HiddenByChild)
                                     {
                                         <span class="luna-tag hidden">@L["Luna.Review.HiddenBy", _childName]</span>
                                     }
-                                    @if (row.HasAnyFlag && !row.HasUnreviewed)
+                                    @if (row.HasActionableFlag && !row.HasUnreviewed)
                                     {
                                         <span class="luna-tag reviewed">@L["Luna.Review.Reviewed"]</span>
                                     }
@@ -159,10 +159,10 @@ else
                                     <span>@FormatLocal(message.CreatedUtc)</span>
                                     @if (flagged)
                                     {
-                                        <span class="luna-tag @LunaUi.FlagClass(flag)">@L[LunaUi.FlagLabelKey(flag)]</span>
+                                        <span class="luna-tag @LunaUi.FlagClass(flag)">@FlagText(flag, message.FlagCategories)</span>
                                     }
                                 </div>
-                                <div class="luna-msg-text">@(isLuna ? message.ShownText : message.Text)</div>
+                                <div class="luna-msg-text">@((MarkupString)MathText.ToHtml(isLuna ? message.ShownText : message.Text))</div>
 
                                 @if (flagged)
                                 {
@@ -200,7 +200,7 @@ else
                                 {
                                     <details class="luna-original">
                                         <summary>@L["Luna.Review.DidNotSee", _childName]</summary>
-                                        <div class="luna-original-text">@message.Text</div>
+                                        <div class="luna-original-text">@((MarkupString)MathText.ToHtml(message.Text))</div>
                                     </details>
                                 }
 
@@ -242,7 +242,10 @@ else
 @code {
     private sealed record ChildRow(Guid Id, string Name);
     private sealed record ChatRow(LunaChatDto Chat, int MessageCount, bool HasUnreviewed, bool HasAnyFlag,
-        IReadOnlyList<LunaMessageFlag> Flags);
+        bool HasActionableFlag, IReadOnlyList<LunaMessageFlag> Flags, string? Categories)
+    {
+        public string? CategoriesOf(LunaMessageFlag flag) => Categories;
+    }
 
     [SupplyParameterFromQuery(Name = "child")]
     public Guid? ChildQuery { get; set; }
@@ -330,16 +333,20 @@ else
             var chats = await parent.ListChatsAsync(_familyId, _childId);
             var flags = await db.LunaMessages.AsNoTracking()
                 .Where(m => m.FamilyId == _familyId && m.ChildId == _childId)
-                .Select(m => new { m.ChatId, m.Flag, m.ReviewedUtc })
+                .Select(m => new { m.ChatId, m.Flag, m.FlagCategories, m.ReviewedUtc })
                 .ToListAsync();
             _chats = chats.Select(chat =>
             {
                 var rows = flags.Where(f => f.ChatId == chat.Id).ToList();
                 var flagged = rows.Where(f => f.Flag != LunaMessageFlag.None).ToList();
+                var actionable = flagged.Where(f => LunaUi.NeedsReviewFlag(f.Flag)).ToList();
                 return new ChatRow(chat, rows.Count,
-                    flagged.Any(f => f.ReviewedUtc is null),
+                    actionable.Any(f => f.ReviewedUtc is null),
                     flagged.Count > 0,
-                    flagged.Select(f => f.Flag).Distinct().ToList());
+                    actionable.Count > 0,
+                    flagged.Select(f => f.Flag).Distinct().ToList(),
+                    flagged.FirstOrDefault(f => f.Flag == LunaMessageFlag.TopicFlagged)?.FlagCategories
+                    ?? flagged.FirstOrDefault()?.FlagCategories);
             }).ToList();
 
             if (_chats.Count == 0)
@@ -441,6 +448,7 @@ else
         LunaMessageFlag.Blocked => "flagged",
         LunaMessageFlag.ReplyBlocked => "answer-blocked",
         LunaMessageFlag.Urgent => "urgent",
+        LunaMessageFlag.TopicFlagged => "flagged",
         _ => ""
     };
 
@@ -460,6 +468,16 @@ else
                 .Select(s => s.Key + " " + s.Value.ToString("0.00")));
         }
         catch { return ""; }
+    }
+
+    private string FlagText(LunaMessageFlag flag, string? categories)
+    {
+        if (flag == LunaMessageFlag.TopicFlagged)
+            return string.Join(" · ", (categories ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries |
+                StringSplitOptions.TrimEntries).Select(key => CategoryText.Name(key, key,
+                System.Globalization.CultureInfo.CurrentUICulture.Name)));
+        if (flag == LunaMessageFlag.Declined) return L["Luna.Flag.Declined"].Value;
+        return L[LunaUi.FlagLabelKey(flag)].Value;
     }
 
     private string FormatLocal(DateTime utc) => DashboardTime.Format(utc, _timeZone);

@@ -1598,4 +1598,8 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Messages.Yesterday" xml:space="preserve"><value>Ayer</value></data>
   <data name="Messages.JumpToDay" xml:space="preserve"><value>Ir al día</value></data>
   <data name="Messages.NewMessage" xml:space="preserve"><value>Mensaje nuevo</value></data>
+  <data name="Luna.Flag.Declined" xml:space="preserve"><value>Rechazado</value></data>
+  <data name="Luna.Flag.Topic" xml:space="preserve"><value>Por revisar</value></data>
+  <data name="Luna.Child.PrivacyDeclined" xml:space="preserve"><value>No puedo ayudar con información personal de otras personas. Pide ayuda a un adulto si la necesitas.</value></data>
+  <data name="Category.Bypass" xml:space="preserve"><value>Saltar bloqueos</value></data>
 </root>

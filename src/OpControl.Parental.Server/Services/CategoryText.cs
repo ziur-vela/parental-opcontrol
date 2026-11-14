@@ -12,6 +12,7 @@ public static class CategoryText
         "social" => AppText.Get("Category.Social", language),
         "fakenews" => AppText.Get("Category.FakeNews", language),
         "ai" => AppText.Get("Category.Ai", language),
+        "bypass" => AppText.Get("Category.Bypass", language),
         _ => fallback
     };
 }

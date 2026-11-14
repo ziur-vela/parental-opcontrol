@@ -1598,4 +1598,8 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Messages.Yesterday" xml:space="preserve"><value>Yesterday</value></data>
   <data name="Messages.JumpToDay" xml:space="preserve"><value>Jump to day</value></data>
   <data name="Messages.NewMessage" xml:space="preserve"><value>New message</value></data>
+  <data name="Luna.Flag.Declined" xml:space="preserve"><value>Declined</value></data>
+  <data name="Luna.Flag.Topic" xml:space="preserve"><value>Needs review</value></data>
+  <data name="Luna.Child.PrivacyDeclined" xml:space="preserve"><value>I can't help with personal information about other people. Ask a grown-up if you need help with that.</value></data>
+  <data name="Category.Bypass" xml:space="preserve"><value>Bypassing blocks</value></data>
 </root>

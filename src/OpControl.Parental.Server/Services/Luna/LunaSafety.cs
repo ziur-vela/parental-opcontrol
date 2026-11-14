@@ -72,6 +72,9 @@ public static class LunaSafety
     private static readonly Regex Marker = new(
         @"\[\[\s*LUNA_CONCERN\s*:\s*([A-Za-z0-9_-]+)\s*\]\]",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex DeclinedMarker = new(
+        @"\[\[\s*luna-declined\s*:\s*([A-Za-z0-9_-]+)\s*\]\]",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex LlamaCategory = new(@"\bS\d{1,2}\b", RegexOptions.Compiled);
     public const string ConcernMarkerKind = "model-concern";
 
@@ -120,6 +123,17 @@ public static class LunaSafety
     {
         var kinds = Marker.Matches(text).Select(m => m.Groups[1].Value.ToLowerInvariant()).Distinct().ToList();
         return (Marker.Replace(text, "").Trim(), kinds);
+    }
+
+    /// <summary>
+    /// Removes Luna's hidden decline markers and returns the clean text plus the
+    /// reasons. The marker must never reach the child or the stored chat text.
+    /// </summary>
+    public static (string Text, IReadOnlyList<string> Kinds) StripDeclinedMarkers(string text)
+    {
+        var kinds = DeclinedMarker.Matches(text).Select(m => m.Groups[1].Value.ToLowerInvariant())
+            .Distinct().ToList();
+        return (DeclinedMarker.Replace(text, "").Trim(), kinds);
     }
 
     public static string Describe(IReadOnlyList<string> categories) =>

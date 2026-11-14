@@ -179,6 +179,22 @@ public sealed class LunaChatService
                 AppText.Get("Luna.Child.Refusal", language), now, ct);
         }
 
+        var enabledCategories = await EnabledCategoriesAsync(ctx.FamilyId, ctx.ChildId, ct);
+        var topic = LunaTopicGuard.Topic(text, enabledCategories);
+        if (topic is not null)
+        {
+            return await DeclinedAsync(chat, usage, child, childSettings, language, text,
+                AppText.Get("Luna.Child.Blocked", language), LunaMessageFlag.TopicFlagged,
+                topic.CategoryKey, alert: true, ctx.DeviceId, now, ct);
+        }
+
+        if (LunaTopicGuard.Privacy(text))
+        {
+            return await DeclinedAsync(chat, usage, child, childSettings, language, text,
+                AppText.Get("Luna.Child.PrivacyDeclined", language), LunaMessageFlag.Declined,
+                LunaTopicGuard.PrivacyCategory, alert: false, ctx.DeviceId, now, ct);
+        }
+
         ILunaModerator moderator;
         ILunaChatProvider chatProvider;
         LunaProviderConfig config;
@@ -296,7 +312,8 @@ public sealed class LunaChatService
                 AppText.Get(notice, language), now, ct);
         }
 
-        var (clean, markerKinds) = LunaSafety.StripConcernMarkers(first.Text);
+        var (firstClean, markerKinds) = LunaSafety.StripConcernMarkers(first.Text);
+        var (clean, declinedKinds) = LunaSafety.StripDeclinedMarkers(firstClean);
         if (clean.Length == 0) clean = AppText.Get("Luna.Child.ReplyFallback", language);
         usage.PromptTokens += first.PromptTokens;
         usage.CompletionTokens += first.CompletionTokens;
@@ -328,7 +345,7 @@ public sealed class LunaChatService
                 usage.CompletionTokens += sourceRetry.CompletionTokens;
                 usage.WebSearches += sourceRetry.WebSearchRequests;
                 var stripped = LunaSafety.StripConcernMarkers(sourceRetry.Text);
-                retryClean = stripped.Text;
+                retryClean = LunaSafety.StripDeclinedMarkers(stripped.Text).Text;
                 if (stripped.Kinds.Count > 0) retryUrgent = true;
                 retrySources = sourceRetry.Sources;
                 if (guard is not null && FirstBlockedSource(retrySources, guard.BlockedDomains) is not null)
@@ -446,7 +463,7 @@ public sealed class LunaChatService
                 usage.PromptTokens += retry.PromptTokens;
                 usage.CompletionTokens += retry.CompletionTokens;
                 var stripped = LunaSafety.StripConcernMarkers(retry.Text);
-                retryClean = stripped.Text;
+                retryClean = LunaSafety.StripDeclinedMarkers(stripped.Text).Text;
                 if (stripped.Kinds.Count > 0) retryUrgent = true;
                 var retryModeration = await moderator.ModerateAsync(retryClean, ct);
                 var retryClassification = Classify(familySettings, retryModeration);
@@ -509,16 +526,21 @@ public sealed class LunaChatService
                 WarningText(childSettings, usage, language));
         }
 
-        // Safe reply.
-        var safeChild = await SaveExchangeAsync(chat, usage, child, text, null, LunaMessageFlag.None, null, null, 0, 0, now, ct);
+        // Safe reply. A hidden decline tag still becomes a low-priority marker,
+        // or Needs review plus an alert when it names a blocked topic.
+        var declined = DeclinedFrom(declinedKinds, enabledCategories);
+        var safeChild = await SaveExchangeAsync(chat, usage, child, text, null,
+            declined?.Flag ?? LunaMessageFlag.None, declined?.Category, null, 0, 0, now, ct);
         var safeLuna = await AddLunaAsync(chat, clean, clean, LunaMessageFlag.None, null, null,
             first.PromptTokens, first.CompletionTokens, now, ct,
             QueryFor(text, first, null), LunaWebSearchData.SerializeSources(first.Sources), first.WebSearchRequests);
         usage.Messages++;
         usage.UpdatedUtc = now;
         await _db.SaveChangesAsync(ct);
+        if (declined is { Alert: true })
+            await FlaggedAlertAsync(ctx.FamilyId, ctx.ChildId, ctx.DeviceId, child.Name, chat.Id, false, ct);
         await MaybeTitleAsync(chat, child, text, clean, familySettings, moderator, chatProvider, config,
-            language, false, ct);
+            language, declined is not null, ct);
         await MaybeSummarizeAsync(chat, child, chatProvider, config, ct);
         return new LunaMessageResponse(chatId, ToChild(safeChild), ToChild(safeLuna),
             LunaUsageStore.MessagesLeft(childSettings, usage), false,
@@ -984,6 +1006,46 @@ public sealed class LunaChatService
         {
             _logger.LogWarning(alertEx, "Could not pause Luna after a provider auth failure for family {FamilyId}", familyId);
         }
+    }
+
+    private sealed record DeclinedMark(LunaMessageFlag Flag, string Category, bool Alert);
+
+    private async Task<HashSet<string>> EnabledCategoriesAsync(Guid familyId, Guid childId, CancellationToken ct)
+    {
+        var keys = await _db.ChildCategories.AsNoTracking()
+            .Where(c => c.FamilyId == familyId && c.ChildId == childId && c.Enabled)
+            .Select(c => c.CategoryKey)
+            .ToListAsync(ct);
+        return keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static DeclinedMark? DeclinedFrom(IReadOnlyList<string> kinds, IReadOnlySet<string> enabled)
+    {
+        if (kinds.Count == 0) return null;
+        var topic = kinds.FirstOrDefault(k => enabled.Contains(k) && LunaTopicGuard.IsTopicCategory(k));
+        return topic is not null
+            ? new DeclinedMark(LunaMessageFlag.TopicFlagged, topic, true)
+            : new DeclinedMark(LunaMessageFlag.Declined, kinds[0], false);
+    }
+
+    private async Task<LunaMessageResponse> DeclinedAsync(LunaChat chat, LunaUsageDay usage, Child child,
+        ChildLunaSettings settings, string language, string childText, string replyText, LunaMessageFlag flag,
+        string category, bool alert, Guid deviceId, DateTime now, CancellationToken ct)
+    {
+        var childMessage = await SaveExchangeAsync(chat, usage, child, childText, null, flag, category, null,
+            0, 0, now, ct);
+        var lunaMessage = await AddLunaAsync(chat, replyText, replyText, LunaMessageFlag.None, null, null,
+            0, 0, now, ct);
+        usage.Messages++;
+        usage.UpdatedUtc = now;
+        if (!chat.TitleSetByChild && (string.IsNullOrWhiteSpace(chat.Title) || IsDefaultTitle(chat)))
+            chat.Title = DefaultTitle(chat.Subject, language);
+        await _db.SaveChangesAsync(ct);
+        if (alert)
+            await FlaggedAlertAsync(chat.FamilyId, chat.ChildId, deviceId, child.Name, chat.Id, false, ct);
+        return new LunaMessageResponse(chat.Id, ToChild(childMessage), ToChild(lunaMessage),
+            LunaUsageStore.MessagesLeft(settings, usage), false, false, false, null,
+            WarningText(settings, usage, language));
     }
 
     private async Task FlaggedAlertAsync(Guid familyId, Guid childId, Guid deviceId, string childName, Guid chatId,

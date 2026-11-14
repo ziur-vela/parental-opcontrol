@@ -862,11 +862,24 @@ public sealed class LunaAppView : UserControl
             Margin = new Thickness(52, -4, 40, 0),
             HorizontalAlignment = HorizontalAlignment.Left
         };
-        stack.Children.Add(Text(Loc.T("Luna.Chat.SourcesTitle"), 11, _palette.Muted, FontWeight.SemiBold, wrap: true));
+        var visible = new List<(LunaSourceDto Source, Uri Uri)>();
         foreach (var source in sources.Take(3))
         {
-            if (!Uri.TryCreate(source.Url, UriKind.Absolute, out var uri)
-                || uri.Scheme is not ("http" or "https")) continue;
+            if (Uri.TryCreate(source.Url, UriKind.Absolute, out var uri)
+                && uri.Scheme is "http" or "https")
+                visible.Add((source, uri));
+        }
+        if (visible.Count == 0) return stack;
+
+        var linkInk = _palette.Key == "gray" ? _palette.Text : _palette.Accent;
+        var links = new StackPanel
+        {
+            Spacing = 3,
+            IsVisible = false,
+            Margin = new Thickness(14, 1, 0, 0)
+        };
+        foreach (var (source, uri) in visible)
+        {
             var label = string.IsNullOrWhiteSpace(source.Title) ? source.Site : source.Title;
             if (string.IsNullOrWhiteSpace(label)) label = uri.Host;
             var link = new Button
@@ -876,10 +889,11 @@ public sealed class LunaAppView : UserControl
                     Text = label,
                     FontFamily = LunaThemes.Body,
                     FontSize = 11.5,
-                    Foreground = LunaBrushes.B(_palette.Accent),
+                    Foreground = LunaBrushes.B(linkInk),
                     TextDecorations = TextDecorations.Underline,
                     TextWrapping = TextWrapping.Wrap
                 },
+                Foreground = LunaBrushes.B(linkInk),
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
                 Padding = new Thickness(0),
@@ -888,8 +902,38 @@ public sealed class LunaAppView : UserControl
                 HorizontalContentAlignment = HorizontalAlignment.Left
             };
             link.Click += (_, _) => OpenSource(uri);
-            stack.Children.Add(link);
+            links.Children.Add(link);
         }
+
+        var chevron = Text("▸", 11, _palette.Muted, FontWeight.SemiBold, wrap: false);
+        chevron.Margin = new Thickness(5, 0, 0, 0);
+        var headerContent = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 0,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        headerContent.Children.Add(Text(Loc.T("Luna.Chat.SourcesTitleCount", visible.Count), 11,
+            _palette.Muted, FontWeight.SemiBold, wrap: true));
+        headerContent.Children.Add(chevron);
+
+        var header = new Button
+        {
+            Content = headerContent,
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Padding = new Thickness(0),
+            Cursor = new Cursor(StandardCursorType.Hand),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            HorizontalContentAlignment = HorizontalAlignment.Left
+        };
+        header.Click += (_, _) =>
+        {
+            links.IsVisible = !links.IsVisible;
+            chevron.Text = links.IsVisible ? "▾" : "▸";
+        };
+        stack.Children.Add(header);
+        stack.Children.Add(links);
         return stack;
     }
 
@@ -2297,19 +2341,17 @@ public sealed class LunaAppView : UserControl
         Place(new Ellipse { Fill = LunaBrushes.B(Color.Parse("#ecc964")) }, 34, 112, 12, 12);
         if (sleepy)
         {
-            var left = new Path { Data = Geometry.Parse("M52 82 q12 10 24 0"), Stroke = LunaBrushes.B(Color.Parse("#2b2f3a")), StrokeThickness = 7, StrokeLineCap = PenLineCap.Round };
-            var right = new Path { Data = Geometry.Parse("M96 82 q12 10 24 0"), Stroke = LunaBrushes.B(Color.Parse("#2b2f3a")), StrokeThickness = 7, StrokeLineCap = PenLineCap.Round };
-            left.RenderTransform = new ScaleTransform(s, s);
-            right.RenderTransform = new ScaleTransform(s, s);
-            canvas.Children.Add(left);
-            canvas.Children.Add(right);
+            var left = new Path { Data = Geometry.Parse("M52 82 q12 10 24 0"), Stroke = LunaBrushes.B(Color.Parse("#2b2f3a")), StrokeThickness = 7 * s, StrokeLineCap = PenLineCap.Round, Stretch = Stretch.Fill };
+            var right = new Path { Data = Geometry.Parse("M96 82 q12 10 24 0"), Stroke = LunaBrushes.B(Color.Parse("#2b2f3a")), StrokeThickness = 7 * s, StrokeLineCap = PenLineCap.Round, Stretch = Stretch.Fill };
+            Place(left, 52, 82, 24, 10);
+            Place(right, 96, 82, 24, 10);
         }
         else
         {
             Place(new Ellipse { Fill = LunaBrushes.B(Color.Parse("#2b2f3a")) }, 56, 67, 16, 22);
             Place(new Ellipse { Fill = LunaBrushes.B(Color.Parse("#2b2f3a")) }, 100, 67, 16, 22);
-            var smile = new Path { Data = Geometry.Parse("M60 106 Q86 134 112 106"), Stroke = LunaBrushes.B(Color.Parse("#2b2f3a")), StrokeThickness = 8, StrokeLineCap = PenLineCap.Round, RenderTransform = new ScaleTransform(s, s) };
-            canvas.Children.Add(smile);
+            var smile = new Path { Data = Geometry.Parse("M60 106 Q86 134 112 106"), Stroke = LunaBrushes.B(Color.Parse("#2b2f3a")), StrokeThickness = 8 * s, StrokeLineCap = PenLineCap.Round, Stretch = Stretch.Fill };
+            Place(smile, 60, 106, 52, 28);
             Place(new Ellipse { Fill = LunaBrushes.B(Color.Parse("#f0a9a0")), Opacity = 0.8 }, 38, 94, 20, 12);
             Place(new Ellipse { Fill = LunaBrushes.B(Color.Parse("#f0a9a0")), Opacity = 0.8 }, 114, 94, 20, 12);
         }

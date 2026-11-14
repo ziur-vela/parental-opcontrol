@@ -121,9 +121,9 @@ Returns up to 500 messages, oldest first. `text` is what the child saw: for Luna
 ]
 ```
 
-`flag`: `none`, `blocked`, `replyBlocked`, `urgent`.
+`flag`: `none`, `blocked`, `replyBlocked`, `urgent`, `declined`, `topicFlagged`. `declined` is a low-priority privacy decline; `topicFlagged` is a blocked-topic decline that needs parent review.
 
-`sources` is set on Luna messages when the answer used web search: at most **3** approved pages, each `{ "url": "https://…", "title": "…", "site": "example.org" }`. The app labels them "Where I found this" / "Dónde lo encontré" and opens them in the default browser; the DNS filter still applies.
+`sources` is set on Luna messages when the answer used web search: at most **3** approved pages, each `{ "url": "https://…", "title": "…", "site": "example.org" }`. The app shows one collapsed line, "Where I found this (n)" / "Dónde lo encontré (n)", and opens the links in the default browser; the DNS filter still applies.
 
 ### `GET /api/luna/chats/{chatId}/activity`
 
@@ -162,6 +162,8 @@ Response `200`:
 Behaviour:
 
 - Input is moderated before the chat model. A blocked message never reaches the model; later prompts see only `[a message was removed by the safety filter]`.
+- A narrow server-side topic check runs before the model against the child's enabled categories (adult, gambling, social, fake news, public AI, plus block-bypass attempts). A clear match returns the safe decline, stores the child message as `topicFlagged` with the category, and raises `luna-flagged`. School questions about dice, Monopoly or the history of Las Vegas are explicitly kept out of this check.
+- Luna may end a refusal with `[[luna-declined:<kind>]]`. The server strips the tag before storing or showing the reply; privacy/personal-information kinds become `declined` (visible, no push), while blocked-topic kinds become `topicFlagged` plus `luna-flagged` when that category is enabled.
 - Moderation error/timeout fails closed: `lunaMessage` is the friendly refusal and no chat model call is made.
 - A flagged reply is retried once with a stricter instruction; a second flag returns the fixed fallback, keeps the original in the parent view only, and raises `luna-flagged`.
 - Urgent input, an urgent classifier category, or a model concern marker returns the fixed urgent message plus the family helpline. The marker is stripped and never shown.
@@ -358,7 +360,7 @@ New alert types:
 
 | Type | When | Email/push rules |
 |---|---|---|
-| `luna-flagged` | blocked message, blocked Luna reply, cool-down, monthly cap | respects quiet hours; at most one per chat per 30 minutes for the normal/reply cases; push category `luna` |
+| `luna-flagged` | blocked message, blocked Luna reply, blocked-topic decline, cool-down, monthly cap | respects quiet hours; at most one per chat per 30 minutes for the normal/reply/topic cases; push category `luna` |
 | `luna-urgent` | urgent classifier category or model concern marker | immediate email + push, ignores quiet hours; push body has no message content: "Urgent Luna alert for {child}. Open the dashboard." |
 | `luna-more-request` | child asks for more messages | normal alert, quiet hours apply; push category `luna` |
 

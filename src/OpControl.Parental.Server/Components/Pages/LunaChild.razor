@@ -241,9 +241,9 @@ else
                                     <span class="luna-dot" style="background:@LunaUi.Subject(item.Subject).Color"></span>
                                     <span class="luna-chat-main">
                                         <span class="luna-chat-title">@item.Title · @L[LunaUi.Subject(item.Subject).NameKey]</span>
-                                        <span class="luna-chat-meta">@L[LunaUi.FlagLabelKey(item.Flag)] · @FormatLocal(item.CreatedUtc)</span>
+                                        <span class="luna-chat-meta">@FlagText(item.Flag, item.FlagCategories) · @FormatLocal(item.CreatedUtc)</span>
                                     </span>
-                                    <span class="luna-tag @LunaUi.FlagClass(item.Flag)">@L[LunaUi.FlagLabelKey(item.Flag)]</span>
+                                    <span class="luna-tag @LunaUi.FlagClass(item.Flag)">@FlagText(item.Flag, item.FlagCategories)</span>
                                 </a>
                             }
                         </div>
@@ -294,7 +294,8 @@ else
 
 @code {
     private sealed record ChildRow(Guid Id, string Name, DateOnly? DateOfBirth);
-    private sealed record ReviewItem(Guid MessageId, Guid ChatId, string Title, string Subject, LunaMessageFlag Flag, DateTime CreatedUtc);
+    private sealed record ReviewItem(Guid MessageId, Guid ChatId, string Title, string Subject, LunaMessageFlag Flag,
+        string? FlagCategories, DateTime CreatedUtc);
 
     [SupplyParameterFromQuery(Name = "child")]
     public Guid? ChildQuery { get; set; }
@@ -416,14 +417,18 @@ else
             _messagesLeft = Math.Max(0, _messageLimit - _messagesUsed);
 
             _needsReview = await db.LunaMessages.AsNoTracking().CountAsync(m => m.FamilyId == _familyId
-                && m.ChildId == _childId && m.Flag != LunaMessageFlag.None && m.ReviewedUtc == null);
+                && m.ChildId == _childId && m.ReviewedUtc == null
+                && (m.Flag == LunaMessageFlag.Blocked || m.Flag == LunaMessageFlag.ReplyBlocked
+                    || m.Flag == LunaMessageFlag.Urgent || m.Flag == LunaMessageFlag.TopicFlagged));
             _totalChats = await db.LunaChats.AsNoTracking().CountAsync(c => c.FamilyId == _familyId && c.ChildId == _childId);
             _reviewItems = await (from m in db.LunaMessages.AsNoTracking()
                                   join c in db.LunaChats.AsNoTracking() on m.ChatId equals c.Id
                                   where m.FamilyId == _familyId && m.ChildId == _childId
-                                        && m.Flag != LunaMessageFlag.None && m.ReviewedUtc == null
+                                        && m.ReviewedUtc == null
+                                        && (m.Flag == LunaMessageFlag.Blocked || m.Flag == LunaMessageFlag.ReplyBlocked
+                                            || m.Flag == LunaMessageFlag.Urgent || m.Flag == LunaMessageFlag.TopicFlagged)
                                   orderby m.CreatedUtc descending
-                                  select new ReviewItem(m.Id, c.Id, c.Title, c.Subject, m.Flag, m.CreatedUtc))
+                                  select new ReviewItem(m.Id, c.Id, c.Title, c.Subject, m.Flag, m.FlagCategories, m.CreatedUtc))
                 .Take(5).ToListAsync();
 
             var since = DateTime.UtcNow.AddDays(-7);
@@ -619,6 +624,15 @@ else
 
     private string ReviewUrl(Guid? chatId = null) =>
         "/luna/review?child=" + _childId + (chatId is { } id ? "&chat=" + id : "");
+
+    private string FlagText(LunaMessageFlag flag, string? categories)
+    {
+        if (flag == LunaMessageFlag.TopicFlagged)
+            return string.Join(" · ", (categories ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries |
+                StringSplitOptions.TrimEntries).Select(key => CategoryText.Name(key, key,
+                System.Globalization.CultureInfo.CurrentUICulture.Name)));
+        return L[LunaUi.FlagLabelKey(flag)].Value;
+    }
 
     private string FormatLocal(DateTime utc) => DashboardTime.Format(utc, _timeZone);
 }

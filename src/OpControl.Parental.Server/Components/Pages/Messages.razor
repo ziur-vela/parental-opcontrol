@@ -112,7 +112,7 @@ else
                                                 ×
                                             </button>
                                         </div>
-                                        <div class="msg-text">@message.Text</div>
+                                        <div class="msg-text">@((MarkupString)MathText.ToHtml(message.Text))</div>
                                     </div>
                                 </div>
                             }

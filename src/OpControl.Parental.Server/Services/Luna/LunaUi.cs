@@ -39,6 +39,8 @@ public static class LunaUi
         LunaMessageFlag.Blocked => "Luna.Flag.Blocked",
         LunaMessageFlag.ReplyBlocked => "Luna.Flag.ReplyBlocked",
         LunaMessageFlag.Urgent => "Luna.Flag.Urgent",
+        LunaMessageFlag.Declined => "Luna.Flag.Declined",
+        LunaMessageFlag.TopicFlagged => "Luna.Flag.Topic",
         _ => "Luna.Flag.Reviewed"
     };
 
@@ -47,11 +49,18 @@ public static class LunaUi
         LunaMessageFlag.Blocked => "blocked",
         LunaMessageFlag.ReplyBlocked => "answer-blocked",
         LunaMessageFlag.Urgent => "urgent",
+        LunaMessageFlag.Declined => "declined",
+        LunaMessageFlag.TopicFlagged => "blocked",
         _ => "none"
     };
 
     public static bool NeedsReview(LunaMessage message) =>
-        message.Flag != LunaMessageFlag.None && message.ReviewedUtc is null;
+        NeedsReviewFlag(message.Flag) && message.ReviewedUtc is null;
+
+    /// <summary>Declined is a low-priority marker; it is visible but not a review task.</summary>
+    public static bool NeedsReviewFlag(LunaMessageFlag flag) =>
+        flag is LunaMessageFlag.Blocked or LunaMessageFlag.ReplyBlocked
+            or LunaMessageFlag.Urgent or LunaMessageFlag.TopicFlagged;
 
     /// <summary>The header moon for a child page, the review page or the setup page.</summary>
     public static LunaMoonState HeaderMoon(bool lastTestOk, string? lastTestError, bool childOn) =>

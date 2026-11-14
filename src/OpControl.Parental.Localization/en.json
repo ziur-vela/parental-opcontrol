@@ -348,6 +348,7 @@
   "Luna.Chat.Ask": "Ask Luna",
   "Luna.Chat.Placeholder": "Ask Luna anything about school…",
   "Luna.Chat.SourcesTitle": "Where I found this",
+  "Luna.Chat.SourcesTitleCount": "Where I found this ({0})",
   "Luna.Chat.Thinking": "Thinking…",
   "Luna.Chat.Investigating": "Investigating on the Web…",
   "Luna.Chat.NewMessage": "New message ↓",

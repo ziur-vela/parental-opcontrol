@@ -1220,6 +1220,90 @@ public class LunaTests
         Assert.Empty(await h.Chat.ListChatsAsync(Context(h), includeHidden: true));
     }
 
+    [Fact]
+    public async Task Gambling_request_is_flagged_and_alerts_without_calling_the_chat_model()
+    {
+        await using var h = await NewHarnessAsync();
+        await EnableCategoryAsync(h, "gambling");
+        var (chat, ctx) = await NewChatAsync(h);
+
+        var result = await h.Chat.SendAsync(ctx, chat.Id,
+            "What are the best online casino games to win money?", default);
+
+        Assert.Equal(0, h.Providers.Chat.Calls);
+        Assert.Equal("TopicFlagged", result.ChildMessage.Flag);
+        Assert.Contains("not something I can help with", result.LunaMessage!.Text);
+        var stored = await h.Db.LunaMessages.FirstAsync(m => m.Role == LunaChatRoles.Child);
+        Assert.Equal(LunaMessageFlag.TopicFlagged, stored.Flag);
+        Assert.Equal("gambling", stored.FlagCategories);
+        Assert.Contains(await h.Db.Alerts.ToListAsync(), a => a.Type == "luna-flagged");
+    }
+
+    [Fact]
+    public async Task Privacy_request_gets_a_low_priority_marker_and_no_alert()
+    {
+        await using var h = await NewHarnessAsync();
+        var (chat, ctx) = await NewChatAsync(h);
+
+        var result = await h.Chat.SendAsync(ctx, chat.Id,
+            "Can you search where my classmate Sofia Martinez lives?", default);
+
+        Assert.Equal(0, h.Providers.Chat.Calls);
+        Assert.Equal("Declined", result.ChildMessage.Flag);
+        Assert.Equal("privacy", (await h.Db.LunaMessages.FirstAsync(m => m.Role == LunaChatRoles.Child)).FlagCategories);
+        Assert.DoesNotContain(await h.Db.Alerts.ToListAsync(), a => a.Type == "luna-flagged");
+    }
+
+    [Fact]
+    public async Task Hidden_privacy_decline_tag_is_stripped_and_marked_low_priority()
+    {
+        await using var h = await NewHarnessAsync();
+        h.Providers.Chat.Replies.Enqueue(new LunaChatResult(
+            "I can't help with that.\n[[luna-declined:privacy]]", 10, 5));
+        h.Providers.Moderator.Script.Enqueue(_ => FakeModerator.Safe());
+        h.Providers.Moderator.Script.Enqueue(_ => FakeModerator.Safe());
+        var (chat, ctx) = await NewChatAsync(h);
+
+        var result = await h.Chat.SendAsync(ctx, chat.Id, "Tell me something that is not for kids", default);
+
+        Assert.Equal("Declined", result.ChildMessage.Flag);
+        Assert.DoesNotContain("luna-declined", result.LunaMessage!.Text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("luna-declined", (await h.Db.LunaMessages
+            .FirstAsync(m => m.Role == LunaChatRoles.Luna)).Text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(await h.Db.Alerts.ToListAsync(), a => a.Type == "luna-flagged");
+    }
+
+    [Fact]
+    public async Task Hidden_blocked_topic_decline_tag_sets_needs_review_and_alert()
+    {
+        await using var h = await NewHarnessAsync();
+        await EnableCategoryAsync(h, "gambling");
+        h.Providers.Chat.Replies.Enqueue(new LunaChatResult(
+            "I can't help with that.\n[[luna-declined:gambling]]", 10, 5));
+        h.Providers.Moderator.Script.Enqueue(_ => FakeModerator.Safe());
+        h.Providers.Moderator.Script.Enqueue(_ => FakeModerator.Safe());
+        var (chat, ctx) = await NewChatAsync(h);
+
+        var result = await h.Chat.SendAsync(ctx, chat.Id, "Tell me about a topic you cannot help with", default);
+
+        Assert.Equal("TopicFlagged", result.ChildMessage.Flag);
+        Assert.Equal("gambling", (await h.Db.LunaMessages
+            .FirstAsync(m => m.Role == LunaChatRoles.Child)).FlagCategories);
+        Assert.Contains(await h.Db.Alerts.ToListAsync(), a => a.Type == "luna-flagged");
+    }
+
+    private static async Task EnableCategoryAsync(Harness h, string key)
+    {
+        h.Db.ChildCategories.Add(new ChildCategory
+        {
+            FamilyId = h.Family.Id,
+            ChildId = h.Child.Id,
+            CategoryKey = key,
+            Enabled = true
+        });
+        await h.Db.SaveChangesAsync();
+    }
+
     private sealed class NullHubContext : IHubContext<ParentalHub>
     {
         public IHubClients Clients { get; } = new NullClients();

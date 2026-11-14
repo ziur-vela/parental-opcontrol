@@ -4,6 +4,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using OpControl.Parental.Contracts;
 
 namespace OpControl.Parental.Luna;
@@ -22,6 +23,59 @@ public sealed class LunaContentPreviewWindow : Window
         TransparencyLevelHint = new[] { WindowTransparencyLevel.Transparent };
         Background = Brushes.Transparent;
         var palette = LunaThemes.From(options.Theme);
+        if (options.Sample is "sources" or "sources-open")
+        {
+            Width = 620;
+            Height = 860;
+            var view = new LunaAppView(new LunaApiClient(), options.Theme);
+            view.MarkInitializedForTest();
+            var chat = new LunaChatDto(Guid.NewGuid(), "science", "Mount Everest", false, false,
+                DateTime.UtcNow.AddMinutes(-5), DateTime.UtcNow);
+            var child = new LunaChildMessageDto(Guid.NewGuid(), chat.Id, LunaChatRoles.Child,
+                "How tall is Mount Everest?", DateTime.UtcNow.AddMinutes(-4), "none");
+            var luna = new LunaChildMessageDto(Guid.NewGuid(), chat.Id, LunaChatRoles.Luna,
+                "Mount Everest is about 8,849 meters tall. That is almost 9 kilometers!",
+                DateTime.UtcNow.AddMinutes(-3), "none",
+                [
+                    new LunaSourceDto("https://en.wikipedia.org/wiki/Mount_Everest",
+                        "Mount Everest - Wikipedia", "en.wikipedia.org"),
+                    new LunaSourceDto("https://www.nationalgeographic.com/environment/article/mount-everest",
+                        "Mount Everest facts - National Geographic", "nationalgeographic.com"),
+                    new LunaSourceDto("https://www.britannica.com/place/Mount-Everest",
+                        "Mount Everest - Britannica", "britannica.com")
+                ]);
+            view.OpenChatForTest(chat, [child, luna]);
+            Content = view;
+            KeyDown += (_, e) => { if (e.Key == Avalonia.Input.Key.Escape) Close(); };
+#if LUNA_DEV
+            if (options.Sample == "sources-open")
+            {
+                var openTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(900) };
+                openTimer.Tick += (_, _) =>
+                {
+                    openTimer.Stop();
+                    var header = view.GetVisualDescendants().OfType<Button>()
+                        .FirstOrDefault(b => b.Content is StackPanel panel
+                            && panel.Children.OfType<TextBlock>().Any(t => t.Text?.StartsWith(
+                                "Where I found this", StringComparison.Ordinal) == true));
+                    header?.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                };
+                openTimer.Start();
+            }
+            if (!string.IsNullOrWhiteSpace(App.LunaScreenshotPath))
+            {
+                var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1700) };
+                timer.Tick += (_, _) =>
+                {
+                    timer.Stop();
+                    Capture(App.LunaScreenshotPath!);
+                    Close();
+                };
+                timer.Start();
+            }
+#endif
+            return;
+        }
         var content = options.Sample == "markdown" ? MarkdownSample : MathSample;
         var stack = new StackPanel { Spacing = 12, Margin = new Thickness(24) };
         var title = options.Sample switch
