@@ -62,7 +62,8 @@ public class Job20DAboutPageTests
     {
         var html = await RenderAboutAsync("Owner", 511, "en");
         Assert.Contains("/releases/tag/v", html, StringComparison.Ordinal);
-        Assert.Contains("v0.17.26", html, StringComparison.Ordinal);
+        var version = typeof(OpControl.Parental.Server.Services.BuildInfo).Assembly.GetName().Version!;
+        Assert.Contains($"v{version.Major}.{version.Minor}.{version.Build}", html, StringComparison.Ordinal);
         Assert.Contains("EMMA-LAPTOP", html, StringComparison.Ordinal);
         Assert.Contains("v0.17.18", html, StringComparison.Ordinal);
         Assert.Contains("PolyForm Noncommercial License 1.0.0", html, StringComparison.Ordinal);
@@ -139,10 +140,13 @@ public class Job20DAboutPageTests
         var layout = File.ReadAllText(Path.Combine(Root, "src", "OpControl.Parental.Server", "Components",
             "Layout", "MainLayout.razor"));
         Assert.Contains("<a class=\"pill-soft\" href=\"/about\">", layout, StringComparison.Ordinal);
-        Assert.Contains("href=\"/about\">@L[\"Layout.VersionDetails\"]", layout, StringComparison.Ordinal);
+        Assert.DoesNotContain("Layout.VersionDetails", layout, StringComparison.Ordinal);
         Assert.Contains("href=\"/about\">@L[\"Legal.ShortLine\"]", layout, StringComparison.Ordinal);
         Assert.DoesNotContain("Layout.ProductTagline", layout, StringComparison.Ordinal);
-        Assert.Contains("Layout.BuiltWithAi", layout, StringComparison.Ordinal);
+        Assert.DoesNotContain("Layout.BuiltWithAi", layout, StringComparison.Ordinal);
+        Assert.Contains("class=\"site-foot\" href=\"/about\"", layout, StringComparison.Ordinal);
+        Assert.Contains("Layout.VersionLabel", layout, StringComparison.Ordinal);
+        Assert.Contains("Layout.Beta", layout, StringComparison.Ordinal);
     }
 
     [Fact]

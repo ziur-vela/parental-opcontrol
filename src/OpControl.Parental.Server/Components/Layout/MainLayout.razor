@@ -93,8 +93,11 @@
             <NavLink class="nav-link" href="/settings"><span class="nav-ico">⚙</span> @L["Nav.Settings"]</NavLink>
         </nav>
         <div class="sidebar-foot">
+            <div class="sidebar-version-head">
+                <span class="sidebar-version-title">@L["Layout.VersionLabel"]</span>
+                <span class="beta-badge">@L["Layout.Beta"]</span>
+            </div>
             <a class="pill-soft" href="/about">@Build.DisplayVersion</a>
-            <a class="muted small" href="/about">@L["Layout.VersionDetails"]</a>
             <a class="legal-line" href="/about">@L["Legal.ShortLine"]</a>
         </div>
     </aside>
@@ -121,8 +124,10 @@
         </header>
         <main class="content">
             @Body
-            <div class="site-foot"><span>@L["Layout.CreatedBy"]</span><img src="/brand/opcontrol-logo.png" alt="OpControl" class="opc-logo" width="110" height="24" /></div>
-            <div class="ai-credit">@Rich(L["Layout.BuiltWithAi"].Value)</div>
+            <a class="site-foot" href="/about" aria-label="@L["Layout.FooterAboutAria"]">
+                <span class="site-foot-main"><span>@L["Layout.CreatedBy"]</span><img src="/brand/opcontrol-logo.png" alt="OpControl" class="opc-logo" width="110" height="24" /></span>
+                <span class="site-foot-hint">@L["Layout.FooterAboutHint"]</span>
+            </a>
         </main>
     </div>
 </div>

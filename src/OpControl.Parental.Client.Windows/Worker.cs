@@ -23,8 +23,11 @@ public sealed class Worker : BackgroundService
     private readonly RemoteRelayService _remote;
     private readonly MessageSyncService _messages;
     private readonly ChildSummarySyncService _summary;
+    private readonly SystemMetricsCollector _metricsCollector = new();
     private DeviceCredential? _credential;
     private ClientOptions _options = new();
+    private volatile bool _fastMetrics;
+    private DateTime _lastMetricsSentUtc = DateTime.MinValue;
     private string ClientVersion => typeof(Worker).Assembly.GetName().Version?.ToString(3) ?? "0.13.1";
 
     private readonly IServiceProvider _serviceProvider;
@@ -229,6 +232,7 @@ public sealed class Worker : BackgroundService
             _ = _messages.HandleIncomingAsync(message, CancellationToken.None);
         });
         connection.On<ChildMessageDto>(DeviceHubMethods.MessageStatusChanged, message => _messages.ApplyStatusUpdate(message));
+        connection.On<bool>(DeviceHubMethods.MetricsModeChanged, fast => _fastMetrics = fast);
 
         connection.On<DeviceStateDto>(DeviceHubMethods.DeviceStateChanged, state =>
         {
@@ -296,6 +300,7 @@ public sealed class Worker : BackgroundService
                             await _overrides.SyncPendingAsync(_options, stoppingToken);
                         if (_messages.HasPendingOutbox)
                             await _messages.FlushOutboxAsync(stoppingToken);
+                        await ReportMetricsAsync(connection, stoppingToken);
                     }
                     catch (Exception ex)
                     {
@@ -351,6 +356,17 @@ public sealed class Worker : BackgroundService
         }
         catch { }
         await base.StopAsync(cancellationToken);
+    }
+
+    private async Task ReportMetricsAsync(HubConnection connection, CancellationToken ct)
+    {
+        if (connection.State != HubConnectionState.Connected) return;
+        var fast = _fastMetrics;
+        var due = fast || DateTime.UtcNow - _lastMetricsSentUtc >= TimeSpan.FromMinutes(5);
+        var metrics = _metricsCollector.Collect();
+        if (!due) return;
+        await connection.InvokeAsync(DeviceHubMethods.ReportMetrics, metrics, ct);
+        _lastMetricsSentUtc = DateTime.UtcNow;
     }
 
     private async Task TryRefreshAsync(CancellationToken ct)

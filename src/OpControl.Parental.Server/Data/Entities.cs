@@ -77,8 +77,33 @@ public class Device
     public string? UpdateStatus { get; set; }
     public DateTime? UpdateStatusUtc { get; set; }
     public DateTime? LastUpdateCheckUtc { get; set; }
+    public int? MetricsCpuPercent { get; set; }
+    public long? MetricsRamUsedBytes { get; set; }
+    public long? MetricsRamTotalBytes { get; set; }
+    public long? MetricsDiskFreeBytes { get; set; }
+    public long? MetricsDiskTotalBytes { get; set; }
+    public int? MetricsBatteryPercent { get; set; }
+    public BatteryPowerState? MetricsBatteryState { get; set; }
+    public long? MetricsUptimeSeconds { get; set; }
+    public DateTime? MetricsUpdatedUtc { get; set; }
     public Child? Child { get; set; }
     public List<DeviceAccount> Accounts { get; set; } = [];
+}
+
+/// <summary>A single peak-warning episode for a device resource.</summary>
+public class DeviceWarning
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid FamilyId { get; set; }
+    public Guid ChildId { get; set; }
+    public Guid DeviceId { get; set; }
+    public DeviceWarningKind Kind { get; set; }
+    public DateTime StartedUtc { get; set; }
+    public DateTime? EndedUtc { get; set; }
+    public double PeakValue { get; set; }
+    public double Threshold { get; set; }
+    public int? DurationSeconds { get; set; }
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
 }
 
 public class DeviceAccount
@@ -397,6 +422,7 @@ public class FamilySettings
     public int InstallLinkMinutes { get; set; } = 1440;
     public int RepeatedBlockAlertHours { get; set; } = 6;
     public string NoticeText { get; set; } = "Parent's watching you";
+    public bool AlertOnDeviceWarnings { get; set; }
     public string? TimeZoneId { get; set; }
     public DateTime UpdatedUtc { get; set; } = DateTime.UtcNow;
 }

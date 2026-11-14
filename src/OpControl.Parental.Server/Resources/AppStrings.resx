@@ -505,6 +505,10 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Layout.Spanish" xml:space="preserve"><value>Español</value></data>
   <data name="Layout.ToggleTheme" xml:space="preserve"><value>Toggle theme</value></data>
   <data name="Layout.VersionDetails" xml:space="preserve"><value>Version details</value></data>
+  <data name="Layout.VersionLabel" xml:space="preserve"><value>VERSION</value></data>
+  <data name="Layout.Beta" xml:space="preserve"><value>BETA</value></data>
+  <data name="Layout.FooterAboutHint" xml:space="preserve"><value>Click for app info and credits</value></data>
+  <data name="Layout.FooterAboutAria" xml:space="preserve"><value>App info and credits</value></data>
   <data name="Layout.ProductTagline" xml:space="preserve"><value>Parental Control Software</value></data>
   <data name="Login.Google" xml:space="preserve"><value>Continue with Google</value></data>
   <data name="Login.Incorrect" xml:space="preserve"><value>Email or password is incorrect.</value></data>
@@ -997,10 +1001,12 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="AboutPage.ReadFullLicense" xml:space="preserve"><value>Read the full license</value></data>
   <data name="AboutPage.CreditsTitle" xml:space="preserve"><value>Credits</value></data>
   <data name="AboutPage.BuiltWithAiTitle" xml:space="preserve"><value>Built with AI</value></data>
+  <data name="AboutPage.BetaBadge" xml:space="preserve"><value>BETA</value></data>
+  <data name="AboutPage.BetaNotice" xml:space="preserve"><value>Parental OpControl is in beta: features may change.</value></data>
   <data name="AboutPage.ThirdParty" xml:space="preserve"><value>Third-party components</value></data>
   <data name="AboutPage.ThirdPartyHint" xml:space="preserve"><value>This list is generated from the actual dependencies of the dashboard, the client and the bundled fonts. Each component keeps its own license.</value></data>
   <data name="AboutPage.ThirdPartyEmpty" xml:space="preserve"><value>No third-party components were found.</value></data>
-  <data name="Legal.ShortLine" xml:space="preserve"><value>© 2026 Ziur · License</value></data>
+  <data name="Legal.ShortLine" xml:space="preserve"><value>© 2026 OpControl · License</value></data>
   <data name="Email.UpdateSubject" xml:space="preserve"><value>Parental OpControl {0} is available</value></data>
   <data name="Email.Update.Preheader" xml:space="preserve"><value>A new stable release is ready to install.</value></data>
   <data name="Email.Update.Headline" xml:space="preserve"><value>Version {0} is available</value></data>
@@ -1551,6 +1557,38 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Device.Icon.Online" xml:space="preserve"><value>online</value></data>
   <data name="Device.Icon.Offline" xml:space="preserve"><value>offline</value></data>
   <data name="Devices.NotifyOnline" xml:space="preserve"><value>Notify me when this device comes online</value></data>
+  <data name="Devices.Battery" xml:space="preserve"><value>Battery</value></data>
+  <data name="Devices.Uptime" xml:space="preserve"><value>Uptime</value></data>
+  <data name="Devices.Temperature" xml:space="preserve"><value>Temperature</value></data>
+  <data name="Devices.Capacity" xml:space="preserve"><value>{0} / {1} GB</value></data>
+  <data name="Devices.BatteryNoBattery" xml:space="preserve"><value>No battery</value></data>
+  <data name="Devices.BatteryOnBattery" xml:space="preserve"><value>On battery</value></data>
+  <data name="Devices.BatteryCharging" xml:space="preserve"><value>Charging</value></data>
+  <data name="Devices.BatteryPluggedIn" xml:space="preserve"><value>Plugged in</value></data>
+  <data name="Devices.UptimeDays" xml:space="preserve"><value>{0} d {1} h</value></data>
+  <data name="Devices.UptimeHours" xml:space="preserve"><value>{0} h {1} m</value></data>
+  <data name="Devices.UptimeMinutes" xml:space="preserve"><value>{0} m</value></data>
+  <data name="Devices.OfflineLastSeen" xml:space="preserve"><value>Offline · last seen {0}</value></data>
+  <data name="Devices.WaitingForMetrics" xml:space="preserve"><value>Waiting for the device to report…</value></data>
+  <data name="Devices.UpdatedJustNow" xml:space="preserve"><value>Updated just now</value></data>
+  <data name="Devices.UpdatedSecondsAgo" xml:space="preserve"><value>Updated {0} s ago</value></data>
+  <data name="Devices.UpdatedMinutesAgo" xml:space="preserve"><value>Updated {0} min ago</value></data>
+  <data name="Devices.UpdatedHoursAgo" xml:space="preserve"><value>Updated {0} h ago</value></data>
+  <data name="Devices.Warnings" xml:space="preserve"><value>Warnings</value></data>
+  <data name="Devices.WarningsNone" xml:space="preserve"><value>No warnings in the last 30 days.</value></data>
+  <data name="Devices.WarningCpu" xml:space="preserve"><value>CPU</value></data>
+  <data name="Devices.WarningRam" xml:space="preserve"><value>RAM</value></data>
+  <data name="Devices.WarningDisk" xml:space="preserve"><value>Disk space</value></data>
+  <data name="Devices.WarningBattery" xml:space="preserve"><value>Battery</value></data>
+  <data name="Devices.WarningPeak" xml:space="preserve"><value>peak {0}%</value></data>
+  <data name="Devices.WarningMinutes" xml:space="preserve"><value>{0} min</value></data>
+  <data name="Devices.WarningUnderMinute" xml:space="preserve"><value>under a minute</value></data>
+  <data name="Devices.WarningOngoing" xml:space="preserve"><value>ongoing</value></data>
+  <data name="Devices.WarningStarted" xml:space="preserve"><value>started {0}</value></data>
+  <data name="Alert.DeviceWarning.Title" xml:space="preserve"><value>Device warning: {0}</value></data>
+  <data name="Alert.DeviceWarning.Detail" xml:space="preserve"><value>{0}: {1} at {2}% (limit {3}%).</value></data>
+  <data name="Settings.AlertOnDeviceWarnings" xml:space="preserve"><value>Alert me about device warnings</value></data>
+  <data name="Settings.AlertOnDeviceWarningsHelp" xml:space="preserve"><value>Sends the normal parent alert and push when a device reaches a resource warning limit. Warnings are always recorded on the Devices page.</value></data>
   <data name="Alert.DeviceOnline.Title" xml:space="preserve"><value>Device online: {0}</value></data>
   <data name="Alert.DeviceOnline.Detail" xml:space="preserve"><value>{0} is back online.</value></data>
   <data name="Websites.BrowserRules.Title" xml:space="preserve"><value>Browser rules</value></data>

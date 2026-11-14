@@ -130,7 +130,10 @@ public class Job20CAboutPolishTests
         var root = FindRoot();
         var layout = File.ReadAllText(Path.Combine(root, "src", "OpControl.Parental.Server",
             "Components", "Layout", "MainLayout.razor"));
-        Assert.Contains("Layout.BuiltWithAi", layout, StringComparison.Ordinal);
+        Assert.DoesNotContain("Layout.BuiltWithAi", layout, StringComparison.Ordinal);
+        var about = File.ReadAllText(Path.Combine(root, "src", "OpControl.Parental.Server",
+            "Components", "Shared", "AboutPanel.razor"));
+        Assert.Contains("Layout.BuiltWithAi", about, StringComparison.Ordinal);
         var english = File.ReadAllText(Path.Combine(root, "src", "OpControl.Parental.Server",
             "Resources", "AppStrings.resx"));
         var spanish = File.ReadAllText(Path.Combine(root, "src", "OpControl.Parental.Server",

@@ -1,0 +1,30 @@
+@* Copyright (c) 2026 Ziur / OpControl IT Solutions
+   SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 *@
+
+<div class="device-battery">
+    <div class="device-battery-row">
+        <svg viewBox="0 0 48 24" width="48" height="24" aria-hidden="true">
+            <rect x="1" y="1" width="40" height="22" rx="3" class="battery-shell" />
+            <rect x="42" y="7" width="4" height="10" rx="1" class="battery-tip" />
+            @if (Percent is { } percent)
+            {
+                <rect x="4" y="4" width="@FillWidth" height="16" rx="1" class="battery-fill @(Low ? "low" : "")" />
+            }
+        </svg>
+        <span class="device-battery-percent @(Low ? "low" : "")">@(Percent is { } p ? $"{p}%" : "—")</span>
+    </div>
+    <div class="device-gauge-label">@Label</div>
+    <div class="device-gauge-caption">@Caption</div>
+</div>
+
+@code {
+    [Parameter] public int? Percent { get; set; }
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string Caption { get; set; } = "";
+
+    private bool Low => Percent is { } percent && percent <= OpControl.Parental.Contracts.DeviceMetricsLimits.BatteryPercent;
+
+    private string FillWidth =>
+        Math.Clamp(34 * (Percent ?? 0) / 100, 0, 34)
+            .ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+}

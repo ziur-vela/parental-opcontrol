@@ -858,6 +858,34 @@ namespace OpControl.Parental.Server.Data.Migrations
                     b.Property<DateTime?>("LastUpdateCheckUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("MetricsBatteryPercent")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MetricsBatteryState")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<int?>("MetricsCpuPercent")
+                        .HasColumnType("integer");
+
+                    b.Property<long?>("MetricsDiskFreeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("MetricsDiskTotalBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("MetricsRamTotalBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("MetricsRamUsedBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("MetricsUpdatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("MetricsUptimeSeconds")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -1006,6 +1034,55 @@ namespace OpControl.Parental.Server.Data.Migrations
                     b.ToTable("DeviceUpdateEvents");
                 });
 
+            modelBuilder.Entity("OpControl.Parental.Server.Data.DeviceWarning", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ChildId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeviceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("DurationSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("EndedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<double>("PeakValue")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateTime>("StartedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<double>("Threshold")
+                        .HasColumnType("double precision");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceId", "StartedUtc");
+
+                    b.HasIndex("DeviceId", "Kind", "EndedUtc");
+
+                    b.HasIndex("FamilyId", "ChildId", "StartedUtc");
+
+                    b.ToTable("DeviceWarnings");
+                });
+
             modelBuilder.Entity("OpControl.Parental.Server.Data.EnrollmentCode", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1087,6 +1164,11 @@ namespace OpControl.Parental.Server.Data.Migrations
 
                     b.Property<bool>("AlertEmailsEnabled")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("AlertOnDeviceWarnings")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("FromAddress")
                         .HasMaxLength(255)

@@ -479,6 +479,8 @@ public static class DeviceHubMethods
     public const string RemoteSessionStopped = "RemoteSessionStopped";
     public const string MessageReceived = "MessageReceived";
     public const string MessageStatusChanged = "MessageStatusChanged";
+    public const string MetricsModeChanged = "MetricsModeChanged";
+    public const string ReportMetrics = "ReportMetrics";
 }
 
 public sealed record ChildMessageDto(

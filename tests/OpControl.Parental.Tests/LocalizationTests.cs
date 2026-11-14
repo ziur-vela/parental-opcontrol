@@ -140,7 +140,10 @@ public class LocalizationTests
             "Luna.Model.Name.Gemini35FlashLite", "Luna.Model.Name.Sonnet55",
             "Luna.Setup.Check.Chat", "Luna.Setup.Check.Ok", "Luna.Alias",
             "Luna.Welcome.How.Windows", "Device.Icon.Aria", "Devices.Cpu", "Devices.Ram",
-            "Websites.BrowserRules.HostPlaceholder", "Websites.BrowserRules.Browsers"
+            "Websites.BrowserRules.HostPlaceholder", "Websites.BrowserRules.Browsers",
+            "Layout.Beta", "AboutPage.BetaBadge", "Devices.Capacity",
+            "Devices.UptimeDays", "Devices.UptimeHours", "Devices.UptimeMinutes",
+            "Devices.WarningCpu", "Devices.WarningRam", "Devices.WarningMinutes"
         };
         Assert.All(identical, key => Assert.Contains(key, allowed));
     }

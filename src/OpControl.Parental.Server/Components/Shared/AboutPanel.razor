@@ -35,10 +35,14 @@
     <div class="about-version">
         <div class="about-info">
             <span class="lbl">@L["AboutPage.Server"]</span>
-            <span class="about-version-value">@Build.DisplayVersion</span>
+            <span class="about-beta-row">
+                <span class="about-version-value">@Build.DisplayVersion</span>
+                <span class="beta-badge">@L["AboutPage.BetaBadge"]</span>
+            </span>
         </div>
         <a class="about-release-link" href="https://github.com/ziur-vela/parental-opcontrol/releases/tag/v@(Build.Version)" target="_blank" rel="noopener">@L["AboutPage.ReleaseNotes"] ↗</a>
     </div>
+    <p class="about-beta-note">@L["AboutPage.BetaNotice"]</p>
     <div class="about-devices">
         <h3 class="about-subhead">@L["AboutPage.ClientVersions"]</h3>
         @if (_devices.Count == 0)

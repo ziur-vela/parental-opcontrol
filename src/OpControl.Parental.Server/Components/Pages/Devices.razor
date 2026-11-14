@@ -12,6 +12,7 @@
 @inject AuthenticationStateProvider AuthState
 @inject IServiceScopeFactory Scopes
 @inject DevicePresenceService Presence
+@inject DeviceMetricsFocusService MetricsFocus
 @inject DashboardEventBus Events
 @inject OpControl.Parental.Server.Services.ReleaseCatalog Releases
 @inject IJSRuntime JS
@@ -111,13 +112,64 @@
                     <div class="system-resources">
                         <div class="system-resources-head">
                             <span class="eyebrow">@L["Devices.SystemResources"]</span>
-                            <span class="pill-amber">@L["Common.ComingSoon"]</span>
                         </div>
-                        <div class="device-gauges-faded">
-                            <DeviceGauge Label="@L["Devices.Cpu"]" Percent="42" Caption="42%" />
-                            <DeviceGauge Label="@L["Devices.Ram"]" Percent="61" Caption="4.9 / 8 GB" />
-                            <DeviceGauge Label="@L["Devices.Storage"]" Percent="78" Caption="195 / 250 GB" Amber="true" />
-                        </div>
+                        @{
+                            var metrics = _metrics.GetValueOrDefault(device.DeviceId);
+                            var metricsState = DeviceMetricsMath.State(device.Online, metrics is not null);
+                        }
+                        @if (metricsState == DeviceMetricsState.Offline)
+                        {
+                            <p class="muted small">@L["Devices.OfflineLastSeen", SeenText(device)]</p>
+                        }
+                        else if (metricsState == DeviceMetricsState.Waiting || metrics is null)
+                        {
+                            <p class="muted small">@L["Devices.WaitingForMetrics"]</p>
+                        }
+                        else
+                        {
+                            var ramPercent = DeviceMetricsMath.RamPercent(metrics.RamUsedBytes, metrics.RamTotalBytes);
+                            var diskUsed = DeviceMetricsMath.DiskUsedPercent(metrics.DiskFreeBytes, metrics.DiskTotalBytes);
+                            var diskFree = DeviceMetricsMath.DiskFreePercent(metrics.DiskFreeBytes, metrics.DiskTotalBytes);
+                            <div class="device-gauges">
+                                <DeviceGauge Label="@L["Devices.Cpu"]" Percent="@metrics.CpuPercent" Caption="@($"{metrics.CpuPercent}%")"
+                                             Amber="@(metrics.CpuPercent >= DeviceMetricsLimits.CpuPercent)" />
+                                <DeviceGauge Label="@L["Devices.Ram"]" Percent="@ramPercent" Caption="@Capacity(metrics.RamUsedBytes, metrics.RamTotalBytes)"
+                                             Amber="@(ramPercent >= DeviceMetricsLimits.RamPercent)" />
+                                <DeviceGauge Label="@L["Devices.Storage"]" Percent="@diskUsed" Caption="@Capacity(metrics.DiskTotalBytes - metrics.DiskFreeBytes, metrics.DiskTotalBytes)"
+                                             Amber="@(diskFree < DeviceMetricsLimits.DiskFreePercent)" />
+                                <DeviceBattery Label="@L["Devices.Battery"]" Percent="@metrics.BatteryPercent" Caption="@BatteryText(metrics.BatteryState)" />
+                                <div class="device-gauge-disabled">
+                                    <DeviceGauge Label="@L["Devices.Temperature"]" Percent="0" Caption="@L["Common.ComingSoon"]" />
+                                </div>
+                                <div class="device-uptime">
+                                    <div class="device-uptime-value">@UptimeText(metrics.UptimeSeconds)</div>
+                                    <div class="device-gauge-label">@L["Devices.Uptime"]</div>
+                                </div>
+                            </div>
+                            <div class="metrics-updated">@UpdatedText(metrics.UpdatedUtc)</div>
+                        }
+
+                        @if (_warnings.TryGetValue(device.DeviceId, out var deviceWarnings) && deviceWarnings.Count > 0)
+                        {
+                            <div class="device-warnings">
+                                <div class="eyebrow">@L["Devices.Warnings"]</div>
+                                @foreach (var warning in deviceWarnings)
+                                {
+                                    <div class="device-warning-row">
+                                        <span class="device-warning-kind">@DeviceWarningText.Kind(warning.Kind)</span>
+                                        <span class="device-warning-meta">
+                                            @L["Devices.WarningPeak", Math.Round(warning.PeakValue)] ·
+                                            @WarningDuration(warning) ·
+                                            @L["Devices.WarningStarted", Formats.CompactDateTime(DashboardTime.Convert(warning.StartedUtc, device.TimeZoneId))]
+                                        </span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="muted tiny device-warnings-empty">@L["Devices.WarningsNone"]</p>
+                        }
                     </div>
 
                     <div class="device-card-foot">
@@ -152,7 +204,20 @@
     private Dictionary<Guid, string> _childNames = [];
     private Dictionary<Guid, string?> _timeZoneOverrides = [];
     private Dictionary<Guid, string> _reportedZoneDisplay = [];
+    private Dictionary<Guid, MetricsView> _metrics = [];
+    private Dictionary<Guid, List<DeviceWarningDto>> _warnings = [];
     private string _familyLanguage = AppCulture.English;
+
+    private sealed record MetricsView(
+        int CpuPercent,
+        long RamUsedBytes,
+        long RamTotalBytes,
+        long DiskFreeBytes,
+        long DiskTotalBytes,
+        int? BatteryPercent,
+        BatteryPowerState BatteryState,
+        long UptimeSeconds,
+        DateTime UpdatedUtc);
 
     private string FamilyLanguageLabel => _familyLanguage == AppCulture.Spanish ? L["Language.Spanish"] : L["Language.English"];
 
@@ -248,10 +313,14 @@
         _canMessage = _isOwner || (int.TryParse(auth.User.FindFirst("permissions")?.Value, out var messagePermissions)
             && (messagePermissions & (int)OpControl.Parental.Contracts.ParentPermissions.Messaging) != 0);
         Events.DeviceStatusChanged += OnStatus;
+        Events.DeviceMetricsChanged += OnMetrics;
         await RefreshAsync();
+        await MetricsFocus.EnterAsync(_devices.Select(d => d.DeviceId));
     }
 
     private void OnStatus(DeviceStatusDto status) => _ = InvokeAsync(async () => { await RefreshAsync(); StateHasChanged(); });
+
+    private void OnMetrics(Guid deviceId) => _ = InvokeAsync(async () => { await RefreshAsync(); StateHasChanged(); });
 
     private async Task RefreshAsync()
     {
@@ -272,10 +341,76 @@
         _notifyOnline = devices.ToDictionary(d => d.Id, d => d.NotifyOnline);
         _timeZoneOverrides = devices.ToDictionary(d => d.Id, d => d.TimeZoneOverrideId);
         _reportedZoneDisplay = devices.ToDictionary(d => d.Id, d => TimeZoneResolver.DisplayName(d.ReportedTimeZoneId ?? d.TimeZoneId));
+        _metrics = devices
+            .Where(d => d.MetricsUpdatedUtc is not null)
+            .ToDictionary(d => d.Id, d => new MetricsView(
+                d.MetricsCpuPercent ?? 0,
+                d.MetricsRamUsedBytes ?? 0,
+                d.MetricsRamTotalBytes ?? 0,
+                d.MetricsDiskFreeBytes ?? 0,
+                d.MetricsDiskTotalBytes ?? 0,
+                d.MetricsBatteryPercent,
+                d.MetricsBatteryState ?? BatteryPowerState.NoBattery,
+                d.MetricsUptimeSeconds ?? 0,
+                d.MetricsUpdatedUtc!.Value));
+        var cutoff = DeviceWarningRetention.Cutoff(DateTime.UtcNow);
+        var warnings = await db.DeviceWarnings.AsNoTracking()
+            .Where(w => w.FamilyId == _familyId && w.StartedUtc >= cutoff)
+            .OrderByDescending(w => w.StartedUtc)
+            .ToListAsync();
+        _warnings = warnings
+            .GroupBy(w => w.DeviceId)
+            .ToDictionary(g => g.Key, g => g.Take(20)
+                .Select(w => new DeviceWarningDto(w.Id, w.Kind, w.StartedUtc, w.EndedUtc, w.PeakValue, w.Threshold, w.DurationSeconds))
+                .ToList());
         _childNames = await db.Children.AsNoTracking()
             .Where(c => c.FamilyId == _familyId)
             .ToDictionaryAsync(c => c.Id, c => c.Name);
         _familyLanguage = AppCulture.Normalize(await db.Families.AsNoTracking().Where(f => f.Id == _familyId).Select(f => f.DefaultLanguage).FirstOrDefaultAsync());
+    }
+
+    private string SeenText(DeviceStatusDto device) =>
+        device.LastSeenUtc is { } seen
+            ? Formats.CompactDateTime(DashboardTime.Convert(seen, device.TimeZoneId))
+            : L["Common.Never"].Value;
+
+    private string Capacity(long usedBytes, long totalBytes) =>
+        L["Devices.Capacity",
+            (usedBytes / 1073741824.0).ToString("0.0", System.Globalization.CultureInfo.CurrentCulture),
+            (totalBytes / 1073741824.0).ToString("0.0", System.Globalization.CultureInfo.CurrentCulture)].Value;
+
+    private string BatteryText(BatteryPowerState state) => state switch
+    {
+        BatteryPowerState.OnBattery => L["Devices.BatteryOnBattery"].Value,
+        BatteryPowerState.Charging => L["Devices.BatteryCharging"].Value,
+        BatteryPowerState.PluggedInFull => L["Devices.BatteryPluggedIn"].Value,
+        _ => L["Devices.BatteryNoBattery"].Value
+    };
+
+    private string UptimeText(long seconds)
+    {
+        var span = TimeSpan.FromSeconds(Math.Max(0, seconds));
+        if (span.TotalDays >= 1)
+            return L["Devices.UptimeDays", (int)span.TotalDays, span.Hours].Value;
+        if (span.TotalHours >= 1)
+            return L["Devices.UptimeHours", (int)span.TotalHours, span.Minutes].Value;
+        return L["Devices.UptimeMinutes", span.Minutes].Value;
+    }
+
+    private string WarningDuration(DeviceWarningDto warning)
+    {
+        if (warning.DurationSeconds is not { } duration) return L["Devices.WarningOngoing"].Value;
+        var minutes = Math.Max(0, duration / 60);
+        return minutes < 1 ? L["Devices.WarningUnderMinute"].Value : L["Devices.WarningMinutes", minutes].Value;
+    }
+
+    private string UpdatedText(DateTime updatedUtc)
+    {
+        var age = DateTime.UtcNow - updatedUtc;
+        if (age < TimeSpan.FromSeconds(10)) return L["Devices.UpdatedJustNow"].Value;
+        if (age < TimeSpan.FromMinutes(1)) return L["Devices.UpdatedSecondsAgo", Math.Max(0, (int)age.TotalSeconds)].Value;
+        if (age < TimeSpan.FromHours(1)) return L["Devices.UpdatedMinutesAgo", Math.Max(1, (int)age.TotalMinutes)].Value;
+        return L["Devices.UpdatedHoursAgo", (int)age.TotalHours].Value;
     }
 
     private async Task SaveNoticeAsync(Guid deviceId, bool screen, bool camera, bool light)
@@ -289,9 +424,10 @@
         catch (Exception ex) { _error = ex.Message; }
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         Events.DeviceStatusChanged -= OnStatus;
-        return ValueTask.CompletedTask;
+        Events.DeviceMetricsChanged -= OnMetrics;
+        await MetricsFocus.LeaveAsync(_devices.Select(d => d.DeviceId));
     }
 }

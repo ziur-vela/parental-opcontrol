@@ -16,6 +16,7 @@ public class ParentalDbContext : IdentityDbContext<ParentUser, IdentityRole<Guid
     public DbSet<Child> Children => Set<Child>();
     public DbSet<Device> Devices => Set<Device>();
     public DbSet<DeviceAccount> DeviceAccounts => Set<DeviceAccount>();
+    public DbSet<DeviceWarning> DeviceWarnings => Set<DeviceWarning>();
     public DbSet<Schedule> Schedules => Set<Schedule>();
     public DbSet<WebsiteRule> WebsiteRules => Set<WebsiteRule>();
     public DbSet<AppRule> AppRules => Set<AppRule>();
@@ -112,6 +113,7 @@ public class ParentalDbContext : IdentityDbContext<ParentUser, IdentityRole<Guid
             e.Property(x => x.PreviousClientVersion).HasMaxLength(40);
             e.Property(x => x.UpdateTargetVersion).HasMaxLength(40);
             e.Property(x => x.UpdateStatus).HasMaxLength(40);
+            e.Property(x => x.MetricsBatteryState).HasConversion<string>().HasMaxLength(16);
             e.HasIndex(x => x.FamilyId);
             e.HasIndex(x => new { x.FamilyId, x.ChildId });
             e.HasIndex(x => x.CredentialHash).IsUnique();
@@ -125,6 +127,15 @@ public class ParentalDbContext : IdentityDbContext<ParentUser, IdentityRole<Guid
             e.Property(x => x.DisplayName).HasMaxLength(120);
             e.HasIndex(x => new { x.DeviceId, x.OsAccountName }).IsUnique();
             e.HasOne(x => x.Device).WithMany(x => x.Accounts).HasForeignKey(x => x.DeviceId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<DeviceWarning>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Kind).HasConversion<string>().HasMaxLength(16);
+            e.HasIndex(x => new { x.DeviceId, x.StartedUtc });
+            e.HasIndex(x => new { x.FamilyId, x.ChildId, x.StartedUtc });
+            e.HasIndex(x => new { x.DeviceId, x.Kind, x.EndedUtc });
         });
 
         builder.Entity<Schedule>(e =>
@@ -347,6 +358,7 @@ public class ParentalDbContext : IdentityDbContext<ParentUser, IdentityRole<Guid
             e.Property(x => x.NoticeText).HasMaxLength(80).IsRequired().HasDefaultValue("Parent's watching you");
             e.Property(x => x.TimeZoneId).HasMaxLength(80);
             e.Property(x => x.RepeatedBlockAlertHours).HasDefaultValue(6);
+            e.Property(x => x.AlertOnDeviceWarnings).HasDefaultValue(false);
         });
 
         builder.Entity<ClientTamperEvent>(e =>

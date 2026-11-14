@@ -19,14 +19,19 @@ public sealed class ParentalHub : Hub
     private readonly DevicePresenceService _presence;
     private readonly LockService _locks;
     private readonly MessageService _messages;
+    private readonly DeviceMetricsService _metrics;
+    private readonly DeviceMetricsFocusService _focus;
     private readonly ILogger<ParentalHub> _logger;
 
-    public ParentalHub(ParentalDbContext db, DevicePresenceService presence, LockService locks, MessageService messages, ILogger<ParentalHub> logger)
+    public ParentalHub(ParentalDbContext db, DevicePresenceService presence, LockService locks, MessageService messages,
+        DeviceMetricsService metrics, DeviceMetricsFocusService focus, ILogger<ParentalHub> logger)
     {
         _db = db;
         _presence = presence;
         _locks = locks;
         _messages = messages;
+        _metrics = metrics;
+        _focus = focus;
         _logger = logger;
     }
 
@@ -42,6 +47,7 @@ public sealed class ParentalHub : Hub
         await Groups.AddToGroupAsync(Context.ConnectionId, DeviceGroups.Device(device.Id));
         await Groups.AddToGroupAsync(Context.ConnectionId, DeviceGroups.Child(device.ChildId));
         await _presence.ConnectedAsync(device);
+        await _focus.SendCurrentAsync(device.Id);
 
         var state = await _locks.GetDeviceStateForDeviceAsync(device);
         await Clients.Caller.SendAsync(DeviceHubMethods.DeviceStateChanged, state);
@@ -71,6 +77,13 @@ public sealed class ParentalHub : Hub
         return Guid.TryParse(value, out var deviceId)
             ? _presence.HeartbeatAsync(deviceId, utc, timeZoneId, clientVersion)
             : Task.CompletedTask;
+    }
+
+    public async Task ReportMetrics(DeviceMetricsDto metrics)
+    {
+        var value = Context.User?.FindFirstValue(ParentalClaims.DeviceId);
+        if (Guid.TryParse(value, out var deviceId))
+            await _metrics.RecordAsync(deviceId, metrics, Context.ConnectionAborted);
     }
 
     private async Task<Device?> CurrentDeviceAsync()

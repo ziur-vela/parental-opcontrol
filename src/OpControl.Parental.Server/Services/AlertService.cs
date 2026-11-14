@@ -145,6 +145,14 @@ public sealed class AlertService
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task SaveDeviceWarningAlertsAsync(Guid familyId, bool enabled, CancellationToken ct = default)
+    {
+        var settings = await EnsureSettingsAsync(familyId, ct);
+        settings.AlertOnDeviceWarnings = enabled;
+        settings.UpdatedUtc = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+    }
+
     public string? UnprotectPassword(FamilySettings settings)
     {
         if (string.IsNullOrWhiteSpace(settings.SmtpPasswordProtected)) return null;

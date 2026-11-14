@@ -62,6 +62,11 @@ public static class AlertText
             args = (string[])args.Clone();
             args[3] = BlockReasonText.Describe(args[3], language);
         }
+        if (alert.DetailKey == "Alert.DeviceWarning.Detail" && args.Length >= 2)
+        {
+            args = (string[])args.Clone();
+            args[1] = DeviceWarningText.Kind(args[1], language);
+        }
         var title = AppText.GetArgs(alert.TitleKey, language, args);
         var detail = string.IsNullOrWhiteSpace(alert.DetailKey) ? "" : AppText.GetArgs(alert.DetailKey, language, args);
         return (title, detail);

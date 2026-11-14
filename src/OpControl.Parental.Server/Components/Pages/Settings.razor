@@ -179,12 +179,14 @@
         <label class="check"><input type="checkbox" @bind="_muteOffline" disabled="@(!_isOwner)" /> @L["Settings.MuteOffline"]</label>
         <label class="check"><input type="checkbox" @bind="_muteTamper" disabled="@(!_isOwner)" /> @L["Settings.MuteTamper"]</label>
         <label class="check"><input type="checkbox" @bind="_muteChildMessage" disabled="@(!_isOwner)" /> @L["Settings.MuteChildMessage"]</label>
+        <label class="check"><input type="checkbox" @bind="_alertOnDeviceWarnings" disabled="@(!_isOwner)" /> @L["Settings.AlertOnDeviceWarnings"]</label>
         <label class="field"><span>@L["Settings.QuietStart"]</span><input type="text" placeholder="22:00" @bind="_quietStart" disabled="@(!_isOwner)" /></label>
         <label class="field"><span>@L["Settings.QuietEnd"]</span><input type="text" placeholder="07:00" @bind="_quietEnd" disabled="@(!_isOwner)" /></label>
         <label class="check"><input type="checkbox" @bind="_digest" disabled="@(!_isOwner)" /> @L["Settings.Digest"]</label>
         <label class="field"><span>@L["Settings.DigestHour"]</span><input type="number" min="0" max="23" @bind="_digestHour" disabled="@(!_isOwner)" /></label>
     </div>
     <p class="muted tiny">@L["Settings.AlertControlsFootnote"]</p>
+    <p class="muted tiny">@L["Settings.AlertOnDeviceWarningsHelp"]</p>
     @if (_isOwner)
     {
         <div class="button-row"><button class="btn btn-primary" disabled="@_busy" @onclick="SavePreferencesAsync">@L["Settings.SaveAlertControls"]</button></div>
@@ -227,6 +229,7 @@
     private bool _muteOffline;
     private bool _muteTamper;
     private bool _muteChildMessage;
+    private bool _alertOnDeviceWarnings;
     private string _quietStart = "22:00";
     private string _quietEnd = "07:00";
     private bool _digest;
@@ -273,6 +276,7 @@
         _installLinkMinutes = settings.InstallLinkMinutes;
         _repeatedBlockHours = settings.RepeatedBlockAlertHours;
         _noticeText = settings.NoticeText == "Parent's watching you" ? "" : settings.NoticeText;
+        _alertOnDeviceWarnings = settings.AlertOnDeviceWarnings;
         _hasPassword = !string.IsNullOrWhiteSpace(settings.SmtpPasswordProtected);
         var db = dbLanguages;
         var child = await db.Children.AsNoTracking()
@@ -414,6 +418,7 @@
             await alerts.SavePreferenceAsync(_familyId, new OpControl.Parental.Contracts.AlertPreferencesDto(
                 _muteNewApp, _muteRepeated, _mutePin, _muteLimit, _muteOffline, _muteTamper, _muteChildMessage,
                 ParseMinutes(_quietStart), ParseMinutes(_quietEnd), _digest, _digestHour));
+            await alerts.SaveDeviceWarningAlertsAsync(_familyId, _alertOnDeviceWarnings);
             _saved = true;
         }
         catch (Exception ex) { _error = ex.Message; }
