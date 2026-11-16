@@ -2,7 +2,7 @@
 
 [English](README.md) · [Español](README.es.md)
 
-Self-hosted parental control for families: a web dashboard for parents, a Windows client for the child's computer and a guided installer. Ground-up rebuild of the ArktinMonitor parental control system, in English and Spanish.
+Self-hosted parental control for families: a web dashboard for parents, a Windows client for the child's computer and a guided installer, available in English and Spanish. Built from the ground up with AI tools for planning, architecture and code, with every change reviewed and tested by a person.
 
 **Current version: v0.17.29 · Beta.** Features may change before the stable release.
 

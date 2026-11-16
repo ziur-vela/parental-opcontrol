@@ -2,7 +2,7 @@
 
 [English](README.md) · [Español](README.es.md)
 
-Control parental autoalojado para familias: un panel web para padres, un cliente de Windows para la computadora del niño y un instalador guiado. Reconstrucción completa del sistema de control parental ArktinMonitor, en inglés y español.
+Control parental autoalojado para familias: un panel web para padres, un cliente de Windows para la computadora del niño y un instalador guiado, disponible en inglés y español. Construido desde cero con herramientas de IA para la planeación, la arquitectura y el código, con cada cambio revisado y probado por una persona.
 
 **Versión actual: v0.17.29 · Beta.** Las funciones pueden cambiar antes de la versión estable.
 
