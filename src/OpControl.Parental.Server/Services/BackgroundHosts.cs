@@ -48,6 +48,7 @@ public static class BackgroundHosts
         "*.tlu.dl.delivery.mp.microsoft.com",
         "displaycatalog.mp.microsoft.com",
         "*.displaycatalog.mp.microsoft.com",
+        "storeedgefd.dsx.mp.microsoft.com",
 
         // Defender definition updates and activation endpoints.
         "*.wdcp.microsoft.com",
@@ -59,6 +60,7 @@ public static class BackgroundHosts
         "*.msftconnecttest.com",
         "*.msftncsi.com",
         "time.windows.com",
+        "time.nist.gov",
         "*.activity.windows.com",
         "*.wns.windows.com",
         "*.notify.windows.com"

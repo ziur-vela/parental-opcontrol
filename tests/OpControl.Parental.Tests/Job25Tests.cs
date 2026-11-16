@@ -68,6 +68,15 @@ public sealed class Job25Tests
     [InlineData("events.data.microsoft.com", true)]
     [InlineData("foo.msedge.net", true)]
     [InlineData("ctldl.windowsupdate.com", true)]
+    [InlineData("delivery.mp.microsoft.com", true)]
+    [InlineData("storeedgefd.dsx.mp.microsoft.com", true)]
+    [InlineData("settings-win.data.microsoft.com", true)]
+    [InlineData("v20.events.data.microsoft.com", true)]
+    [InlineData("watson.telemetry.microsoft.com", true)]
+    [InlineData("msftconnecttest.com", true)]
+    [InlineData("msftncsi.com", true)]
+    [InlineData("time.windows.com", true)]
+    [InlineData("time.nist.gov", true)]
     [InlineData("www.youtube.com", false)]
     [InlineData("skype.com", false)]
     [InlineData("notskype.com", false)]
@@ -76,16 +85,28 @@ public sealed class Job25Tests
         Assert.Equal(expected, BackgroundHosts.IsBackground(host));
 
     [Fact]
+    public void Microsoft_os_hosts_are_no_longer_discarded_from_reports()
+    {
+        Assert.False(BackgroundDomains.IsBackground("microsoft.com"));
+        Assert.False(BackgroundDomains.IsBackground("ctldl.windowsupdate.com"));
+        Assert.False(BackgroundDomains.IsBackground("time.windows.com"));
+        Assert.True(BackgroundDomains.IsBackground("opcontrol.net"));
+        Assert.True(BackgroundDomains.IsBackground("tacticalrmm.io"));
+    }
+
+    [Fact]
     public async Task Background_hits_are_logged_but_do_not_alert_or_count()
     {
         await using var h = await NewHarnessAsync();
         await h.Rules.SyncVisitsAsync(h.Device, Blocked("config.edge.skype.com", "skype.com"));
+        await h.Rules.SyncVisitsAsync(h.Device, Blocked("ctldl.windowsupdate.com", "windowsupdate.com"));
 
         Assert.Equal(0, await AlertCountAsync(h));
-        var row = await h.Db.VisitRecords.SingleAsync(v => v.ChildId == h.Child.Id);
+        var row = await h.Db.VisitRecords.SingleAsync(v => v.Host == "config.edge.skype.com");
         Assert.True(row.Background);
         Assert.True(row.Blocked);
         Assert.Equal(5, row.BlockedLookups);
+        Assert.True((await h.Db.VisitRecords.SingleAsync(v => v.Host == "ctldl.windowsupdate.com")).Background);
     }
 
     [Fact]

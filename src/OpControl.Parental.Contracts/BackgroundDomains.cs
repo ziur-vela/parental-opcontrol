@@ -40,21 +40,9 @@ public static class BackgroundDomains
         "myip.com",
         "checkip.amazonaws.com",
         "ident.me",
-        // Windows Update, telemetry and connectivity checks.
-        "microsoft.com",
-        "windowsupdate.com",
-        "update.microsoft.com",
-        "delivery.mp.microsoft.com",
-        "displaycatalog.mp.microsoft.com",
-        "storeedgefd.dsx.mp.microsoft.com",
-        "settings-win.data.microsoft.com",
-        "v10.events.data.microsoft.com",
-        "v20.events.data.microsoft.com",
-        "watson.telemetry.microsoft.com",
-        "msftconnecttest.com",
-        "msftncsi.com",
-        "time.windows.com",
-        "time.nist.gov"
+        // Microsoft OS/app background hosts are classified by the server's
+        // BackgroundHosts list so they are still blocked and logged, then shown
+        // muted instead of being discarded from the reports.
     ];
 
     public static bool IsBackground(string? domain)
