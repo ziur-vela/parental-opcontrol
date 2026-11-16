@@ -917,6 +917,9 @@ namespace OpControl.Parental.Server.Data.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
+                    b.Property<bool>("ReduceMicrosoftBackgroundConnections")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("ReportedTimeZoneId")
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
@@ -1978,6 +1981,39 @@ namespace OpControl.Parental.Server.Data.Migrations
                     b.ToTable("LunaUsageDays");
                 });
 
+            modelBuilder.Entity("OpControl.Parental.Server.Data.MutedBlockedSite", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ChildId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CreatedByParentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Domain")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FamilyId", "ChildId");
+
+                    b.HasIndex("FamilyId", "ChildId", "Domain")
+                        .IsUnique();
+
+                    b.ToTable("MutedBlockedSites");
+                });
+
             modelBuilder.Entity("OpControl.Parental.Server.Data.OverrideEvent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2681,6 +2717,11 @@ namespace OpControl.Parental.Server.Data.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("Background")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("BlockReason")
                         .HasMaxLength(120)

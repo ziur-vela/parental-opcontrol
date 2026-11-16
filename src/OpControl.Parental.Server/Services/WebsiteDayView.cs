@@ -11,7 +11,8 @@ public sealed record WebsiteVisitPoint(
     DateTime VisitedUtc,
     bool Blocked,
     int BlockedAttempts,
-    string? BlockReason);
+    string? BlockReason,
+    bool Background = false);
 
 public sealed record WebsiteSubdomainRow(
     string Host,
@@ -22,7 +23,8 @@ public sealed record WebsiteSubdomainRow(
     bool IsBlocked,
     bool IsAllowed,
     Guid RuleId,
-    bool HasOwnRule);
+    bool HasOwnRule,
+    bool Background = false);
 
 public sealed record WebsiteSiteRow(
     string Domain,
@@ -34,7 +36,8 @@ public sealed record WebsiteSiteRow(
     bool IsAllowed,
     Guid RuleId,
     bool IsNewThisWeek,
-    IReadOnlyList<WebsiteSubdomainRow> Subdomains);
+    IReadOnlyList<WebsiteSubdomainRow> Subdomains,
+    bool Background = false);
 
 /// <summary>
 /// Groups one day's visits by registrable domain, keeping the full hosts as
@@ -72,7 +75,8 @@ public static class WebsiteDayView
                         resolved.Blocked,
                         resolved.Allowed,
                         resolved.Rule?.Id ?? Guid.Empty,
-                        rules.Any(r => string.Equals(r.Domain, host, StringComparison.OrdinalIgnoreCase)));
+                        rules.Any(r => string.Equals(r.Domain, host, StringComparison.OrdinalIgnoreCase)),
+                        g.All(v => v.Background));
                 })
                 .ToList();
 
@@ -86,7 +90,8 @@ public static class WebsiteDayView
                 main.Allowed,
                 main.Rule?.Id ?? Guid.Empty,
                 firstSeenByDomain.TryGetValue(domain, out var first) && first >= weekStart,
-                subdomains));
+                subdomains,
+                group.All(v => v.Background)));
         }
 
         return rows.OrderByDescending(r => r.LastUtc).ToList();

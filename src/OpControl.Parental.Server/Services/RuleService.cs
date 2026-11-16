@@ -467,7 +467,8 @@ public sealed class RuleService
                     VisitedUtc = v.VisitedUtc.Kind == DateTimeKind.Utc ? v.VisitedUtc : v.VisitedUtc.ToUniversalTime(),
                     v.Blocked,
                     BlockReason = DeviceText.CleanOptional(v.BlockReason, 120),
-                    Lookups = Math.Clamp(v.Lookups, 1, 10_000)
+                    Lookups = Math.Clamp(v.Lookups, 1, 10_000),
+                    Background = BackgroundHosts.IsBackground(host) || BackgroundHosts.IsBackground(domain)
                 };
             })
             .Where(v => v.Domain.Length > 0 && !BackgroundDomains.IsBackground(v.Domain))
@@ -493,6 +494,7 @@ public sealed class RuleService
                     && item.VisitedUtc - last.VisitedUtc < TimeSpan.FromMinutes(5))
                 {
                     last.Lookups += item.Lookups;
+                    if (item.Background) last.Background = true;
                     if (item.Blocked)
                     {
                         last.Blocked = true;
@@ -513,33 +515,39 @@ public sealed class RuleService
                         BlockReason = reason,
                         Lookups = item.Lookups,
                         BlockedLookups = item.Blocked ? item.Lookups : 0,
+                        Background = item.Background,
                         VisitedUtc = item.VisitedUtc
                     };
                     _db.VisitRecords.Add(last);
                 }
-                touched.Add(domain);
+                if (!item.Background) touched.Add(domain);
             }
         }
         await _db.SaveChangesAsync(ct);
 
         var settings = await _db.FamilySettings.AsNoTracking().FirstOrDefaultAsync(s => s.FamilyId == device.FamilyId, ct);
         var hours = Math.Clamp(settings?.RepeatedBlockAlertHours ?? 6, 1, 24);
-        var since = now.AddHours(-hours);
+        var cooldownStart = now.AddHours(-hours);
+        var (dayStartUtc, _) = UsageService.LocalDayBounds(TimeZoneResolver.Resolve(device.TimeZoneId), now);
+        // One alert per child per site per local day, and never closer than the
+        // configured cooldown. The stricter of the two lower bounds wins.
+        var alertCutoff = dayStartUtc < cooldownStart ? dayStartUtc : cooldownStart;
         foreach (var domain in touched)
         {
             var recent = await _db.VisitRecords.AsNoTracking()
                 .Where(v => v.FamilyId == device.FamilyId && v.ChildId == device.ChildId
-                    && v.DeviceId == device.Id && v.Domain == domain && v.Blocked && v.VisitedUtc >= since)
+                    && v.DeviceId == device.Id && v.Domain == domain && v.Blocked && !v.Background && v.VisitedUtc >= cooldownStart)
                 .Select(v => new { v.Lookups, v.BlockedLookups, v.BlockReason })
                 .ToListAsync(ct);
             var attempts = recent.Sum(v => Math.Max(1, v.BlockedLookups > 0 ? v.BlockedLookups : v.Lookups));
             if (attempts < 5) continue;
+            if (await IsSiteAlertMutedAsync(device.FamilyId, device.ChildId, domain, ct)) continue;
             var already = (await _db.Alerts.AsNoTracking()
-                .Where(a => a.FamilyId == device.FamilyId && a.ChildId == device.ChildId && a.DeviceId == device.Id
-                    && a.Type == "repeated-blocked-site" && a.CreatedUtc >= since)
+                .Where(a => a.FamilyId == device.FamilyId && a.ChildId == device.ChildId
+                    && a.Type == "repeated-blocked-site" && a.CreatedUtc >= alertCutoff)
                 .Select(a => a.ArgsJson)
                 .ToListAsync(ct))
-                .Any(args => args is not null && args.Contains(domain, StringComparison.OrdinalIgnoreCase));
+                .Any(args => AlertArgsMatchDomain(args, domain));
             if (already) continue;
             var reason = recent.Select(v => v.BlockReason).FirstOrDefault(r => !string.IsNullOrWhiteSpace(r)) ?? "unknown";
             await _alerts.AddAsync(device.FamilyId, device.ChildId, device.Id, "repeated-blocked-site",
@@ -548,6 +556,57 @@ public sealed class RuleService
                 null, ct);
         }
     }
+
+    private static bool AlertArgsMatchDomain(string? json, string domain)
+    {
+        var args = AlertText.ParseArgs(json);
+        return args.Length > 0 && string.Equals(args[0], domain, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public async Task<bool> IsSiteAlertMutedAsync(Guid familyId, Guid childId, string domain, CancellationToken ct = default)
+    {
+        var value = CleanDomain(domain);
+        return value.Length > 0 && await _db.MutedBlockedSites.AsNoTracking()
+            .AnyAsync(m => m.FamilyId == familyId && m.ChildId == childId && m.Domain == value, ct);
+    }
+
+    public async Task<List<MutedBlockedSite>> GetMutedSiteAlertsAsync(Guid familyId, Guid childId, CancellationToken ct = default) =>
+        await _db.MutedBlockedSites.AsNoTracking()
+            .Where(m => m.FamilyId == familyId && m.ChildId == childId)
+            .OrderBy(m => m.Domain)
+            .ToListAsync(ct);
+
+    public async Task MuteSiteAlertsAsync(Guid familyId, Guid childId, Guid? parentId, string domain, CancellationToken ct = default)
+    {
+        await EnsureChildAsync(familyId, childId, ct);
+        var value = NormalizeDomain(domain);
+        if (await _db.MutedBlockedSites.AnyAsync(m => m.FamilyId == familyId && m.ChildId == childId && m.Domain == value, ct))
+            return;
+        _db.MutedBlockedSites.Add(new MutedBlockedSite
+        {
+            FamilyId = familyId,
+            ChildId = childId,
+            Domain = value,
+            CreatedByParentId = parentId
+        });
+        await _db.SaveChangesAsync(ct);
+        _logger?.LogInformation("Repeated-block alerts muted for child {ChildId} and {Domain}", childId, value);
+    }
+
+    public async Task UnmuteSiteAlertsAsync(Guid familyId, Guid childId, string domain, CancellationToken ct = default)
+    {
+        var value = CleanDomain(domain);
+        if (value.Length == 0) return;
+        var row = await _db.MutedBlockedSites.FirstOrDefaultAsync(
+            m => m.FamilyId == familyId && m.ChildId == childId && m.Domain == value, ct);
+        if (row is null) return;
+        _db.MutedBlockedSites.Remove(row);
+        await _db.SaveChangesAsync(ct);
+        _logger?.LogInformation("Repeated-block alerts unmuted for child {ChildId} and {Domain}", childId, value);
+    }
+
+    private static string CleanDomain(string domain) =>
+        (domain ?? "").Trim().TrimEnd('.').ToLowerInvariant();
 
     private async Task<string> ResolveBlockReasonAsync(Device device, string domain, CancellationToken ct)
     {

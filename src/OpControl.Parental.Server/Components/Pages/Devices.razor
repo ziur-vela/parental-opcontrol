@@ -108,7 +108,12 @@
                         {
                             <label class="check"><input type="checkbox" checked="@notifyOnline" @onchange="e => SetNotifyOnlineAsync(device.DeviceId, (bool)(e.Value ?? false))" /> @L["Devices.NotifyOnline"]</label>
                         }
+                        @if (_reduceMicrosoft.TryGetValue(device.DeviceId, out var reduceMicrosoft))
+                        {
+                            <label class="check"><input type="checkbox" checked="@reduceMicrosoft" @onchange="e => SetReduceMicrosoftAsync(device.DeviceId, (bool)(e.Value ?? false))" /> @L["Devices.ReduceMicrosoftBackground"]</label>
+                        }
                     </div>
+                    <p class="muted tiny">@L["Devices.ReduceMicrosoftBackgroundHelp"]</p>
 
                     <div class="system-resources">
                         <div class="system-resources-head">
@@ -290,6 +295,7 @@
     private Dictionary<Guid, string?> _deviceLanguages = [];
     private Dictionary<Guid, bool> _notifyOffline = [];
     private Dictionary<Guid, bool> _notifyOnline = [];
+    private Dictionary<Guid, bool> _reduceMicrosoft = [];
     private Dictionary<Guid, string> _childNames = [];
     private Dictionary<Guid, string?> _timeZoneOverrides = [];
     private Dictionary<Guid, string> _reportedZoneDisplay = [];
@@ -388,6 +394,23 @@
         catch (Exception ex) { _error = ex.Message; }
     }
 
+    private async Task SetReduceMicrosoftAsync(Guid deviceId, bool enabled)
+    {
+        try
+        {
+            using var scope = Scopes.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ParentalDbContext>();
+            var row = await db.Devices.FirstOrDefaultAsync(d => d.Id == deviceId && d.FamilyId == _familyId);
+            if (row is null) return;
+            row.ReduceMicrosoftBackgroundConnections = enabled;
+            await db.SaveChangesAsync();
+            await scope.ServiceProvider.GetRequiredService<LockService>().PublishDeviceStateAsync(_familyId, row.ChildId);
+            _error = null;
+            await RefreshAsync();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
     private async Task SetTimeZoneAsync(DeviceStatusDto device, string? zoneId)
     {
         try
@@ -455,6 +478,7 @@
         _deviceLanguages = devices.ToDictionary(d => d.Id, d => d.ClientLanguage);
         _notifyOffline = devices.ToDictionary(d => d.Id, d => d.NotifyOffline);
         _notifyOnline = devices.ToDictionary(d => d.Id, d => d.NotifyOnline);
+        _reduceMicrosoft = devices.ToDictionary(d => d.Id, d => d.ReduceMicrosoftBackgroundConnections);
         _timeZoneOverrides = devices.ToDictionary(d => d.Id, d => d.TimeZoneOverrideId);
         _reportedZoneDisplay = devices.ToDictionary(d => d.Id, d => TimeZoneResolver.DisplayName(d.ReportedTimeZoneId ?? d.TimeZoneId));
         _metrics = devices

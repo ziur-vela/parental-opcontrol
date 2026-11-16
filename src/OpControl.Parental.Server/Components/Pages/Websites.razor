@@ -115,6 +115,10 @@ else
                                                 <span> · @BlockReasonText.Describe(site.BlockReason)</span>
                                             }
                                         }
+                                        @if (site.Background)
+                                        {
+                                            <span class="pill-soft tiny-pill">@L["Websites.BackgroundWindows"]</span>
+                                        }
                                         @if (site.IsNewThisWeek)
                                         {
                                             <span class="pill-soft tiny-pill">@L["Websites.NewThisWeek"]</span>
@@ -177,6 +181,10 @@ else
                                                         <span> · @BlockReasonText.Describe(sub.BlockReason)</span>
                                                     }
                                                 }
+                                                @if (sub.Background)
+                                                {
+                                                    <span class="pill-soft tiny-pill">@L["Websites.BackgroundWindows"]</span>
+                                                }
                                             </div>
                                         </div>
                                         <div class="rule-actions">
@@ -238,6 +246,26 @@ else
                 @if (!_rules.Any(r => r.IsBlocked && r.Mode == RuleMode.Always))
                 {
                     <p class="muted tiny">@L["Websites.NoAlwaysBlocked"]</p>
+                }
+            </div>
+
+            <div class="rule-section">
+                <div class="eyebrow">@L["Websites.MutedAlertSites"]</div>
+                @foreach (var muted in _mutedSiteAlerts)
+                {
+                    <div class="rule-row compact">
+                        <div class="rule-main">
+                            <div class="rule-title">@muted</div>
+                            <div class="muted tiny">@L["Websites.MutedAlertSitesHelp"]</div>
+                        </div>
+                        <div class="rule-actions">
+                            <button class="ghost-btn" @onclick="() => UnmuteSiteAsync(muted)">@L["Websites.UnmuteAlerts"]</button>
+                        </div>
+                    </div>
+                }
+                @if (_mutedSiteAlerts.Count == 0)
+                {
+                    <p class="muted tiny">@L["Websites.NoMutedAlertSites"]</p>
                 }
             </div>
 
@@ -574,6 +602,7 @@ else
     private List<WebsiteRule> _rules = [];
     private List<CategoryToggleDto> _categories = [];
     private List<RuleHistoryDto> _history = [];
+    private List<string> _mutedSiteAlerts = [];
     private List<WebsiteSiteRow> _allSites = [];
     private List<WebsiteSiteRow> _filteredSites = [];
     private SiteReviewResult? _review;
@@ -722,6 +751,9 @@ else
             var browserPolicy = await rulesService.GetBrowserPolicyAsync(_familyId, childId);
             var categories = policy.Categories.ToList();
             var history = await rulesService.GetHistoryAsync(_familyId, childId, 60);
+            var mutedSiteAlerts = (await rulesService.GetMutedSiteAlertsAsync(_familyId, childId))
+                .Select(m => m.Domain)
+                .ToList();
 
             var enabledKeys = categories.Where(c => c.Enabled).Select(c => c.Key).ToList();
             var allowedDomains = rules.Where(r => !r.IsBlocked).Select(r => r.Domain).ToList();
@@ -767,7 +799,8 @@ else
                 v.VisitedUtc,
                 v.Blocked,
                 v.BlockedLookups > 0 ? v.BlockedLookups : v.Blocked ? Math.Max(1, v.Lookups) : 0,
-                v.BlockReason)).ToList();
+                v.BlockReason,
+                v.Background)).ToList();
             var rows = WebsiteDayView.Build(points, rules, categoryDomains, firstSeen, weekStart);
 
             // An older response must not overwrite a newer selected day.
@@ -782,6 +815,7 @@ else
             _browserPolicy = browserPolicy;
             _categories = categories;
             _history = history;
+            _mutedSiteAlerts = mutedSiteAlerts;
             _overrideByDomain = overrideByDomain;
             _allSites = rows.ToList();
             ApplyFilter();
@@ -805,6 +839,14 @@ else
             "new" => _allSites.Where(s => s.IsNewThisWeek).ToList(),
             _ => _allSites
         };
+    }
+
+    private async Task UnmuteSiteAsync(string domain)
+    {
+        await RunAsync(async (db, rules, parentId) =>
+        {
+            await rules.UnmuteSiteAlertsAsync(_familyId, _childId, domain);
+        }, L["Websites.UnmutedAlertsToast", domain]);
     }
 
     private async Task AddSiteAsync()

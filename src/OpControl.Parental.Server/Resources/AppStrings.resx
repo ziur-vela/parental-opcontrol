@@ -125,6 +125,8 @@
   <data name="Alerts.EmailSettings" xml:space="preserve"><value>Email settings</value></data>
   <data name="Alerts.MarkAllRead" xml:space="preserve"><value>Mark all read</value></data>
   <data name="Alerts.MarkRead" xml:space="preserve"><value>Mark read</value></data>
+  <data name="Alerts.MuteSite" xml:space="preserve"><value>Mute alerts for this site</value></data>
+  <data name="Alerts.SiteMuted" xml:space="preserve"><value>Alerts muted for this site</value></data>
   <data name="Alerts.NoAlertsFilter" xml:space="preserve"><value>No alerts for this filter.</value></data>
   <data name="Alerts.PageTitle" xml:space="preserve"><value>Alerts · Parental OpControl</value></data>
   <data name="Alerts.Subtitle" xml:space="preserve"><value>New installs, repeated blocked attempts, PIN overrides, limits reached, offline devices and tampering signs.</value></data>
@@ -825,6 +827,12 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Websites.FilterNotBlocked" xml:space="preserve"><value>Not blocked</value></data>
   <data name="Websites.History" xml:space="preserve"><value>Previously blocked or allowed</value></data>
   <data name="Websites.LastVisit" xml:space="preserve"><value>last {0}</value></data>
+  <data name="Websites.BackgroundWindows" xml:space="preserve"><value>Background (Windows)</value></data>
+  <data name="Websites.MutedAlertSites" xml:space="preserve"><value>Muted alert sites</value></data>
+  <data name="Websites.MutedAlertSitesHelp" xml:space="preserve"><value>Repeated-block alerts are off for this site. Blocking stays on.</value></data>
+  <data name="Websites.NoMutedAlertSites" xml:space="preserve"><value>No muted sites.</value></data>
+  <data name="Websites.UnmuteAlerts" xml:space="preserve"><value>Unmute alerts</value></data>
+  <data name="Websites.UnmutedAlertsToast" xml:space="preserve"><value>Alerts turned back on for {0}.</value></data>
   <data name="Websites.LatestCount" xml:space="preserve"><value>Latest {0}</value></data>
   <data name="Websites.NewThisWeek" xml:space="preserve"><value>New this week</value></data>
   <data name="Websites.NextDay" xml:space="preserve"><value>Next day</value></data>
@@ -1568,6 +1576,8 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Device.Icon.Online" xml:space="preserve"><value>online</value></data>
   <data name="Device.Icon.Offline" xml:space="preserve"><value>offline</value></data>
   <data name="Devices.NotifyOnline" xml:space="preserve"><value>Notify me when this device comes online</value></data>
+  <data name="Devices.ReduceMicrosoftBackground" xml:space="preserve"><value>Reduce Microsoft background connections</value></data>
+  <data name="Devices.ReduceMicrosoftBackgroundHelp" xml:space="preserve"><value>Turns off Microsoft Edge experiments and remote feature settings on this computer. Microsoft does not recommend this because it can slow down urgent Edge fixes. Some Windows apps may still connect in the background.</value></data>
   <data name="Devices.Battery" xml:space="preserve"><value>Battery</value></data>
   <data name="Devices.Uptime" xml:space="preserve"><value>Uptime</value></data>
   <data name="Devices.Temperature" xml:space="preserve"><value>Temperature</value></data>

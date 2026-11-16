@@ -64,8 +64,11 @@ public sealed class LockService
     public async Task<DeviceStateDto> GetDeviceStateAsync(Guid familyId, Guid childId, CancellationToken ct = default) =>
         await GetDeviceStateAsync(familyId, childId, null, ct);
 
-    public async Task<DeviceStateDto> GetDeviceStateForDeviceAsync(Device device, CancellationToken ct = default) =>
-        await GetDeviceStateAsync(device.FamilyId, device.ChildId, device.ClientLanguage, ct);
+    public async Task<DeviceStateDto> GetDeviceStateForDeviceAsync(Device device, CancellationToken ct = default)
+    {
+        var state = await GetDeviceStateAsync(device.FamilyId, device.ChildId, device.ClientLanguage, ct);
+        return state with { ReduceMicrosoftBackground = device.ReduceMicrosoftBackgroundConnections };
+    }
 
     public async Task<DeviceStateDto> GetDeviceStateAsync(Guid familyId, Guid childId, string? deviceLanguage, CancellationToken ct = default)
     {

@@ -82,6 +82,17 @@ else
                             {
                                 <span class="pill-soft">@L["Common.Read"]</span>
                             }
+                            @if (BlockedDomain(alert) is { } domain)
+                            {
+                                @if (_mutedSites.Contains(domain))
+                                {
+                                    <span class="pill-soft">@L["Alerts.SiteMuted"]</span>
+                                }
+                                else
+                                {
+                                    <button class="ghost-btn" @onclick="() => MuteSiteAsync(domain)">@L["Alerts.MuteSite"]</button>
+                                }
+                            }
                         </div>
                     </div>
                 }
@@ -93,6 +104,7 @@ else
 @code {
     private Guid _familyId;
     private Guid _childId;
+    private Guid _parentId;
     private string _childName = "";
     private string _timeZoneId = "UTC";
     private bool _loading = true;
@@ -100,6 +112,7 @@ else
     private int _unread;
     private string? _error;
     private List<Alert> _alerts = [];
+    private HashSet<string> _mutedSites = new(StringComparer.OrdinalIgnoreCase);
 
     protected override async Task OnInitializedAsync()
     {
@@ -109,6 +122,7 @@ else
             _loading = false;
             return;
         }
+        Guid.TryParse(auth.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out _parentId);
         await RefreshAsync();
         _loading = false;
     }
@@ -131,6 +145,33 @@ else
         var alerts = scope.ServiceProvider.GetRequiredService<AlertService>();
         _unread = await alerts.UnreadCountAsync(_familyId, _childId);
         _alerts = await alerts.GetAlertsAsync(_familyId, _childId, 200, _unreadOnly);
+        _mutedSites = (await scope.ServiceProvider.GetRequiredService<RuleService>()
+                .GetMutedSiteAlertsAsync(_familyId, _childId))
+            .Select(m => m.Domain)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private async Task MuteSiteAsync(string domain)
+    {
+        _error = null;
+        try
+        {
+            using var scope = Scopes.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<RuleService>()
+                .MuteSiteAlertsAsync(_familyId, _childId, _parentId, domain);
+            await RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private static string? BlockedDomain(Alert alert)
+    {
+        if (alert.Type != "repeated-blocked-site") return null;
+        var args = AlertText.ParseArgs(alert.ArgsJson);
+        return args.Length > 0 ? args[0] : null;
     }
 
     private async Task MarkReadAsync(Guid alertId)

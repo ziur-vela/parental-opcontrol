@@ -69,6 +69,7 @@ public class Device
     public bool CameraNoticeEnabled { get; set; } = true;
     public bool NotifyOffline { get; set; } = true;
     public bool NotifyOnline { get; set; }
+    public bool ReduceMicrosoftBackgroundConnections { get; set; }
     public bool HasCameraLightOrShutter { get; set; }
     public string? ClientLanguage { get; set; }
     public string? PreviousClientVersion { get; set; }
@@ -267,7 +268,19 @@ public class VisitRecord
     public string? BlockReason { get; set; }
     public int Lookups { get; set; } = 1;
     public int BlockedLookups { get; set; }
+    public bool Background { get; set; }
     public DateTime VisitedUtc { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>A site the parent muted for repeated-block alerts (child + domain).</summary>
+public class MutedBlockedSite
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid FamilyId { get; set; }
+    public Guid ChildId { get; set; }
+    public string Domain { get; set; } = "";
+    public Guid? CreatedByParentId { get; set; }
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
 }
 
 public class ItemBonus

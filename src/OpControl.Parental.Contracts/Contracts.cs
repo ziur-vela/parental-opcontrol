@@ -161,7 +161,8 @@ public sealed record DeviceStateDto(
     string Theme = "night",
     BrowserPolicyDto? BrowserPolicy = null,
     DateTime? UnlockStartUtc = null,
-    DateTime? BonusStartUtc = null);
+    DateTime? BonusStartUtc = null,
+    bool ReduceMicrosoftBackground = false);
 
 public sealed record DailyLimitDto(
     bool Enabled,

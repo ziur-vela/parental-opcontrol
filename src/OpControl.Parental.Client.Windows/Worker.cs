@@ -89,6 +89,7 @@ public sealed class Worker : BackgroundService
         {
             Loc.SetLanguage(cached.Language);
             _runtime.ApplyServerState(cached);
+            MicrosoftBackgroundPolicy.Apply(cached.ReduceMicrosoftBackground, _logger, "service start");
             _logger.LogInformation("Loaded cached device state for child {ChildId}", cached.ChildId);
         }
 
@@ -247,6 +248,7 @@ public sealed class Worker : BackgroundService
             if (_overrides.HasPending && _overrides.LastPending is { } pending)
                 _runtime.ApplyLocalOverride(pending.Option, pending.Minutes);
             _ = _categories.UpdateAsync(state.Categories, CancellationToken.None);
+            MicrosoftBackgroundPolicy.Apply(state.ReduceMicrosoftBackground, _logger, "server state");
             _summary.RequestRefresh();
             _logger.LogInformation("Device state: manual={Manual} unlock={Unlock} bonus={Bonus} schedules={Schedules} sites={Sites} apps={Apps} categories={Categories}",
                 state.ManualLock, state.UnlockUntilUtc, state.BonusUntilUtc, state.Schedules.Count,
@@ -352,7 +354,10 @@ public sealed class Worker : BackgroundService
             }
             catch { }
             if (uninstall)
+            {
                 _browser.RemoveAll();
+                MicrosoftBackgroundPolicy.Remove(_logger);
+            }
             if (!update && !uninstall && !recentUpdate)
             {
                 QueueTamper("service-stopped", "");

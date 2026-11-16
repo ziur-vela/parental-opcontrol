@@ -27,6 +27,7 @@ public class ParentalDbContext : IdentityDbContext<ParentUser, IdentityRole<Guid
     public DbSet<LockState> LockStates => Set<LockState>();
     public DbSet<OverrideEvent> OverrideEvents => Set<OverrideEvent>();
     public DbSet<VisitRecord> VisitRecords => Set<VisitRecord>();
+    public DbSet<MutedBlockedSite> MutedBlockedSites => Set<MutedBlockedSite>();
     public DbSet<AppUsageRecord> AppUsageRecords => Set<AppUsageRecord>();
     public DbSet<EnrollmentCode> EnrollmentCodes => Set<EnrollmentCode>();
     public DbSet<ItemBonus> ItemBonuses => Set<ItemBonus>();
@@ -237,9 +238,18 @@ public class ParentalDbContext : IdentityDbContext<ParentUser, IdentityRole<Guid
             e.Property(x => x.Host).HasMaxLength(255);
             e.Property(x => x.BlockReason).HasMaxLength(120);
             e.Property(x => x.Lookups).HasDefaultValue(1);
+            e.Property(x => x.Background).HasDefaultValue(false);
             e.HasIndex(x => new { x.FamilyId, x.ChildId, x.VisitedUtc });
             e.HasIndex(x => new { x.DeviceId, x.VisitedUtc });
             e.HasIndex(x => new { x.ChildId, x.Blocked, x.VisitedUtc });
+        });
+
+        builder.Entity<MutedBlockedSite>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Domain).HasMaxLength(255).IsRequired();
+            e.HasIndex(x => new { x.FamilyId, x.ChildId, x.Domain }).IsUnique();
+            e.HasIndex(x => new { x.FamilyId, x.ChildId });
         });
 
         builder.Entity<ItemBonus>(e =>

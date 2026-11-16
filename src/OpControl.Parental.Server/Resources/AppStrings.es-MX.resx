@@ -125,6 +125,8 @@
   <data name="Alerts.EmailSettings" xml:space="preserve"><value>Configuración de correo</value></data>
   <data name="Alerts.MarkAllRead" xml:space="preserve"><value>Marcar todas como leídas</value></data>
   <data name="Alerts.MarkRead" xml:space="preserve"><value>Marcar como leída</value></data>
+  <data name="Alerts.MuteSite" xml:space="preserve"><value>Silenciar alertas para este sitio</value></data>
+  <data name="Alerts.SiteMuted" xml:space="preserve"><value>Alertas silenciadas para este sitio</value></data>
   <data name="Alerts.NoAlertsFilter" xml:space="preserve"><value>No hay alertas para este filtro.</value></data>
   <data name="Alerts.PageTitle" xml:space="preserve"><value>Alertas · Parental OpControl</value></data>
   <data name="Alerts.Subtitle" xml:space="preserve"><value>Instalaciones nuevas, intentos bloqueados repetidos, desbloqueos con PIN de padres, límites alcanzados, dispositivos sin conexión y señales de manipulación.</value></data>
@@ -825,6 +827,12 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Websites.FilterNotBlocked" xml:space="preserve"><value>No bloqueados</value></data>
   <data name="Websites.History" xml:space="preserve"><value>Antes bloqueados o permitidos</value></data>
   <data name="Websites.LastVisit" xml:space="preserve"><value>última {0}</value></data>
+  <data name="Websites.BackgroundWindows" xml:space="preserve"><value>Segundo plano (Windows)</value></data>
+  <data name="Websites.MutedAlertSites" xml:space="preserve"><value>Sitios con alertas silenciadas</value></data>
+  <data name="Websites.MutedAlertSitesHelp" xml:space="preserve"><value>Las alertas de intentos repetidos están desactivadas para este sitio. El bloqueo sigue activo.</value></data>
+  <data name="Websites.NoMutedAlertSites" xml:space="preserve"><value>No hay sitios silenciados.</value></data>
+  <data name="Websites.UnmuteAlerts" xml:space="preserve"><value>Reactivar alertas</value></data>
+  <data name="Websites.UnmutedAlertsToast" xml:space="preserve"><value>Se reactivaron las alertas para {0}.</value></data>
   <data name="Websites.LatestCount" xml:space="preserve"><value>Últimos {0}</value></data>
   <data name="Websites.NewThisWeek" xml:space="preserve"><value>Nuevo esta semana</value></data>
   <data name="Websites.NextDay" xml:space="preserve"><value>Día siguiente</value></data>
@@ -1568,6 +1576,8 @@ Si no esperabas este correo, ignóralo.</value></data>
   <data name="Device.Icon.Online" xml:space="preserve"><value>en línea</value></data>
   <data name="Device.Icon.Offline" xml:space="preserve"><value>desconectado</value></data>
   <data name="Devices.NotifyOnline" xml:space="preserve"><value>Avisarme cuando este dispositivo se conecte</value></data>
+  <data name="Devices.ReduceMicrosoftBackground" xml:space="preserve"><value>Reducir conexiones de Microsoft en segundo plano</value></data>
+  <data name="Devices.ReduceMicrosoftBackgroundHelp" xml:space="preserve"><value>Desactiva los experimentos de Microsoft Edge y la configuración remota de funciones en esta computadora. Microsoft no lo recomienda porque puede retrasar correcciones urgentes de Edge. Algunas aplicaciones de Windows pueden seguir conectándose en segundo plano.</value></data>
   <data name="Devices.Battery" xml:space="preserve"><value>Batería</value></data>
   <data name="Devices.Uptime" xml:space="preserve"><value>Tiempo encendido</value></data>
   <data name="Devices.Temperature" xml:space="preserve"><value>Temperatura</value></data>

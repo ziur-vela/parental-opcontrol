@@ -76,6 +76,10 @@ else
                         <div class="timeline-main">
                             <div class="timeline-title">@item.Title</div>
                             <div class="muted tiny">@item.Detail</div>
+                            @if (item.MuteDomain is { } muteDomain && !_mutedSites.Contains(muteDomain))
+                            {
+                                <button class="ghost-btn" @onclick="() => MuteSiteAsync(muteDomain)">@L["Alerts.MuteSite"]</button>
+                            }
                         </div>
                         <div class="muted tiny">@FormatLocal(item.WhenUtc)</div>
                     </div>
@@ -86,10 +90,11 @@ else
 }
 
 @code {
-    private sealed record EventRow(DateTime WhenUtc, string Icon, string Tone, string Title, string Detail);
+    private sealed record EventRow(DateTime WhenUtc, string Icon, string Tone, string Title, string Detail, string? MuteDomain = null);
 
     private Guid _familyId;
     private Guid _childId;
+    private Guid _parentId;
     private string _childName = "";
     private string _timeZoneId = "UTC";
     private bool _loading = true;
@@ -97,6 +102,7 @@ else
     private int _idleToday;
     private int _blockedToday;
     private List<EventRow> _events = [];
+    private HashSet<string> _mutedSites = new(StringComparer.OrdinalIgnoreCase);
 
     protected override async Task OnInitializedAsync()
     {
@@ -106,6 +112,7 @@ else
             _loading = false;
             return;
         }
+        Guid.TryParse(auth.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out _parentId);
         await RefreshAsync();
         _loading = false;
     }
@@ -184,7 +191,9 @@ else
         rows.AddRange(alerts.Select(a =>
         {
             var (title, detail) = AlertText.Render(a);
-            return new EventRow(a.CreatedUtc, AlertIcon(a.Type), AlertTone(a.Type), title, detail);
+            var args = AlertText.ParseArgs(a.ArgsJson);
+            var muteDomain = a.Type == "repeated-blocked-site" && args.Length > 0 ? args[0] : null;
+            return new EventRow(a.CreatedUtc, AlertIcon(a.Type), AlertTone(a.Type), title, detail, muteDomain);
         }));
 
         var tamper = await db.ClientTamperEvents.AsNoTracking()
@@ -196,7 +205,23 @@ else
             return new EventRow(t.OccurredUtc, "!", "warn", title, detail);
         }));
 
+        _mutedSites = (await scope.ServiceProvider.GetRequiredService<RuleService>()
+                .GetMutedSiteAlertsAsync(_familyId, child.Id))
+            .Select(m => m.Domain)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         _events = rows.OrderByDescending(r => r.WhenUtc).Take(200).ToList();
+    }
+
+    private async Task MuteSiteAsync(string domain)
+    {
+        try
+        {
+            using var scope = Scopes.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<RuleService>()
+                .MuteSiteAlertsAsync(_familyId, _childId, _parentId, domain);
+            await RefreshAsync();
+        }
+        catch { }
     }
 
     private string FormatLocal(DateTime utc) =>
