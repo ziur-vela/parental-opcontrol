@@ -186,6 +186,26 @@ else
             </section>
 
             <section class="card">
+                <div class="card-title-row"><h2>@L["Luna.Child.Games"]</h2></div>
+                <div class="luna-switch-row">
+                    <button type="button" class="toggle @(_gamesEnabled ? "on" : "")"
+                            disabled="@_busy"
+                            aria-pressed="@_gamesEnabled"
+                            title="@L["Luna.Child.Games"].Value"
+                            @onclick="ToggleGamesAsync">
+                        <span></span>
+                    </button>
+                    <div class="luna-switch-main">
+                        <b>@(_gamesEnabled ? L["Luna.Child.GamesOn"] : L["Luna.Child.GamesOff"])</b>
+                        <span class="muted small">@L["Luna.Child.GamesDetail", _childName]</span>
+                    </div>
+                </div>
+                <p class="muted small">
+                    @L["Luna.Child.GamesThisWeek", _gamesPlayed, _gamesWins, _gamesMinutes]
+                </p>
+            </section>
+
+            <section class="card">
                 <div class="card-title-row"><h2>@L["Luna.Child.DailyLimit"]</h2></div>
                 <div class="inline-add">
                     <label class="field" style="flex: 1 1 150px">
@@ -337,6 +357,10 @@ else
     private bool _publicAiChatsBlocked;
     private bool _webSearchEnabled;
     private bool _webSearchAvailable = true;
+    private bool _gamesEnabled = true;
+    private int _gamesPlayed;
+    private int _gamesWins;
+    private int _gamesMinutes;
     private TimeZoneInfo _timeZone = TimeZoneInfo.Utc;
 
     protected override async Task OnInitializedAsync()
@@ -398,6 +422,10 @@ else
             _extraInstructions = _child.ExtraInstructions ?? "";
             _webSearchEnabled = _child.WebSearchEnabled;
             _webSearchAvailable = _child.WebSearchAvailable;
+            _gamesEnabled = _child.GamesEnabled;
+            _gamesPlayed = _child.GamesThisWeek?.Played ?? 0;
+            _gamesWins = _child.GamesThisWeek?.Wins ?? 0;
+            _gamesMinutes = _child.GamesThisWeek?.Minutes ?? 0;
             _requests = await parent.ListRequestsAsync(_familyId, _childId);
             _pendingRequest = _requests.FirstOrDefault(r => r.Status == "Pending");
             var profile = await parent.GetProfileAsync(_familyId, _childId);
@@ -478,6 +506,12 @@ else
         await SaveChildAsync(_child.Enabled, false, L["Luna.Child.WebSearchSaved"].Value);
     }
 
+    private async Task ToggleGamesAsync()
+    {
+        _gamesEnabled = !_gamesEnabled;
+        await SaveChildAsync(_child.Enabled, false, L["Luna.Child.GamesSaved"].Value);
+    }
+
     private async Task SaveChildAsync(bool enabled, bool acknowledged, string? notice)
     {
         _busy = true;
@@ -488,7 +522,7 @@ else
             using var scope = Scopes.CreateScope();
             var parent = scope.ServiceProvider.GetRequiredService<LunaParentService>();
             _child = await parent.SaveChildAsync(_familyId, _parentId, _childId,
-                new ChildLunaRequest(enabled, _dailyLimit, _extraInstructions, acknowledged, _webSearchEnabled));
+                new ChildLunaRequest(enabled, _dailyLimit, _extraInstructions, acknowledged, _webSearchEnabled, _gamesEnabled));
             _notice = notice;
             Events.PublishLunaChanged();
             await ReloadAsync();

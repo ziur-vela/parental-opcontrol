@@ -62,6 +62,7 @@ public class ParentalDbContext : IdentityDbContext<ParentUser, IdentityRole<Guid
     public DbSet<LunaLearnerProfile> LunaLearnerProfiles => Set<LunaLearnerProfile>();
     public DbSet<LunaUsageDay> LunaUsageDays => Set<LunaUsageDay>();
     public DbSet<LunaMoreRequest> LunaMoreRequests => Set<LunaMoreRequest>();
+    public DbSet<LunaGameResult> LunaGameResults => Set<LunaGameResult>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -587,6 +588,16 @@ public class ParentalDbContext : IdentityDbContext<ParentUser, IdentityRole<Guid
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
             e.HasIndex(x => new { x.ChildId, x.Status, x.CreatedUtc });
             e.HasIndex(x => new { x.FamilyId, x.CreatedUtc });
+        });
+
+        builder.Entity<LunaGameResult>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Game).HasMaxLength(32).IsRequired();
+            e.Property(x => x.Mode).HasMaxLength(24).IsRequired();
+            e.Property(x => x.Level).HasMaxLength(16).IsRequired();
+            e.Property(x => x.Result).HasMaxLength(16).IsRequired();
+            e.HasIndex(x => new { x.FamilyId, x.ChildId, x.CreatedUtc });
         });
     }
 }

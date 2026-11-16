@@ -128,14 +128,17 @@ public sealed record ChildLunaDto(
     int? MonthlyTokenCap,
     decimal ApproxCostUsd,
     bool WebSearchEnabled = false,
-    bool WebSearchAvailable = true);
+    bool WebSearchAvailable = true,
+    bool GamesEnabled = true,
+    LunaGamesSummaryDto? GamesThisWeek = null);
 
 public sealed record ChildLunaRequest(
     bool Enabled,
     int? DailyMessageLimit,
     string? ExtraInstructions,
     bool UnderThirteenAcknowledged,
-    bool WebSearchEnabled = false);
+    bool WebSearchEnabled = false,
+    bool GamesEnabled = true);
 
 public sealed record LunaStatusDto(
     bool Enabled,
@@ -147,7 +150,9 @@ public sealed record LunaStatusDto(
     string Language,
     string HelplineText,
     string? Notice,
-    string? Warning);
+    string? Warning,
+    Guid? ChildId = null,
+    bool GamesEnabled = true);
 
 public sealed record LunaChatDto(
     Guid Id,
@@ -238,3 +243,32 @@ public sealed record LunaUsageDto(
     bool CapReached,
     int WebSearches = 0,
     decimal WebSearchCostUsd = 0m);
+
+public sealed record LunaGameResultRequest(
+    string Game,
+    string Mode,
+    string Level,
+    string Result,
+    int Score,
+    int DurationSeconds);
+
+public sealed record LunaGameResultDto(
+    Guid Id,
+    string Game,
+    string Mode,
+    string Level,
+    string Result,
+    int Score,
+    int DurationSeconds,
+    DateTime CreatedUtc);
+
+public sealed record LunaGamesSummaryDto(
+    int Played,
+    int Wins,
+    int Losses,
+    int Draws,
+    int Minutes);
+
+public sealed record LunaGameAskRequest(string Text, string Game, string StateSummary);
+
+public sealed record LunaGameAskResponse(string Text, bool Refused, string? Notice);

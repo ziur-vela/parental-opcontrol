@@ -69,6 +69,7 @@ public sealed class LunaParentService
         if (request.WebSearchEnabled && !webSearchAvailable)
             throw new InvalidOperationException(AppText.Get("Luna.Error.WebSearchSetupB"));
         settings.WebSearchEnabled = request.WebSearchEnabled && webSearchAvailable;
+        settings.GamesEnabled = request.GamesEnabled;
         settings.UpdatedUtc = now;
         await _db.SaveChangesAsync(ct);
         return await BuildDtoAsync(familyId, child, settings, day, ct);
@@ -240,11 +241,26 @@ public sealed class LunaParentService
         var today = LunaUsageStore.LocalDate(DateTime.UtcNow, tz);
         var month = await _usage.MonthlyUsageAsync(familyId, today, ct);
         var webSearchAvailable = family.Setup == LunaSetup.A && family.ChatProvider == LunaChatProviders.OpenRouter;
+        var games = await GamesSummaryAsync(familyId, child.Id, ct);
         return new ChildLunaDto(child.Id, settings.Enabled, settings.EnabledByParentId, settings.EnabledUtc,
             settings.UnderThirteenAcknowledgedUtc, settings.DailyMessageLimit, settings.ExtraInstructions, settings.Theme,
             setupValid, requiresAck, LunaUsageStore.MessagesLeft(settings, day), day.ExtraAllowed,
             month.PromptTokens, month.CompletionTokens, family.MonthlyTokenCap, month.CostUsd,
-            settings.WebSearchEnabled && webSearchAvailable, webSearchAvailable);
+            settings.WebSearchEnabled && webSearchAvailable, webSearchAvailable, settings.GamesEnabled, games);
+    }
+
+    private async Task<LunaGamesSummaryDto> GamesSummaryAsync(Guid familyId, Guid childId, CancellationToken ct)
+    {
+        var since = DateTime.UtcNow.AddDays(-7);
+        var rows = await _db.LunaGameResults.AsNoTracking()
+            .Where(r => r.FamilyId == familyId && r.ChildId == childId && r.CreatedUtc >= since)
+            .Select(r => new { r.Result, r.DurationSeconds })
+            .ToListAsync(ct);
+        return new LunaGamesSummaryDto(rows.Count,
+            rows.Count(r => r.Result == "win"),
+            rows.Count(r => r.Result == "loss"),
+            rows.Count(r => r.Result == "draw"),
+            (int)Math.Round(rows.Sum(r => r.DurationSeconds) / 60.0));
     }
 
     private async Task<(ChildLunaSettings Settings, LunaUsageDay Day)> LoadAsync(Guid familyId, Guid childId,

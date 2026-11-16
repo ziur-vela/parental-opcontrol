@@ -69,6 +69,13 @@ public class Job19FDeleteChatsTests
             Task.FromResult(new LunaMoreRequestDto(Guid.NewGuid(), Guid.Empty, DateTime.UtcNow, "Pending", null, null));
 
         public Task SetThemeAsync(string theme, CancellationToken ct = default) => Task.CompletedTask;
+
+        public Task<LunaGameResultDto> SendGameResultAsync(LunaGameResultRequest request, CancellationToken ct = default) =>
+            Task.FromResult(new LunaGameResultDto(Guid.NewGuid(), request.Game, request.Mode, request.Level,
+                request.Result, request.Score, request.DurationSeconds, DateTime.UtcNow));
+
+        public Task<LunaGameAskResponse> AskGameLunaAsync(LunaGameAskRequest request, CancellationToken ct = default) =>
+            Task.FromResult(new LunaGameAskResponse("Look at level 3.", false, null));
     }
 
     private static LunaChatDto Chat(string title) =>

@@ -48,7 +48,8 @@ public sealed class LunaChatService
         var lockState = await _locks.GetStateAsync(ctx.FamilyId, ctx.ChildId, device.TimeZoneId, ct);
         var (notice, warning) = StateText(child, settings, usage, left, lockState.IsLocked, language, now);
         return new LunaStatusDto(settings.Enabled, FirstName(child.Name), settings.Theme, left,
-            usage.CooldownUntilUtc, left <= 0, language, HelplineFor(familySettings, language), notice, warning);
+            usage.CooldownUntilUtc, left <= 0, language, HelplineFor(familySettings, language), notice, warning,
+            ctx.ChildId, settings.GamesEnabled);
     }
 
     public async Task<LunaActivityDto> GetActivityAsync(LunaTokenContext ctx, Guid chatId, CancellationToken ct = default)

@@ -201,6 +201,7 @@ builder.Services.AddScoped<LunaUsageStore>();
 builder.Services.AddScoped<LunaWebSearchGuard>();
 builder.Services.AddSingleton<LunaActivityStore>();
 builder.Services.AddScoped<LunaChatService>();
+builder.Services.AddScoped<LunaGameService>();
 builder.Services.AddScoped<LunaParentService>();
 builder.Services.AddHostedService<LunaTokenSweeper>();
 builder.Services.AddHttpClient("luna", client => client.Timeout = TimeSpan.FromSeconds(75));
@@ -1194,6 +1195,18 @@ app.MapPost("/api/luna/theme", async (LunaThemeRequest request, ClaimsPrincipal 
     return Results.Ok(new { ok = true });
 }).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = LunaTokenAuthenticationHandler.SchemeName });
 
+app.MapPost("/api/luna/games/results", async (LunaGameResultRequest request, ClaimsPrincipal user, LunaGameService games, CancellationToken ct) =>
+{
+    var context = LunaFromClaims(user);
+    return context is null ? Results.Unauthorized() : Results.Ok(await games.RecordResultAsync(context, request, ct));
+}).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = LunaTokenAuthenticationHandler.SchemeName });
+
+app.MapPost("/api/luna/games/ask", async (LunaGameAskRequest request, ClaimsPrincipal user, LunaGameService games, CancellationToken ct) =>
+{
+    var context = LunaFromClaims(user);
+    return context is null ? Results.Unauthorized() : Results.Ok(await games.AskAsync(context, request, ct));
+}).RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = LunaTokenAuthenticationHandler.SchemeName }).RequireRateLimiting("luna");
+
 app.MapGet("/api/luna/settings", async (FamilyScope family, LunaSettingsService luna, CancellationToken ct) =>
 {
     var access = await family.AccessAsync(ct);
@@ -1228,6 +1241,18 @@ app.MapPost("/api/children/{childId:guid}/luna", async (Guid childId, ChildLunaR
     await antiforgery.ValidateRequestAsync(context);
     await family.RequireAsync(ParentPermissions.Luna, ct);
     return Results.Ok(await luna.SaveChildAsync(family.FamilyId, family.ParentId, childId, request, ct));
+}).RequireAuthorization();
+
+app.MapGet("/api/children/{childId:guid}/luna/games", async (Guid childId, FamilyScope family, LunaGameService games, CancellationToken ct) =>
+{
+    await family.RequireAsync(ParentPermissions.Luna, ct);
+    return Results.Ok(await games.SummaryAsync(family.FamilyId, childId, ct));
+}).RequireAuthorization();
+
+app.MapGet("/api/children/{childId:guid}/luna/games/results", async (Guid childId, FamilyScope family, LunaGameService games, CancellationToken ct) =>
+{
+    await family.RequireAsync(ParentPermissions.Luna, ct);
+    return Results.Ok(await games.RecentAsync(family.FamilyId, childId, ct));
 }).RequireAuthorization();
 
 app.MapGet("/api/children/{childId:guid}/luna/chats", async (Guid childId, FamilyScope family, LunaParentService luna, CancellationToken ct) =>

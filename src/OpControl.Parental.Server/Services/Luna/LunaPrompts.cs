@@ -137,6 +137,27 @@ public static class LunaPrompts
         return string.Join("\n\n", parts);
     }
 
+    /// <summary>System context for the optional "Ask Luna" box inside a game.</summary>
+    public static string BuildGame(string game, string? stateSummary, int? age, string language)
+    {
+        var parts = new List<string>
+        {
+            $"Core rules version: {Version}",
+            Core.Trim(),
+            "Game help mode: the child is playing a game with you. Give a short hint, explain the maths, or answer " +
+            "their question. Do not choose the move for the child and do not tell them exactly where to place a block; " +
+            "help them work it out. Keep the reply to two or three short sentences.",
+            "Game: " + game + ".",
+            "Reply in " + (language.StartsWith("es", StringComparison.OrdinalIgnoreCase) ? "Spanish (es-MX)" : "English") + "."
+        };
+        parts.Add(age is { } years
+            ? $"The child is {years} years old."
+            : "The child's age is not known; keep the language simple and suitable for a primary-school child.");
+        if (!string.IsNullOrWhiteSpace(stateSummary))
+            parts.Add("Current game state (for context, do not read this list aloud):\n" + stateSummary.Trim());
+        return string.Join("\n\n", parts);
+    }
+
     public const string TitlePrompt =
         "Write a short title for this chat, in the language the child used. " +
         "Use at most 40 characters. Reply with the title only, no quotes and no punctuation at the end.";

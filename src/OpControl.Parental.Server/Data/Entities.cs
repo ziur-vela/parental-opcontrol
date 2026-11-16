@@ -707,6 +707,7 @@ public class ChildLunaSettings
     public string? ExtraInstructions { get; set; }
     public string Theme { get; set; } = LunaThemes.Night;
     public bool WebSearchEnabled { get; set; }
+    public bool GamesEnabled { get; set; } = true;
     public DateTime UpdatedUtc { get; set; } = DateTime.UtcNow;
 }
 
@@ -795,4 +796,19 @@ public class LunaMoreRequest
     public int? GrantedAmount { get; set; }
     public Guid? HandledBy { get; set; }
     public DateTime? HandledUtc { get; set; }
+}
+
+public class LunaGameResult
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid FamilyId { get; set; }
+    public Guid ChildId { get; set; }
+    public Guid DeviceId { get; set; }
+    public string Game { get; set; } = "";
+    public string Mode { get; set; } = "";
+    public string Level { get; set; } = "";
+    public string Result { get; set; } = "";
+    public int Score { get; set; }
+    public int DurationSeconds { get; set; }
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
 }

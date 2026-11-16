@@ -1688,4 +1688,31 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Luna.Flag.Topic" xml:space="preserve"><value>Needs review</value></data>
   <data name="Luna.Child.PrivacyDeclined" xml:space="preserve"><value>I can't help with personal information about other people. Ask a grown-up if you need help with that.</value></data>
   <data name="Category.Bypass" xml:space="preserve"><value>Bypassing blocks</value></data>
+  <data name="Luna.Error.GamesDisabled" xml:space="preserve">
+    <value>Games are turned off for this child.</value>
+  </data>
+  <data name="Luna.Error.InvalidGame" xml:space="preserve">
+    <value>Choose a valid game.</value>
+  </data>
+  <data name="Luna.Error.InvalidGameMode" xml:space="preserve">
+    <value>Choose a valid game mode.</value>
+  </data>
+  <data name="Luna.Child.Games" xml:space="preserve">
+    <value>Games</value>
+  </data>
+  <data name="Luna.Child.GamesOn" xml:space="preserve">
+    <value>Games are on</value>
+  </data>
+  <data name="Luna.Child.GamesOff" xml:space="preserve">
+    <value>Games are off</value>
+  </data>
+  <data name="Luna.Child.GamesDetail" xml:space="preserve">
+    <value>{0} can play Moon Tower with Luna. Games count toward normal screen time only.</value>
+  </data>
+  <data name="Luna.Child.GamesThisWeek" xml:space="preserve">
+    <value>Games this week: {0} played · {1} wins · {2} min</value>
+  </data>
+  <data name="Luna.Child.GamesSaved" xml:space="preserve">
+    <value>Games setting saved.</value>
+  </data>
 </root>

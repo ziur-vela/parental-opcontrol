@@ -57,7 +57,9 @@ All responses are JSON and localized to the child's language. Fixed child-facing
   "language": "en",
   "helplineText": "Please talk to a grown-up you trust about this. You are not alone.",
   "notice": null,
-  "warning": null
+  "warning": null,
+  "childId": "…",
+  "gamesEnabled": true
 }
 ```
 
@@ -197,6 +199,45 @@ No body. Creates one pending request per child per 12 hours and pushes/notifies 
 
 `night` or `gray`. Returns `{"ok":true}`.
 
+## Games (child side)
+
+Space Boards and LunarCraft use the shared game shell. The rules engine and computer opponent run on the device; the server stores results and answers the optional "Ask Luna" box.
+
+### `POST /api/luna/games/results`
+
+```json
+{ "game": "moon-tower", "mode": "make-10", "level": "hard", "result": "win", "score": 37, "durationSeconds": 300 }
+```
+
+- `game`: a known catalog id (`moon-tower`, `orbit`, `crater-clash`, `critter-lab`, `critter-arena`, `lunar-harvest`).
+- `mode`: `make-10` or `make-20`.
+- `level`: `easy`, `medium` or `hard` (the Luna difficulty).
+- `result`: `win`, `loss` or `draw` from the child's point of view.
+- `score` 0–100000, `durationSeconds` 0–14400. Values are clamped.
+- `403` when games are turned off for the child or Luna is disabled.
+
+Returns the stored `LunaGameResultDto`: `{ id, game, mode, level, result, score, durationSeconds, createdUtc }`.
+
+### `POST /api/luna/games/ask`
+
+Optional free text from the "Ask Luna" box. Uses the normal moderation path and the monthly token counter, and does **not** count toward the daily chat-message limit or the 10/min chat-message limit (it uses that rate limiter only as a request throttle).
+
+```json
+{
+  "text": "How do I finish level 3?",
+  "game": "moon-tower",
+  "stateSummary": "Score: child 23, Luna 19. Level 3: 6/10."
+}
+```
+
+Response `200`:
+
+```json
+{ "text": "Level 3 needs 4 more. Look for a block of that length.", "refused": false, "notice": null }
+```
+
+Moderation failure, a blocked input, the monthly cap, or a provider error returns the fixed child-facing refusal with `refused: true`; the provider is never called for a blocked input. `stateSummary` is truncated to 2,000 characters and is only used as system context.
+
 ## Parent side (cookie auth)
 
 All parent endpoints require family scope. Review/limits/requests/chat access need `ParentPermissions.Luna` (owners always pass). Provider settings and `/settings/test` are **owner only**.
@@ -274,20 +315,23 @@ Owner only. Makes one tiny real chat call and one tiny moderation call with the 
   "monthlyTokenCap": null,
   "approxCostUsd": 0.0,
   "webSearchEnabled": false,
-  "webSearchAvailable": true
+  "webSearchAvailable": true,
+  "gamesEnabled": true,
+  "gamesThisWeek": { "played": 3, "wins": 1, "losses": 1, "draws": 1, "minutes": 42 }
 }
 ```
 
 ### `POST /api/children/{childId}/luna`
 
 ```json
-{ "enabled": true, "dailyMessageLimit": 60, "extraInstructions": "Be encouraging.", "underThirteenAcknowledged": false, "webSearchEnabled": false }
+{ "enabled": true, "dailyMessageLimit": 60, "extraInstructions": "Be encouraging.", "underThirteenAcknowledged": false, "webSearchEnabled": false, "gamesEnabled": true }
 ```
 
 - Enabling requires `setupValid`: every key the setup needs is saved and the last Test connection passed.
 - Under-13 rule: when the family uses Setup B and the child is under 13 **or has no date of birth**, the request must set `underThirteenAcknowledged: true` the first time (or an acknowledgement must already exist). Otherwise `400`.
 - `dailyMessageLimit` 1–500, default 60. Extra instructions max 1,000 characters.
 - `webSearchEnabled` is off by default and only accepted for Setup A (OpenRouter). Setup B returns `400` (`Luna.Error.WebSearchSetupB`); `webSearchAvailable` tells the dashboard whether to enable the switch.
+- `gamesEnabled` (default **on**) hides the "Play with Luna" row in the child app and rejects game results and Ask Luna requests when off. Games count toward normal screen time only.
 - Returns the child Luna object above.
 
 ### Chats and messages
@@ -322,6 +366,16 @@ Response: `{"ok":true,"messagesLeftToday":20}`. Closes the latest pending more-r
   { "id": "…", "childId": "…", "createdUtc": "…", "status": "Pending", "grantedAmount": null, "handledBy": null }
 ]
 ```
+
+### `GET /api/children/{childId}/luna/games`
+
+Weekly game summary for the per-child Luna AI tab:
+
+```json
+{ "played": 3, "wins": 1, "losses": 1, "draws": 1, "minutes": 42 }
+```
+
+`GET /api/children/{childId}/luna/games/results` returns the last 50 result records, newest first.
 
 ### `POST /api/children/{childId}/luna/more-requests/{requestId}/dismiss`
 

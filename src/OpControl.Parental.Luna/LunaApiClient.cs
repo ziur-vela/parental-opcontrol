@@ -30,6 +30,8 @@ public interface ILunaApiClient
     Task<LunaActivityDto> GetActivityAsync(Guid chatId, CancellationToken ct = default);
     Task<LunaMoreRequestDto> RequestMoreAsync(CancellationToken ct = default);
     Task SetThemeAsync(string theme, CancellationToken ct = default);
+    Task<LunaGameResultDto> SendGameResultAsync(LunaGameResultRequest request, CancellationToken ct = default);
+    Task<LunaGameAskResponse> AskGameLunaAsync(LunaGameAskRequest request, CancellationToken ct = default);
 }
 
 public sealed class LunaApiClient : ILunaApiClient, IDisposable
@@ -137,6 +139,12 @@ public sealed class LunaApiClient : ILunaApiClient, IDisposable
 
     public Task SetThemeAsync(string theme, CancellationToken ct = default) =>
         SendAsync<JsonElement>(HttpMethod.Post, "/api/luna/theme", new LunaThemeRequest(theme), ct);
+
+    public Task<LunaGameResultDto> SendGameResultAsync(LunaGameResultRequest request, CancellationToken ct = default) =>
+        SendAsync<LunaGameResultDto>(HttpMethod.Post, "/api/luna/games/results", request, ct);
+
+    public Task<LunaGameAskResponse> AskGameLunaAsync(LunaGameAskRequest request, CancellationToken ct = default) =>
+        SendAsync<LunaGameAskResponse>(HttpMethod.Post, "/api/luna/games/ask", request, ct);
 
     private async Task<T> GetAsync<T>(string path, CancellationToken ct)
     {

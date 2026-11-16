@@ -13,6 +13,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Avalonia.Platform;
 using OpControl.Parental.Contracts;
+using OpControl.Parental.Contracts.Games;
 using OpControl.Parental.Localization;
 
 namespace OpControl.Parental.Luna;
@@ -88,6 +89,12 @@ public partial class LunaWindow : Window
     private double _blobH = 96;
     private double _chatWidth = LunaChatSize.MinWidth;
     private double _chatHeight = LunaChatSize.MinHeight;
+    private GameWindowRect _restoreRect;
+    private GameWindowRect _boundsFrom;
+    private GameWindowRect _boundsTo;
+    private double _boundsStart;
+    private bool _boundsAnimating;
+    private bool _gameMode;
     private double _lastResizeLog = -1;
     private double _sleepScale = DefaultSleepScale;
 
@@ -212,6 +219,7 @@ public partial class LunaWindow : Window
 
         _chat.CloseRequested += (_, _) => CloseChat();
         _chat.ResizeRequested += ResizeChat;
+        _chat.GameModeChanged += OnGameModeChanged;
 
         try
         {
@@ -584,6 +592,7 @@ public partial class LunaWindow : Window
         var now = _clock.Elapsed.TotalSeconds;
         var dt = Math.Max(0.001, Math.Min(0.1, now - _lastTick));
         _lastTick = now;
+        UpdateGameBounds(now);
 
         if (now - _greetingCheckAt >= 1.0)
         {
@@ -809,6 +818,63 @@ public partial class LunaWindow : Window
             $"blob_visible={_blob.IsVisible} chat_visible={_chatRoot.IsVisible} {_chat.LayoutInfo()}");
     }
 
+    private void OnGameModeChanged(bool entering)
+    {
+        if (_mode != Mode.Chat) return;
+        var scale = RenderScaling > 0 ? RenderScaling : 1.0;
+        var from = new GameWindowRect(Position.X / scale, Position.Y / scale, Width, Height);
+        if (entering) _restoreRect = from;
+        var to = entering ? GameTargetRect(scale) : _restoreRect;
+        if (to.Width <= 1 || to.Height <= 1) return;
+        _boundsFrom = from;
+        _boundsTo = to;
+        _boundsStart = _clock.Elapsed.TotalSeconds;
+        _boundsAnimating = true;
+        _gameMode = entering;
+        EnsureTopmost();
+        LunaLog.Write($"game_bounds enter={entering} " +
+                      $"from={from.X:0.#},{from.Y:0.#} {from.Width:0.#}x{from.Height:0.#} " +
+                      $"to={to.X:0.#},{to.Y:0.#} {to.Width:0.#}x{to.Height:0.#} scaling={scale:0.##}");
+    }
+
+    private GameWindowRect GameTargetRect(double scale)
+    {
+        var screen = Screens.ScreenFromWindow(this) ?? Screens.Primary;
+        if (screen is null) return _restoreRect;
+        var work = screen.WorkingArea;
+        var workX = work.X / scale;
+        var workY = work.Y / scale;
+        var workW = work.Width / scale;
+        var workH = work.Height / scale;
+        return GameWindowLayout.Clamp(GameWindowLayout.Large(workX, workY, workW, workH),
+            workX, workY, workW, workH);
+    }
+
+    private void UpdateGameBounds(double now)
+    {
+        if (!_boundsAnimating) return;
+        var t = Math.Clamp((now - _boundsStart) / 0.55, 0, 1);
+        var rect = GameWindowLayout.Interpolate(_boundsFrom, _boundsTo, t);
+        var scale = RenderScaling > 0 ? RenderScaling : 1.0;
+        var px = (int)Math.Round(rect.X * scale);
+        var py = (int)Math.Round(rect.Y * scale);
+        if (Position.X != px || Position.Y != py) Position = new PixelPoint(px, py);
+        if (Math.Abs(Width - rect.Width) > 0.5) Width = rect.Width;
+        if (Math.Abs(Height - rect.Height) > 0.5) Height = rect.Height;
+        if (Math.Abs(_scene.Width - rect.Width) > 0.5) _scene.Width = rect.Width;
+        if (Math.Abs(_scene.Height - rect.Height) > 0.5) _scene.Height = rect.Height;
+        if (t >= 1)
+        {
+            _boundsAnimating = false;
+            if (!_gameMode)
+            {
+                _chatWidth = _restoreRect.Width;
+                _chatHeight = _restoreRect.Height;
+                ApplyWindowSize(_chatWidth, _chatHeight);
+            }
+        }
+    }
+
     private void OpenChat()
     {
         LunaLog.Write($"open_chat_requested mode={_mode}");
@@ -872,6 +938,22 @@ public partial class LunaWindow : Window
         if (_mode != Mode.Chat)
         {
             return;
+        }
+
+        if (_gameMode)
+        {
+            _chat.ExitGameForClose();
+            _boundsAnimating = false;
+            _gameMode = false;
+            var scale = RenderScaling > 0 ? RenderScaling : 1.0;
+            if (_restoreRect.Width > 1)
+            {
+                ApplyWindowSize(_restoreRect.Width, _restoreRect.Height);
+                _chatWidth = _restoreRect.Width;
+                _chatHeight = _restoreRect.Height;
+                Position = new PixelPoint((int)Math.Round(_restoreRect.X * scale),
+                    (int)Math.Round(_restoreRect.Y * scale));
+            }
         }
 
         _mode = Mode.MorphClose;
@@ -1626,7 +1708,7 @@ public partial class LunaWindow : Window
         if (e.Key == Key.Escape && _mode == Mode.Chat)
         {
             e.Handled = true;
-            CloseChat();
+            if (!_chat.HandleEscapeRequest()) CloseChat();
         }
         else if (e.Key == Key.Q && e.KeyModifiers.HasFlag(KeyModifiers.Control) &&
                  e.KeyModifiers.HasFlag(KeyModifiers.Shift))

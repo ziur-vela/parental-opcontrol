@@ -17,13 +17,14 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using LiveMarkdown.Avalonia;
 using OpControl.Parental.Contracts;
+using OpControl.Parental.Contracts.Games;
 using OpControl.Parental.Localization;
 
 namespace OpControl.Parental.Luna;
 
 public sealed class LunaAppView : UserControl
 {
-    private enum Screen { Loading, Home, Chat, Chats, Paused, Offline }
+    private enum Screen { Loading, Home, Chat, Chats, Paused, Offline, GamePicker, Game }
 
     private enum ReplyFollowMode { None, Start, Bottom, BottomTail }
 
@@ -76,8 +77,20 @@ public sealed class LunaAppView : UserControl
     private int _revealIndex;
     private int _revealPerTick;
     private DispatcherTimer? _revealTimer;
+    private string? _gameCategory;
+    private MoonTowerBoard? _gameBoard;
+    private TextBlock? _gameTip;
+    private ComboBox? _difficultyBox;
+    private ComboBox? _modeBox;
+    private MoonTowerDifficulty _gameDifficulty = MoonTowerDifficulty.Easy;
+    private MoonTowerMode _gameMode = MoonTowerMode.Make10;
+    private MoonTowerHint? _hint;
+    private bool _hintShown;
+    private bool _inGame;
+    private readonly MoonTowerLinePicker _gameLines = new(7717);
 
     public event EventHandler? CloseRequested;
+    public event Action<bool>? GameModeChanged;
     public event Action<double, double>? ResizeRequested;
     public event EventHandler? ThemeChanged;
 
@@ -239,6 +252,13 @@ public sealed class LunaAppView : UserControl
 
     private void ShowHome(bool refresh = true)
     {
+        if (_inGame)
+        {
+            _inGame = false;
+            _gameBoard?.Stop();
+            _gameBoard = null;
+            GameModeChanged?.Invoke(false);
+        }
         RenderHome();
         if (refresh)
         {
@@ -253,7 +273,7 @@ public sealed class LunaAppView : UserControl
 
         var layer = new Grid();
         layer.Children.Add(ThemeBackdrop());
-        var root = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,*,Auto") };
+        var root = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*,Auto") };
 
         var header = new Grid
         {
@@ -306,6 +326,13 @@ public sealed class LunaAppView : UserControl
         Grid.SetRow(tiles, 1);
         root.Children.Add(tiles);
 
+        if (_status?.GamesEnabled != false)
+        {
+            var play = PlayWithLunaRow();
+            Grid.SetRow(play, 2);
+            root.Children.Add(play);
+        }
+
         var chats = new Grid { RowDefinitions = new RowDefinitions("Auto,*"), Margin = new Thickness(10, 14, 10, 0) };
         var chatHead = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(8, 0, 8, 6) };
         chatHead.Children.Add(Text(Loc.T("Luna.Home.MyChats"), 18, _palette.Text, FontWeight.SemiBold, display: true));
@@ -334,18 +361,615 @@ public sealed class LunaAppView : UserControl
         };
         Grid.SetRow(scroll, 1);
         chats.Children.Add(scroll);
-        Grid.SetRow(chats, 2);
+        Grid.SetRow(chats, 3);
         root.Children.Add(chats);
 
         var disclaimer = Text(Loc.T("Luna.Disclaimer"), 12, _palette.Soft, FontWeight.Bold, center: true, wrap: true);
         disclaimer.Margin = new Thickness(18, 8, 18, 16);
-        Grid.SetRow(disclaimer, 3);
+        Grid.SetRow(disclaimer, 4);
         root.Children.Add(disclaimer);
 
         layer.Children.Add(root);
         layer.Children.Add(CreateResizeGrip());
         _host.Children.Add(layer);
     }
+
+    private Control PlayWithLunaRow()
+    {
+        var panel = new StackPanel { Spacing = 8, Margin = new Thickness(18, 12, 18, 0) };
+        panel.Children.Add(Text(Loc.T("Games.PlayWithLuna"), 18, _palette.Accent, FontWeight.SemiBold, display: true));
+        var grid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("*,*"),
+            RowDefinitions = new RowDefinitions("Auto"),
+            Height = 70
+        };
+        var boards = GameCategoryTile(LunaGameCatalog.SpaceBoards, Color.Parse("#1fb8e0"), Color.Parse("#7a5cff"),
+            Color.Parse("#4b38b8"), Colors.White, "🚀");
+        boards.Margin = new Thickness(0, 0, 6, 0);
+        boards.Click += (_, _) => ShowGamePicker(LunaGameCatalog.SpaceBoards);
+        var craft = GameCategoryTile(LunaGameCatalog.LunarCraft, Color.Parse("#ffb547"), Color.Parse("#ff8fb1"),
+            Color.Parse("#d9638a"), Color.Parse("#15103a"), "🌱");
+        craft.Margin = new Thickness(6, 0, 0, 0);
+        craft.Click += (_, _) => ShowGamePicker(LunaGameCatalog.LunarCraft);
+        grid.Children.Add(boards);
+        Grid.SetColumn(craft, 1);
+        grid.Children.Add(craft);
+        panel.Children.Add(grid);
+        return panel;
+    }
+
+    private Button GameCategoryTile(string categoryId, Color from, Color to, Color shadow, Color ink, string icon)
+    {
+        var cat = LunaGameCatalog.FindCategory(categoryId);
+        var stack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+        stack.Children.Add(Text(icon, 24, ink, FontWeight.Normal));
+        var labels = new StackPanel { Spacing = 0, VerticalAlignment = VerticalAlignment.Center };
+        labels.Children.Add(Text(Loc.T(cat.NameKey), 16, ink, FontWeight.SemiBold, display: true));
+        labels.Children.Add(Text(Loc.T(cat.DetailKey), 11, ink, FontWeight.Bold));
+        stack.Children.Add(labels);
+        return new Button
+        {
+            Content = stack,
+            HorizontalContentAlignment = HorizontalAlignment.Left,
+            Padding = new Thickness(14, 0),
+            Background = new LinearGradientBrush
+            {
+                StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+                EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative),
+                GradientStops =
+                {
+                    new GradientStop(from, 0),
+                    new GradientStop(to, 1)
+                }
+            },
+            BorderBrush = LunaBrushes.B(shadow),
+            BorderThickness = new Thickness(0, 0, 0, 4),
+            CornerRadius = new CornerRadius(18),
+            Cursor = new Cursor(StandardCursorType.Hand)
+        };
+    }
+
+    private void ShowGamePicker(string category)
+    {
+        _gameCategory = category;
+        SetScreen(Screen.GamePicker);
+        _host.Children.Clear();
+        var layer = new Grid();
+        layer.Children.Add(ThemeBackdrop());
+        var root = new Grid { RowDefinitions = new RowDefinitions("Auto,*") };
+
+        var header = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"),
+            Margin = new Thickness(16)
+        };
+        var back = IconButton(BackIcon(), Loc.T("Games.Picker.Back"));
+        back.Click += (_, _) => ShowHome(refresh: false);
+        header.Children.Add(back);
+        var title = Text(Loc.T(catName(category)), 24, _palette.Accent, FontWeight.SemiBold, display: true);
+        title.Margin = new Thickness(12, 0, 0, 0);
+        Grid.SetColumn(title, 1);
+        header.Children.Add(title);
+        var close = IconButton(CloseIcon(), Loc.T("Luna.Common.Close"));
+        close.Click += (_, _) => CloseRequested?.Invoke(this, EventArgs.Empty);
+        Grid.SetColumn(close, 2);
+        header.Children.Add(close);
+        Grid.SetRow(header, 0);
+        root.Children.Add(header);
+
+        var list = new StackPanel { Spacing = 10, Margin = new Thickness(18, 0, 18, 16) };
+        foreach (var game in LunaGameCatalog.InCategory(category))
+            list.Children.Add(GamePickerRow(game));
+        var scroll = new ScrollViewer
+        {
+            Content = list,
+            HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
+        };
+        Grid.SetRow(scroll, 1);
+        root.Children.Add(scroll);
+
+        layer.Children.Add(root);
+        _host.Children.Add(layer);
+    }
+
+    private static string catName(string category) => LunaGameCatalog.FindCategory(category).NameKey;
+
+    private Control GamePickerRow(LunaGameCatalog.Game game)
+    {
+        var text = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
+        text.Children.Add(Text(Loc.T(game.NameKey), 18, _palette.Text, FontWeight.SemiBold, display: true));
+        text.Children.Add(Text(Loc.T(game.DetailKey), 12, _palette.Muted, FontWeight.Bold, wrap: true));
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(14, 12, 14, 12) };
+        row.Children.Add(text);
+        var action = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
+        if (game.Playable)
+        {
+            var play = PillButton(Loc.T("Games.Picker.Playable"), _palette.Accent, _palette.AccentInk, 42, 96);
+            play.Click += (_, _) => OpenMoonTowerPrompt();
+            action.Children.Add(play);
+            var save = MoonTowerSaveStore.Load(ChildKey());
+            if (save is not null)
+            {
+                var cont = PillButton(Loc.T("Games.Continue.Button"), _palette.Surface, _palette.Text, 42, 110);
+                cont.Click += (_, _) => OpenMoonTower(resume: true, save);
+                action.Children.Add(cont);
+            }
+        }
+        else
+        {
+            var soon = new Border
+            {
+                Background = LunaBrushes.B(_palette.Surface2),
+                CornerRadius = new CornerRadius(999),
+                Padding = new Thickness(10, 4),
+                Child = Text(Loc.T("Games.ComingSoon"), 11, _palette.Muted, FontWeight.Bold)
+            };
+            action.Children.Add(soon);
+        }
+        Grid.SetColumn(action, 1);
+        row.Children.Add(action);
+        return new Border
+        {
+            Background = LunaBrushes.B(_palette.Surface),
+            BorderBrush = LunaBrushes.B(_palette.Border),
+            BorderThickness = new Thickness(2),
+            CornerRadius = new CornerRadius(18),
+            Child = row,
+            Opacity = game.Playable ? 1 : 0.8
+        };
+    }
+
+    private string ChildKey() => _status?.ChildId?.ToString() ?? (_status?.ChildFirstName ?? "child");
+
+    private void OpenMoonTowerPrompt()
+    {
+        var save = MoonTowerSaveStore.Load(ChildKey());
+        if (save is null)
+        {
+            OpenMoonTower(resume: false, null);
+            return;
+        }
+        OpenMoonTower(resume: false, null);
+        var overlay = ModalOverlay();
+        var stack = new StackPanel { Spacing = 12, Width = 340 };
+        stack.Children.Add(Text(Loc.T("Games.Continue.Title"), 20, _palette.Text, FontWeight.SemiBold, display: true, wrap: true));
+        stack.Children.Add(Text(Loc.T("Games.Continue.Detail", Loc.T("Games.MoonTower.Name")), 13,
+            _palette.Muted, FontWeight.Bold, wrap: true));
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
+        var startOver = PillButton(Loc.T("Games.StartOver"), _palette.Surface, _palette.Text, 44);
+        startOver.Click += (_, _) =>
+        {
+            CloseModal();
+            MoonTowerSaveStore.Clear(ChildKey());
+            _gameBoard?.NewGame(_gameMode, _gameDifficulty);
+        };
+        var cont = PillButton(Loc.T("Games.Continue.Button"), _palette.Accent, _palette.AccentInk, 44);
+        cont.Click += (_, _) =>
+        {
+            CloseModal();
+            _gameBoard?.Resume(save);
+        };
+        buttons.Children.Add(startOver);
+        buttons.Children.Add(cont);
+        stack.Children.Add(buttons);
+        overlay.Children.Add(new Border
+        {
+            Child = stack,
+            Background = LunaBrushes.B(_palette.Surface),
+            BorderBrush = LunaBrushes.B(_palette.Surface2),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(18),
+            Padding = new Thickness(18),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        _modalLayer = overlay;
+        _host.Children.Add(overlay);
+    }
+
+    private void OpenMoonTower(bool resume, MoonTowerSave? save)
+    {
+        var childName = _status?.ChildFirstName ?? "You";
+        var board = new MoonTowerBoard(_palette, ChildKey(), childName);
+        _gameBoard = board;
+        _gameTip = null;
+        _hint = null;
+        _hintShown = false;
+        board.Tip += text => { if (_gameTip is not null) _gameTip.Text = text; };
+        board.GameOver += outcome => _ = SendGameResultAsync(outcome);
+        _ = resume;
+
+        SetScreen(Screen.Game);
+        _inGame = true;
+        _host.Children.Clear();
+
+        var layer = new Grid();
+        layer.Children.Add(ThemeBackdrop());
+        var root = new Grid { RowDefinitions = new RowDefinitions("Auto,*") };
+        root.Children.Add(GameHeader(board));
+
+        var body = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("*,300"),
+            Margin = new Thickness(14, 4, 14, 14)
+        };
+        var boardHost = new Border
+        {
+            Background = LunaBrushes.B(Color.FromArgb(90, 0, 0, 0)),
+            BorderBrush = LunaBrushes.B(_palette.Border),
+            BorderThickness = new Thickness(2),
+            CornerRadius = new CornerRadius(18),
+            Padding = new Thickness(12),
+            Child = board
+        };
+        body.Children.Add(boardHost);
+        var panel = GameRightPanel(board);
+        Grid.SetColumn(panel, 1);
+        panel.Margin = new Thickness(12, 0, 0, 0);
+        body.Children.Add(panel);
+        Grid.SetRow(body, 1);
+        root.Children.Add(body);
+
+        layer.Children.Add(root);
+        _host.Children.Add(layer);
+        GameModeChanged?.Invoke(true);
+
+        if (save is not null && resume)
+        {
+            board.Resume(save);
+        }
+        else
+        {
+            board.NewGame(_gameMode, _gameDifficulty);
+        }
+        Dispatcher.UIThread.Post(() => board.Focus(), DispatcherPriority.Loaded);
+    }
+
+    private Control GameHeader(MoonTowerBoard board)
+    {
+        var header = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*,Auto,Auto,Auto,Auto,Auto,Auto"),
+            Margin = new Thickness(14, 10, 14, 8)
+        };
+        var back = IconButton(BackIcon(), Loc.T("Games.Picker.Back"));
+        back.Click += (_, _) => ShowLeaveGameDialog();
+        header.Children.Add(back);
+
+        var titles = new StackPanel { Spacing = 0, Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        titles.Children.Add(Text(Loc.T("Games.MoonTower.Name"), 22, _palette.Accent, FontWeight.SemiBold, display: true));
+        titles.Children.Add(Text(Loc.T("Games.MoonTower.Detail"), 12, _palette.Muted, FontWeight.Bold, wrap: true));
+        Grid.SetColumn(titles, 1);
+        header.Children.Add(titles);
+
+        var modeLabel = Text(Loc.T("Games.Mode"), 11, _palette.Muted, FontWeight.Bold);
+        modeLabel.VerticalAlignment = VerticalAlignment.Center;
+        modeLabel.Margin = new Thickness(0, 0, 6, 0);
+        Grid.SetColumn(modeLabel, 3);
+        header.Children.Add(modeLabel);
+        _modeBox = new ComboBox
+        {
+            ItemsSource = new[]
+            {
+                Loc.T("Games.Mode.Make10"), Loc.T("Games.Mode.Make20"),
+                Loc.T("Games.Mode.Fractions") + " ·", Loc.T("Games.Mode.TimesTables") + " ·"
+            },
+            SelectedIndex = _gameMode == MoonTowerMode.Make20 ? 1 : 0,
+            Height = 38,
+            MinWidth = 128,
+            CornerRadius = new CornerRadius(10)
+        };
+        _modeBox.SelectionChanged += (_, _) =>
+        {
+            var index = _modeBox.SelectedIndex;
+            if (index > 1) { _modeBox.SelectedIndex = _gameMode == MoonTowerMode.Make20 ? 1 : 0; return; }
+            var next = index == 1 ? MoonTowerMode.Make20 : MoonTowerMode.Make10;
+            if (next == _gameMode) return;
+            _gameMode = next;
+            _gameBoard?.NewGame(_gameMode, _gameDifficulty);
+        };
+        Grid.SetColumn(_modeBox, 4);
+        header.Children.Add(_modeBox);
+
+        var levelLabel = Text(Loc.T("Games.Level"), 11, _palette.Muted, FontWeight.Bold);
+        levelLabel.VerticalAlignment = VerticalAlignment.Center;
+        levelLabel.Margin = new Thickness(10, 0, 6, 0);
+        Grid.SetColumn(levelLabel, 5);
+        header.Children.Add(levelLabel);
+        _difficultyBox = new ComboBox
+        {
+            ItemsSource = new[]
+            {
+                Loc.T("Games.Level.Easy"), Loc.T("Games.Level.Medium"), Loc.T("Games.Level.Hard")
+            },
+            SelectedIndex = (int)_gameDifficulty,
+            Height = 38,
+            MinWidth = 104,
+            CornerRadius = new CornerRadius(10)
+        };
+        _difficultyBox.SelectionChanged += (_, _) =>
+        {
+            if (_difficultyBox.SelectedIndex < 0) return;
+            _gameDifficulty = (MoonTowerDifficulty)_difficultyBox.SelectedIndex;
+            _gameBoard?.SetDifficulty(_gameDifficulty);
+        };
+        Grid.SetColumn(_difficultyBox, 6);
+        header.Children.Add(_difficultyBox);
+
+        var friends = new Button
+        {
+            Content = Text(Loc.T("Games.Friends") + " · " + Loc.T("Games.ComingSoon"), 12, _palette.Muted, FontWeight.Bold),
+            Height = 38,
+            CornerRadius = new CornerRadius(12),
+            Background = LunaBrushes.B(_palette.Surface),
+            BorderBrush = LunaBrushes.B(_palette.Border),
+            BorderThickness = new Thickness(2),
+            Padding = new Thickness(12, 0),
+            IsEnabled = false,
+            Opacity = 0.65,
+            Margin = new Thickness(10, 0, 0, 0)
+        };
+        AutomationProperties.SetName(friends, Loc.T("Games.Friends"));
+        Grid.SetColumn(friends, 7);
+        header.Children.Add(friends);
+
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(10, 0, 0, 0) };
+        var rules = IconButton(RulesIcon(), Loc.T("Games.Rules"));
+        rules.Click += (_, _) => ShowRulesDialog();
+        buttons.Children.Add(rules);
+        var pause = IconButton(PauseIcon(), Loc.T("Games.Pause"));
+        pause.Click += (_, _) =>
+        {
+            board.SetPaused(!board.IsPaused);
+            board.Save();
+        };
+        buttons.Children.Add(pause);
+        Grid.SetColumn(buttons, 8);
+        header.Children.Add(buttons);
+
+        return header;
+    }
+
+    private Control GameRightPanel(MoonTowerBoard board)
+    {
+        var panel = new StackPanel { Spacing = 10 };
+        var bubbleRow = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
+        var face = CreateMoonFace(40, sleepy: false);
+        face.VerticalAlignment = VerticalAlignment.Top;
+        bubbleRow.Children.Add(face);
+        _gameTip = Text(Loc.T("Games.YourTurn"), 13, _palette.Text, FontWeight.SemiBold, wrap: true);
+        var bubble = new Border
+        {
+            Background = LunaBrushes.B(_palette.Surface),
+            BorderBrush = LunaBrushes.B(_palette.Border),
+            BorderThickness = new Thickness(2),
+            CornerRadius = new CornerRadius(18, 18, 18, 6),
+            Padding = new Thickness(12, 8),
+            Margin = new Thickness(6, 0, 0, 0),
+            Child = _gameTip
+        };
+        Grid.SetColumn(bubble, 1);
+        bubbleRow.Children.Add(bubble);
+        panel.Children.Add(bubbleRow);
+
+        var hint = PillButton(Loc.T("Games.Hint"), _palette.Accent, _palette.AccentInk, 46);
+        hint.HorizontalAlignment = HorizontalAlignment.Stretch;
+        hint.Click += (_, _) => ShowHint(board);
+        panel.Children.Add(hint);
+
+        panel.Children.Add(Text(Loc.T("Games.Ask"), 13, _palette.Accent, FontWeight.SemiBold, display: true));
+        var askBox = new TextBox
+        {
+            PlaceholderText = Loc.T("Games.Ask.Placeholder"),
+            MaxLength = 500,
+            Height = 70,
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap,
+            FontFamily = LunaThemes.Body,
+            FontSize = 13,
+            Background = LunaBrushes.B(_palette.InputBg),
+            Foreground = LunaBrushes.B(_palette.Text),
+            BorderBrush = LunaBrushes.B(_palette.Surface2),
+            CornerRadius = new CornerRadius(12),
+            Padding = new Thickness(10, 6)
+        };
+        panel.Children.Add(askBox);
+        var ask = PillButton(Loc.T("Games.Ask.Send"), _palette.Surface, _palette.Text, 42);
+        ask.HorizontalAlignment = HorizontalAlignment.Stretch;
+        panel.Children.Add(ask);
+        var answer = Text("", 13, _palette.Text, FontWeight.SemiBold, wrap: true);
+        panel.Children.Add(answer);
+        var busy = false;
+        ask.Click += async (_, _) =>
+        {
+            var text = askBox.Text?.Trim() ?? "";
+            if (busy || text.Length == 0) return;
+            busy = true;
+            answer.Foreground = LunaBrushes.B(_palette.Muted);
+            answer.Text = Loc.T("Games.Ask.Thinking");
+            try
+            {
+                var reply = await _api.AskGameLunaAsync(new LunaGameAskRequest(text,
+                    LunaGameCatalog.MoonTower, board.StateSummary()));
+                answer.Foreground = LunaBrushes.B(_palette.Text);
+                answer.Text = reply.Text;
+                if (reply.Refused && reply.Notice is { Length: > 0 }) answer.Text = reply.Notice;
+            }
+            catch (Exception ex)
+            {
+                LunaLog.Exception("game-ask", ex);
+                answer.Foreground = LunaBrushes.B(_palette.Danger);
+                answer.Text = Loc.T("Games.AskUnavailable");
+            }
+            finally
+            {
+                busy = false;
+            }
+        };
+
+        var spacer = new Border { Height = 1 };
+        panel.Children.Add(spacer);
+        panel.Children.Add(Text(Loc.T("Games.RulesPower"), 11, _palette.Soft, FontWeight.Bold, wrap: true));
+        return panel;
+    }
+
+    private void ShowHint(MoonTowerBoard board)
+    {
+        if (_gameTip is null) return;
+        var hint = board.Hint();
+        if (hint is null)
+        {
+            _gameTip.Text = _gameLines.Next(LunaLineEvent.Idle, Loc.Language);
+            return;
+        }
+        if (!_hintShown)
+        {
+            _hint = hint;
+            _hintShown = true;
+            _gameTip.Text = Loc.T("Games.HintQuestion", hint.Level + 1, hint.LevelSum, hint.LevelSum + hint.Needed);
+            return;
+        }
+        _hintShown = false;
+        var length = hint.Move.HandIndex >= 0 && hint.Move.HandIndex < board.State.ChildHand.Count
+            ? board.State.ChildHand[hint.Move.HandIndex].Length
+            : 0;
+        _gameTip.Text = Loc.T("Games.HintReveal", length);
+        board.Highlight(hint);
+    }
+
+    private void ShowRulesDialog()
+    {
+        var overlay = ModalOverlay();
+        var stack = new StackPanel { Spacing = 12, Width = 430 };
+        stack.Children.Add(Text(Loc.T("Games.RulesTitle"), 20, _palette.Text, FontWeight.SemiBold, display: true, wrap: true));
+        stack.Children.Add(Text(Loc.T("Games.RulesBody"), 13, _palette.Muted, FontWeight.SemiBold, wrap: true));
+        stack.Children.Add(Text(Loc.T("Games.RulesPower"), 12, _palette.Soft, FontWeight.Bold, wrap: true));
+        var close = PillButton(Loc.T("Games.Close"), _palette.Accent, _palette.AccentInk, 44);
+        close.HorizontalAlignment = HorizontalAlignment.Right;
+        close.Click += (_, _) => CloseModal();
+        stack.Children.Add(close);
+        overlay.Children.Add(new Border
+        {
+            Child = stack,
+            Background = LunaBrushes.B(_palette.Surface),
+            BorderBrush = LunaBrushes.B(_palette.Surface2),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(18),
+            Padding = new Thickness(20),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        _modalLayer = overlay;
+        _host.Children.Add(overlay);
+    }
+
+    private void ShowLeaveGameDialog()
+    {
+        if (_screen != Screen.Game) return;
+        var overlay = ModalOverlay();
+        var stack = new StackPanel { Spacing = 12, Width = 350 };
+        stack.Children.Add(Text(Loc.T("Games.Leave.Title"), 20, _palette.Text, FontWeight.SemiBold, display: true, wrap: true));
+        stack.Children.Add(Text(Loc.T("Games.Leave.Detail"), 13, _palette.Muted, FontWeight.Bold, wrap: true));
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
+        var stay = PillButton(Loc.T("Games.Leave.No"), _palette.Surface, _palette.Text, 44);
+        stay.Click += (_, _) => CloseModal();
+        var leave = PillButton(Loc.T("Games.Leave.Yes"), _palette.Accent, _palette.AccentInk, 44);
+        leave.Click += (_, _) =>
+        {
+            CloseModal();
+            _gameBoard?.Save();
+            _gameTip = null;
+            _hint = null;
+            _hintShown = false;
+            ShowHome(refresh: false);
+        };
+        row.Children.Add(stay);
+        row.Children.Add(leave);
+        stack.Children.Add(row);
+        overlay.Children.Add(new Border
+        {
+            Child = stack,
+            Background = LunaBrushes.B(_palette.Surface),
+            BorderBrush = LunaBrushes.B(_palette.Surface2),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(18),
+            Padding = new Thickness(18),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        _modalLayer = overlay;
+        _host.Children.Add(overlay);
+    }
+
+    private async Task SendGameResultAsync(MoonTowerOutcome outcome)
+    {
+        try
+        {
+            var result = outcome.Result switch
+            {
+                MoonTowerResult.Win => Loc.T("Games.Result.Win"),
+                MoonTowerResult.Loss => Loc.T("Games.Result.Loss"),
+                _ => Loc.T("Games.Result.Draw")
+            };
+            var mode = outcome.Mode == MoonTowerMode.Make20 ? LunaGameModes.Make20 : LunaGameModes.Make10;
+            var level = outcome.Difficulty switch
+            {
+                MoonTowerDifficulty.Medium => "medium",
+                MoonTowerDifficulty.Hard => "hard",
+                _ => "easy"
+            };
+            await _api.SendGameResultAsync(new LunaGameResultRequest(
+                LunaGameCatalog.MoonTower, mode, level, result, outcome.Score, outcome.DurationSeconds));
+        }
+        catch (Exception ex)
+        {
+            LunaLog.Exception("game-result", ex);
+        }
+    }
+
+    /// <summary>Save and drop the game without animating bounds (window is closing).</summary>
+    internal void ExitGameForClose()
+    {
+        _gameBoard?.Save();
+        _gameBoard?.Stop();
+        _gameBoard = null;
+        _gameTip = null;
+        _hint = null;
+        _hintShown = false;
+        _inGame = false;
+        RenderHome();
+    }
+
+    /// <summary>Escape and the window close path ask before leaving a game.</summary>
+    internal bool HandleEscapeRequest()
+    {
+        if (_modalLayer is not null) { CloseModal(); return true; }
+        if (_screen == Screen.Game) { ShowLeaveGameDialog(); return true; }
+        if (_screen == Screen.GamePicker) { ShowHome(refresh: false); return true; }
+        return false;
+    }
+
+    private Control RulesIcon() => new Path
+    {
+        Data = Geometry.Parse("M4 4h16v16H4z M8 9h8 M8 13h8 M8 17h5"),
+        Stroke = LunaBrushes.B(_palette.Text),
+        StrokeThickness = 2,
+        Width = 18,
+        Height = 18,
+        Stretch = Stretch.Uniform
+    };
+
+    private Control PauseIcon() => new Path
+    {
+        Data = Geometry.Parse("M8 5v14 M16 5v14"),
+        Stroke = LunaBrushes.B(_palette.Text),
+        StrokeThickness = 3,
+        Width = 18,
+        Height = 18,
+        Stretch = Stretch.Uniform
+    };
 
     private static Thickness TileMargin(int i)
     {
@@ -1560,6 +2184,8 @@ public sealed class LunaAppView : UserControl
             case Screen.Chats: ShowChats(); break;
             case Screen.Paused: ShowPaused(); break;
             case Screen.Offline: ShowOffline(); break;
+            case Screen.GamePicker: ShowGamePicker(_gameCategory ?? LunaGameCatalog.SpaceBoards); break;
+            case Screen.Game: break;
             default: ShowHome(); break;
         }
     }
@@ -2157,6 +2783,11 @@ public sealed class LunaAppView : UserControl
     internal void ShowHomeForTest() => ShowHome();
 
     internal void ShowHomeWithoutRefreshForTest() => ShowHome(refresh: false);
+    internal MoonTowerBoard? GameBoardForTest => _gameBoard;
+    internal bool GamesRowVisibleForTest => _status?.GamesEnabled != false;
+    internal void ShowGamePickerForTest(string category) => ShowGamePicker(category);
+    internal void OpenMoonTowerForTest() => OpenMoonTower(resume: false, null);
+    internal void SetStatusForTest(LunaStatusDto status) => _status = status;
 
     internal Task OpenChatFromListForTest(LunaChatDto chat) => OpenChatAsync(chat);
 

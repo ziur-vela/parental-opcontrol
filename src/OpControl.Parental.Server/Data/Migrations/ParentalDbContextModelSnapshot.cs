@@ -657,6 +657,9 @@ namespace OpControl.Parental.Server.Data.Migrations
                     b.Property<Guid>("FamilyId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("GamesEnabled")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Theme")
                         .IsRequired()
                         .HasMaxLength(8)
@@ -1691,6 +1694,57 @@ namespace OpControl.Parental.Server.Data.Migrations
                     b.HasIndex("LastTestOk");
 
                     b.ToTable("LunaFamilySettings");
+                });
+
+            modelBuilder.Entity("OpControl.Parental.Server.Data.LunaGameResult", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ChildId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeviceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DurationSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Game")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<string>("Result")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FamilyId", "ChildId", "CreatedUtc");
+
+                    b.ToTable("LunaGameResults");
                 });
 
             modelBuilder.Entity("OpControl.Parental.Server.Data.LunaLearnerProfile", b =>
