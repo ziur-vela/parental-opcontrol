@@ -2,64 +2,79 @@
 
 [English](README.md) · [Español](README.es.md)
 
-Self-hosted parental control software for families. It has a web dashboard for parents, a Windows client for the child's computer and a guided installer. It is a ground-up rebuild of the ArktinMonitor parental control system, available in English and Spanish.
+Self-hosted parental control for families: a web dashboard for parents, a Windows client for the child's computer and a guided installer. Ground-up rebuild of the ArktinMonitor parental control system, in English and Spanish.
 
-![Family dashboard](assets/screenshots/dashboard.png)
+**Current version: v0.17.29 · Beta.** Features may change before the stable release.
 
-## Features
+![Parental OpControl demo](assets/media/hero.gif)
 
-### Lock and unlock
-- Lock or unlock a device instantly from the dashboard
-- Full-screen lock overlay on the child's computer that keeps working offline
-- Lock schedules per child, including overnight windows such as 21:00 to 07:00
-- Bonus time (+15 min, +30 min or a custom amount) with a countdown banner on the child's screen
-- Parent override PIN on the lock screen, with a menu to unlock until the next lock or give bonus time
+### Watch the full demo (5:45)
 
-### Screen time
-- Active screen time per child across all of the child's devices, with idle time excluded
-- Daily device limit and per-app limits that end in the lock screen
-- Day, week and month usage charts, most used apps and an activity timeline
+[![Watch the Parental OpControl demo on YouTube](assets/media/video-thumb.jpg)](https://youtu.be/khIcOS5drO8)
 
-### Websites and apps
-- Website filtering through a local DNS resolver on the device, with curated categories (adult, gambling)
-- Visited sites history with inline block and unblock
-- Installed app inventory, a review list for new apps and real-time app blocking
-- Always-allowed apps and sites, plus bonus unlocks for a single blocked site or app
+The full walkthrough of the parent dashboard, the kid view and Luna AI is on YouTube: https://youtu.be/khIcOS5drO8
 
-### Remote viewing
-- Parent-initiated screen and camera viewing, up to 10 minutes per session, no audio and no recording
-- Optional on-screen notice on the child's device, configurable per device
-- One-time camera supervision acknowledgement per parent, plus a separate RemoteView permission
+## For parents
 
-### Alerts and email
-- Alerts for tampering (service stopped, helper killed, DNS changes, clock changes, uninstall attempts) and limits
-- Email alerts and a daily digest, with mute per alert type and quiet hours
-- Bilingual HTML emails (invitations, alerts, digest) with a plain-text version
-
-### Families and parents
-- Multiple families on one server, with invite-only registration and no public sign-up
-- Co-parents with per-parent permissions; every action records which parent made it
-- Two-factor authentication (TOTP) for parent accounts
-- Server administrator tools and a build version shown in the dashboard
-
-### Windows client
-- MSI installer and setup wizard; parents add a device with a one-time install link or QR code
-- Automatic updates with SHA-256 verification and automatic rollback
-- SYSTEM service plus a user-session helper, with tamper detection and offline enforcement from a local cache
-
-### Interface
-- English and Spanish (es-MX), selected per parent, per family and per device
-- Dark and light themes, built for both desktop and phone screens
-
-## Screenshots
-
-| Screen time | Lock schedules |
+| Family dashboard | Devices and live resources |
 |---|---|
-| ![Screen time](assets/screenshots/screen-time.png) | ![Lock schedules](assets/screenshots/schedules.png) |
+| ![Family dashboard](assets/screenshots/parent-01-home-dark.png) | ![Devices](assets/screenshots/parent-02-devices-dark.png) |
 
-![Remote screen viewing](assets/screenshots/remote.png)
+- One dashboard per family: online devices, screen time today, blocked attempts and the next lock.
+- Lock, unlock and bonus time (+15, +30 or a custom amount) from the dashboard or the child's screen.
+- Daily device limits and per-app limits, with day, week and month charts and an activity timeline.
 
-Screenshots use demo names.
+| Rules and websites | Messages |
+|---|---|
+| ![Websites and rules](assets/screenshots/parent-07-websites-dark.png) | ![Messages](assets/screenshots/parent-05-messages-dark.png) |
+
+- Website filtering through a local DNS resolver, curated categories and per-site quick bonuses.
+- Short parent–child messages with delivered, seen and acknowledged status, grouped by day.
+- Remote screen and camera view (parent-initiated, up to 10 minutes, no audio, no recording).
+- Alerts for tampering, limits and device warnings, plus bilingual email alerts and a daily digest.
+- Co-parents with per-parent permissions, two-factor authentication and server administrator tools.
+
+| Luna AI for a child | Luna review and safety |
+|---|---|
+| ![Luna AI](assets/screenshots/parent-03-luna-child-dark.png) | ![Luna review](assets/screenshots/parent-04-luna-review-dark.png) |
+
+- Bring your own AI key. Every question and answer passes a safety filter before the child sees it.
+- Parents can read every chat, see the web sources Luna used and review flagged topics.
+- Daily message limits, quiet hours, zero data retention in Setup A and no account for the child.
+
+| Light theme | Phone layout |
+|---|---|
+| ![Light theme](assets/screenshots/parent-09-home-light.png) | ![Phone](assets/screenshots/parent-10-home-phone-dark.png) |
+
+## For kids
+
+| My OpControl | Moon gray theme |
+|---|---|
+| ![My OpControl](assets/screenshots/kid-11-home-night.png) | ![Moon gray theme](assets/screenshots/kid-12-home-gray.png) |
+
+- My OpControl shows time left today, the next lock, most used apps and the family rules.
+- A calm, night-sky design with a Moon gray alternative, in English and Spanish.
+- Kids can message their parents from the window, the tray or the lock screen.
+
+| Luna chat and sources | Luna searches the web |
+|---|---|
+| ![Luna chat](assets/screenshots/kid-14-chat-sources-expanded.png) | ![Luna searching](assets/screenshots/kid-15-detective-moon.png) |
+
+- Luna explains with short, age-appropriate answers and pictures, and can show “Where I found this”.
+- The detective moon appears while Luna investigates on the web.
+- Locks and schedules apply to Luna too.
+
+## Coming soon: Play with Luna
+
+Space Boards turn math practice into small games. Moon Tower, Orbit and Crater Clash are in design review.
+
+| Moon Tower | Orbit |
+|---|---|
+| ![Moon Tower](assets/screenshots/games-18-moon-tower.png) | ![Orbit](assets/screenshots/games-19-orbit.png) |
+
+![Crater Clash](assets/screenshots/games-20-crater-clash.png)
+
+LunarCraft is planned next: **Critter Lab** (grow and care for moon critters), **Critter Arena** (friendly battles that practise math) and **Lunar Harvest** (a small farming loop). No images yet.
 
 ## Solution
 
