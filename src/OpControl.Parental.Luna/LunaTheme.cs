@@ -59,7 +59,8 @@ public static class LunaThemes
             ["history"] = new("history", C("#ffb547"), C("#15103a"), C("#d18a1f"), C("#ffb547")),
             ["dictionary"] = new("dictionary", C("#ff8fb1"), C("#15103a"), C("#d9638a"), C("#ff8fb1")),
             ["languages"] = new("languages", C("#b18cff"), C("#15103a"), C("#8a62dd"), C("#b18cff")),
-            ["curious"] = new("curious", C("#f6dc7e"), C("#15103a"), C("#cfae45"), C("#f6dc7e"))
+            ["curious"] = new("curious", C("#f6dc7e"), C("#15103a"), C("#cfae45"), C("#f6dc7e")),
+            ["games"] = new("games", C("#5bd3ff"), C("#15103a"), C("#2a9fc9"), C("#5bd3ff"))
         }
     };
 
@@ -80,7 +81,8 @@ public static class LunaThemes
             ["history"] = new("history", C("#ffe2b8"), C("#23273a"), C("#efb46a"), C("#b5650a")),
             ["dictionary"] = new("dictionary", C("#ffd6e3"), C("#23273a"), C("#f0a3bb"), C("#c23a6b")),
             ["languages"] = new("languages", C("#e3d6ff"), C("#23273a"), C("#b9a3ef"), C("#6a3fd6")),
-            ["curious"] = new("curious", C("#fff0b3"), C("#23273a"), C("#e8cc5c"), C("#8a6500"))
+            ["curious"] = new("curious", C("#fff0b3"), C("#23273a"), C("#e8cc5c"), C("#8a6500")),
+            ["games"] = new("games", C("#c9f2ff"), C("#23273a"), C("#8fd6ee"), C("#0b6f92"))
         }
     };
 

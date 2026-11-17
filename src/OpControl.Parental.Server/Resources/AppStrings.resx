@@ -1287,6 +1287,8 @@ If you were not expecting this, ignore this email.</value></data>
   <data name="Luna.Subject.Dictionary" xml:space="preserve"><value>Dictionary</value></data>
   <data name="Luna.Subject.Languages" xml:space="preserve"><value>Languages</value></data>
   <data name="Luna.Subject.Curious" xml:space="preserve"><value>Just curious</value></data>
+  <data name="Luna.Subject.Games" xml:space="preserve"><value>Games</value></data>
+  <data name="Games.AskChatTitle" xml:space="preserve"><value>Moon Tower questions</value></data>
   <data name="Luna.Flag.Blocked" xml:space="preserve"><value>Blocked</value></data>
   <data name="Luna.Flag.ReplyBlocked" xml:space="preserve"><value>Answer blocked</value></data>
   <data name="Luna.Flag.Urgent" xml:space="preserve"><value>Urgent</value></data>

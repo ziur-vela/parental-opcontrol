@@ -485,5 +485,17 @@
   "Games.Result.Loss": "loss",
   "Games.Result.Draw": "draw",
   "Games.NoGames": "Games are turned off for now.",
-  "Games.AskUnavailable": "Luna can't answer right now."
+  "Games.AskUnavailable": "Luna can't answer right now.",
+  "Luna.Subject.Games": "Games",
+  "Games.AskChatTitle": "Moon Tower questions",
+  "Games.ScoreTitle": "How to score",
+  "Games.ScoreLine.Place": "Place a block · points = its length",
+  "Games.ScoreLine.Level": "Finish a level exactly · +10",
+  "Games.ScoreLine.Symbol": "Land on the same symbol · +2",
+  "Games.ScoreLine.Support": "A block must rest fully on blocks below",
+  "Games.PowerTitle": "Power blocks",
+  "Games.PowerLine.Rocket": "Rocket · play again",
+  "Games.PowerLine.Meteor": "Meteor · knock off one top block",
+  "Games.PowerLine.Eclipse": "Eclipse · counts as any symbol",
+  "Games.PowerLine.DoubleStar": "Double Star · double this move"
 }

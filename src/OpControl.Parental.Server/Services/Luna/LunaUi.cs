@@ -27,7 +27,8 @@ public static class LunaUi
         new(LunaSubjects.History, "Luna.Subject.History", "#ffb547", "⌛"),
         new(LunaSubjects.Dictionary, "Luna.Subject.Dictionary", "#ff8fb1", "Aa"),
         new(LunaSubjects.Languages, "Luna.Subject.Languages", "#b388ff", "文"),
-        new(LunaSubjects.Curious, "Luna.Subject.Curious", "#ff9f6b", "?")
+        new(LunaSubjects.Curious, "Luna.Subject.Curious", "#ff9f6b", "?"),
+        new(LunaSubjects.Games, "Luna.Subject.Games", "#5bd3ff", "★")
     ];
 
     public static SubjectInfo Subject(string? id) =>

@@ -485,5 +485,17 @@
   "Games.Result.Loss": "derrota",
   "Games.Result.Draw": "empate",
   "Games.NoGames": "Los juegos están desactivados por ahora.",
-  "Games.AskUnavailable": "Luna no puede responder ahora."
+  "Games.AskUnavailable": "Luna no puede responder ahora.",
+  "Luna.Subject.Games": "Juegos",
+  "Games.AskChatTitle": "Preguntas de Moon Tower",
+  "Games.ScoreTitle": "Cómo puntuar",
+  "Games.ScoreLine.Place": "Coloca un bloque · puntos = su largo",
+  "Games.ScoreLine.Level": "Completa un nivel exacto · +10",
+  "Games.ScoreLine.Symbol": "Cae en el mismo símbolo · +2",
+  "Games.ScoreLine.Support": "Un bloque debe apoyarse completo en los de abajo",
+  "Games.PowerTitle": "Bloques de poder",
+  "Games.PowerLine.Rocket": "Cohete · juega otra vez",
+  "Games.PowerLine.Meteor": "Meteorito · quita un bloque de arriba",
+  "Games.PowerLine.Eclipse": "Eclipse · cuenta como cualquier símbolo",
+  "Games.PowerLine.DoubleStar": "Estrella Doble · duplica este movimiento"
 }

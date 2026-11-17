@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Ziur / OpControl IT Solutions
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using OpControl.Parental.Contracts;
 using OpControl.Parental.Contracts.Games;
@@ -125,8 +126,11 @@ public sealed class LunaGameService
             return new LunaGameAskResponse(AppText.Get("Luna.Child.MonthlyCap", language), true,
                 AppText.Get("Luna.Child.MonthlyCap", language));
 
+        var chat = await ResolveChatAsync(ctx, request.ChatId, language, ct);
+        var now = DateTime.UtcNow;
+
         if (!_settings.IsReady(familySettings))
-            return new LunaGameAskResponse(AppText.Get("Luna.Child.Refusal", language), true, null);
+            return await SaveRefusalAsync(ctx, chat, text, AppText.Get("Luna.Child.Refusal", language), now, ct);
 
         ILunaModerator moderator;
         ILunaChatProvider chatProvider;
@@ -141,7 +145,7 @@ public sealed class LunaGameService
         }
         catch (LunaProviderException ex)
         {
-            return new LunaGameAskResponse(AppText.Get(ex.MessageKey, language), true, null);
+            return await SaveRefusalAsync(ctx, chat, text, AppText.Get(ex.MessageKey, language), now, ct);
         }
 
         LunaModerationResult input;
@@ -152,22 +156,30 @@ public sealed class LunaGameService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Luna game ask moderation failed for child {ChildId}", ctx.ChildId);
-            return new LunaGameAskResponse(AppText.Get("Luna.Child.Refusal", language), true, null);
+            return await SaveRefusalAsync(ctx, chat, text, AppText.Get("Luna.Child.Refusal", language), now, ct);
         }
 
-        var classification = familySettings.Setup == LunaSetup.A
-            || familySettings.ChatProvider == LunaChatProviders.OpenRouter
-            ? LunaSafety.ClassifyCategories(input.Categories, input.Flagged)
-            : LunaSafety.ClassifyOpenAi(input.Scores);
+        var classification = Classify(familySettings, input);
         if (classification.Urgent)
         {
+            var urgentText = UrgentText(familySettings, language);
+            await SaveTurnAsync(chat, text, urgentText, LunaMessageFlag.Urgent,
+                LunaSafety.Describe(classification.Categories), ScoresJson(classification.Scores),
+                LunaMessageFlag.None, null, 0, 0, now, ct);
             await _alerts.AddAsync(ctx.FamilyId, ctx.ChildId, ctx.DeviceId, "luna-urgent",
                 new AlertContent("Alert.Luna.Urgent.Title", "Alert.Luna.Urgent.Detail", FirstName(child.Name)),
                 TimeSpan.FromMinutes(30), ct, immediateEmail: true);
-            return new LunaGameAskResponse(AppText.Get("Luna.Child.Urgent", language), true, null);
+            return new LunaGameAskResponse(urgentText, true, null, chat.Id);
         }
         if (classification.Blocked)
-            return new LunaGameAskResponse(AppText.Get("Luna.Child.Blocked", language), true, null);
+        {
+            var blockedText = AppText.Get("Luna.Child.Blocked", language);
+            await SaveTurnAsync(chat, text, blockedText, LunaMessageFlag.Blocked,
+                LunaSafety.Describe(classification.Categories), ScoresJson(classification.Scores),
+                LunaMessageFlag.None, null, 0, 0, now, ct);
+            await FlaggedAlertAsync(ctx, child.Name, chat.Id, false, ct);
+            return new LunaGameAskResponse(blockedText, true, null, chat.Id);
+        }
 
         var system = LunaPrompts.BuildGame(LunaGameCatalog.DisplayName(game), summary,
             LunaPrompts.AgeFrom(child.DateOfBirth, DateTime.UtcNow), language);
@@ -179,35 +191,167 @@ public sealed class LunaGameService
         }
         catch (LunaProviderException ex)
         {
-            return new LunaGameAskResponse(AppText.Get(ex.MessageKey, language), true, null);
+            return await SaveRefusalAsync(ctx, chat, text, AppText.Get(ex.MessageKey, language), now, ct);
         }
 
-        var (clean, _) = LunaSafety.StripConcernMarkers(result.Text);
-        (clean, _) = LunaSafety.StripDeclinedMarkers(clean);
+        usage.PromptTokens += result.PromptTokens;
+        usage.CompletionTokens += result.CompletionTokens;
+        usage.UpdatedUtc = now;
+
+        var (firstClean, markerKinds) = LunaSafety.StripConcernMarkers(result.Text);
+        var (clean, _) = LunaSafety.StripDeclinedMarkers(firstClean);
         if (clean.Length == 0) clean = AppText.Get("Luna.Child.ReplyFallback", language);
 
+        LunaModerationResult output;
         try
         {
-            var output = await moderator.ModerateAsync(clean, ct);
-            var outputClass = familySettings.Setup == LunaSetup.A
-                || familySettings.ChatProvider == LunaChatProviders.OpenRouter
-                ? LunaSafety.ClassifyCategories(output.Categories, output.Flagged)
-                : LunaSafety.ClassifyOpenAi(output.Scores);
-            if (outputClass.Blocked)
-                clean = AppText.Get("Luna.Child.ReplyFallback", language);
+            output = await moderator.ModerateAsync(clean, ct);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Luna game ask output moderation failed for child {ChildId}", ctx.ChildId);
+            return await SaveRefusalAsync(ctx, chat, text, AppText.Get("Luna.Child.Refusal", language), now, ct);
+        }
+
+        var outputClass = Classify(familySettings, output);
+        if (markerKinds.Count > 0 || outputClass.Urgent)
+        {
+            var urgentText = UrgentText(familySettings, language);
+            var categories = markerKinds.Count > 0
+                ? markerKinds.Select(k => "marker:" + k).ToList()
+                : outputClass.Categories;
+            await SaveTurnAsync(chat, text, urgentText, LunaMessageFlag.Urgent,
+                LunaSafety.Describe(categories), ScoresJson(outputClass.Scores),
+                LunaMessageFlag.Urgent, LunaSafety.Describe(categories),
+                result.PromptTokens, result.CompletionTokens, now, ct);
+            await _alerts.AddAsync(ctx.FamilyId, ctx.ChildId, ctx.DeviceId, "luna-urgent",
+                new AlertContent("Alert.Luna.Urgent.Title", "Alert.Luna.Urgent.Detail", FirstName(child.Name)),
+                TimeSpan.FromMinutes(30), ct, immediateEmail: true);
+            return new LunaGameAskResponse(urgentText, true, null, chat.Id);
+        }
+
+        var lunaFlag = LunaMessageFlag.None;
+        string? lunaCategories = null;
+        if (outputClass.Blocked)
+        {
             clean = AppText.Get("Luna.Child.ReplyFallback", language);
+            lunaFlag = LunaMessageFlag.ReplyBlocked;
+            lunaCategories = LunaSafety.Describe(outputClass.Categories);
         }
 
         // Counts toward the monthly token cap and cost, never toward the daily chat limit.
-        usage.PromptTokens += result.PromptTokens;
-        usage.CompletionTokens += result.CompletionTokens;
-        usage.UpdatedUtc = DateTime.UtcNow;
+        await SaveTurnAsync(chat, text, clean, LunaMessageFlag.None, null, null,
+            lunaFlag, lunaCategories, result.PromptTokens, result.CompletionTokens, now, ct);
+        if (lunaFlag == LunaMessageFlag.ReplyBlocked)
+            await FlaggedAlertAsync(ctx, child.Name, chat.Id, true, ct);
+        return new LunaGameAskResponse(clean, false, null, chat.Id);
+    }
+
+    /// <summary>One chat per game session; the first Ask Luna creates it.</summary>
+    private async Task<LunaChat> ResolveChatAsync(LunaTokenContext ctx, Guid? chatId, string language,
+        CancellationToken ct)
+    {
+        if (chatId is { } id)
+        {
+            var existing = await _db.LunaChats.FirstOrDefaultAsync(
+                c => c.Id == id && c.FamilyId == ctx.FamilyId && c.ChildId == ctx.ChildId, ct);
+            if (existing is not null) return existing;
+        }
+
+        var now = DateTime.UtcNow;
+        var chat = new LunaChat
+        {
+            FamilyId = ctx.FamilyId,
+            ChildId = ctx.ChildId,
+            DeviceId = ctx.DeviceId,
+            Subject = LunaSubjects.Games,
+            Title = AppText.Get("Games.AskChatTitle", language),
+            CreatedUtc = now,
+            LastMessageUtc = now,
+            UpdatedUtc = now
+        };
+        _db.LunaChats.Add(chat);
+        return chat;
+    }
+
+    private async Task SaveTurnAsync(LunaChat chat, string question, string answer,
+        LunaMessageFlag childFlag, string? childCategories, string? childScores,
+        LunaMessageFlag lunaFlag, string? lunaCategories,
+        int promptTokens, int completionTokens, DateTime now, CancellationToken ct)
+    {
+        var childCreated = NextMessageUtc(chat, now);
+        _db.LunaMessages.Add(new LunaMessage
+        {
+            FamilyId = chat.FamilyId,
+            ChildId = chat.ChildId,
+            ChatId = chat.Id,
+            Role = LunaChatRoles.Child,
+            Text = question,
+            ShownText = question,
+            CreatedUtc = childCreated,
+            Flag = childFlag,
+            FlagCategories = childCategories,
+            FlagScores = childScores
+        });
+        var lunaCreated = childCreated.AddTicks(1);
+        _db.LunaMessages.Add(new LunaMessage
+        {
+            FamilyId = chat.FamilyId,
+            ChildId = chat.ChildId,
+            ChatId = chat.Id,
+            Role = LunaChatRoles.Luna,
+            Text = answer,
+            ShownText = answer,
+            CreatedUtc = lunaCreated,
+            Flag = lunaFlag,
+            FlagCategories = lunaCategories,
+            PromptTokens = promptTokens,
+            CompletionTokens = completionTokens
+        });
+        chat.LastMessageUtc = lunaCreated;
+        chat.UpdatedUtc = lunaCreated;
         await _db.SaveChangesAsync(ct);
-        return new LunaGameAskResponse(clean, false, null);
+    }
+
+    private async Task<LunaGameAskResponse> SaveRefusalAsync(LunaTokenContext ctx, LunaChat chat, string question,
+        string notice, DateTime now, CancellationToken ct)
+    {
+        await SaveTurnAsync(chat, question, notice, LunaMessageFlag.None, null, null,
+            LunaMessageFlag.None, null, 0, 0, now, ct);
+        return new LunaGameAskResponse(notice, true, null, chat.Id);
+    }
+
+    private static DateTime NextMessageUtc(LunaChat chat, DateTime now) =>
+        now > chat.LastMessageUtc ? now : chat.LastMessageUtc.AddTicks(1);
+
+    private static LunaClassification Classify(LunaFamilySettings settings, LunaModerationResult result) =>
+        settings.Setup == LunaSetup.A || settings.ChatProvider == LunaChatProviders.OpenRouter
+            ? LunaSafety.ClassifyCategories(result.Categories, result.Flagged)
+            : LunaSafety.ClassifyOpenAi(result.Scores);
+
+    private static string ScoresJson(IReadOnlyDictionary<string, double> scores) =>
+        JsonSerializer.Serialize(scores);
+
+    private async Task FlaggedAlertAsync(LunaTokenContext ctx, string childName, Guid chatId, bool replyBlocked,
+        CancellationToken ct)
+    {
+        await _alerts.AddAsync(ctx.FamilyId, ctx.ChildId, ctx.DeviceId, "luna-flagged",
+            replyBlocked
+                ? new AlertContent("Alert.Luna.ReplyBlocked.Title", "Alert.Luna.ReplyBlocked.Detail", FirstName(childName), chatId.ToString())
+                : new AlertContent("Alert.Luna.Flagged.Title", "Alert.Luna.Flagged.Detail", FirstName(childName), chatId.ToString()),
+            TimeSpan.FromMinutes(30), ct);
+    }
+
+    private static string UrgentText(LunaFamilySettings settings, string language) =>
+        AppText.Get("Luna.Child.Urgent", language) + "\n\n" + HelplineFor(settings, language);
+
+    private static string HelplineFor(LunaFamilySettings settings, string language)
+    {
+        var value = (settings.HelplineText ?? "").Trim();
+        var defaultEn = AppText.Get(LunaSettingsService.DefaultHelplineKey, AppCulture.English);
+        if (value.Length == 0 || string.Equals(value, defaultEn, StringComparison.Ordinal))
+            return AppText.Get(LunaSettingsService.DefaultHelplineKey, language);
+        return value;
     }
 
     private static string NormalizeLevel(string? level) =>

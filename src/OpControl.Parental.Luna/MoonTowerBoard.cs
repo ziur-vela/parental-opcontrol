@@ -77,11 +77,12 @@ public sealed class MoonTowerBoard : UserControl
         _state = MoonTowerEngine.NewGame(MoonTowerMode.Make10, Environment.TickCount);
 
         _towerBox = new Viewbox { Stretch = Stretch.Uniform, Margin = new Thickness(4) };
-        _towerCanvas.Width = LabelW + _state.Width * CellW + 16;
+        _towerCanvas.Width = LabelW + _state.Width * CellW + 32;
         _towerCanvas.Height = _state.Levels * CellH + 40;
         _towerBox.Child = _towerCanvas;
 
         _bagLabel = Text("", 13, _palette.Muted, FontWeight.Bold);
+        _bagLabel.Name = "GameBag";
 
         var root = new Grid { RowDefinitions = new RowDefinitions("Auto,*,Auto") };
         var top = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), Margin = new Thickness(0, 0, 0, 6) };
@@ -102,15 +103,20 @@ public sealed class MoonTowerBoard : UserControl
         var handHead = Text(Loc.T("Games.YourBlocks"), 12, _palette.Muted, FontWeight.Bold);
         var handWrap = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), Margin = new Thickness(0, 6, 0, 0) };
         handWrap.Children.Add(handHead);
-        var scroll = new ScrollViewer
+        // Scale the whole hand to the available width so all five blocks stay
+        // visible without a horizontal scrollbar, at 100% and at the big game size.
+        var handBox = new Viewbox
         {
-            Content = _handPanel,
-            HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
-            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+            Name = "HandViewbox",
+            Child = _handPanel,
+            Stretch = Stretch.Uniform,
+            StretchDirection = StretchDirection.DownOnly,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(10, 0, 0, 0)
         };
-        Grid.SetColumn(scroll, 1);
-        handWrap.Children.Add(scroll);
+        Grid.SetColumn(handBox, 1);
+        handWrap.Children.Add(handBox);
         Grid.SetRow(handWrap, 2);
         root.Children.Add(handWrap);
 
@@ -265,15 +271,16 @@ public sealed class MoonTowerBoard : UserControl
     {
         _status.Children.Clear();
         var childTurn = _state.Turn == MoonTowerPlayer.Child && !_state.Finished;
-        _status.Children.Add(ScoreChip(Loc.T("Games.MoonTower.Name") == "" ? "" : ChildName(), _state.ChildScore,
-            "#5bd3ff", childTurn));
-        _status.Children.Add(ScoreChip("Luna", _state.LunaScore, "#ff9ad5", _state.Turn == MoonTowerPlayer.Luna && !_state.Finished));
+        _status.Children.Add(ScoreChip("ScoreChip_Child", Loc.T("Games.MoonTower.Name") == "" ? "" : ChildName(),
+            _state.ChildScore, "#5bd3ff", childTurn));
+        _status.Children.Add(ScoreChip("ScoreChip_Luna", "Luna", _state.LunaScore, "#ff9ad5",
+            _state.Turn == MoonTowerPlayer.Luna && !_state.Finished));
         _bagLabel.Text = Loc.T("Games.Bag", _state.Bag.Count);
     }
 
     private string ChildName() => _childName;
 
-    private Control ScoreChip(string name, int score, string accent, bool active)
+    private Control ScoreChip(string key, string name, int score, string accent, bool active)
     {
         var color = Color.Parse(accent);
         var stack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 7 };
@@ -283,6 +290,7 @@ public sealed class MoonTowerBoard : UserControl
         if (active) stack.Children.Add(Text(Loc.T("Games.YourTurn"), 10, _palette.Accent, FontWeight.Bold));
         return new Border
         {
+            Name = key,
             Background = LunaBrushes.B(_palette.Surface),
             BorderBrush = LunaBrushes.B(active ? color : _palette.Surface2),
             BorderThickness = new Thickness(2),
@@ -295,7 +303,7 @@ public sealed class MoonTowerBoard : UserControl
     private void RenderTower()
     {
         _towerCanvas.Children.Clear();
-        _towerCanvas.Width = LabelW + _state.Width * CellW + 16;
+        _towerCanvas.Width = LabelW + _state.Width * CellW + 32;
         _towerCanvas.Height = _state.Levels * CellH + 40;
 
         for (var level = 0; level < _state.Levels; level++)
@@ -474,6 +482,7 @@ public sealed class MoonTowerBoard : UserControl
             var block = hand[i];
             var selected = _selected == i || (_swapArmed && _selected is null);
             var border = HandBlock(block, selected);
+            border.Name = "HandBlock_" + i;
             border.Opacity = myTurn ? 1 : 0.65;
             border.Tag = i;
             border.Focusable = true;

@@ -35,6 +35,9 @@ public static class LunaSubjects
     public const string Languages = "languages";
     public const string Curious = "curious";
 
+    /// <summary>Game Ask Luna chats shown to parents. Not a home subject tile.</summary>
+    public const string Games = "games";
+
     public static readonly string[] All = [Math, Science, History, Dictionary, Languages, Curious];
 
     public static bool IsValid(string? subject) =>
@@ -269,6 +272,6 @@ public sealed record LunaGamesSummaryDto(
     int Draws,
     int Minutes);
 
-public sealed record LunaGameAskRequest(string Text, string Game, string StateSummary);
+public sealed record LunaGameAskRequest(string Text, string Game, string StateSummary, Guid? ChatId = null);
 
-public sealed record LunaGameAskResponse(string Text, bool Refused, string? Notice);
+public sealed record LunaGameAskResponse(string Text, bool Refused, string? Notice, Guid? ChatId = null);

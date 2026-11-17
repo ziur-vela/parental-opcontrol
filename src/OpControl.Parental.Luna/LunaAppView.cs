@@ -87,6 +87,7 @@ public sealed class LunaAppView : UserControl
     private MoonTowerHint? _hint;
     private bool _hintShown;
     private bool _inGame;
+    private Guid? _gameAskChatId;
     private readonly MoonTowerLinePicker _gameLines = new(7717);
 
     public event EventHandler? CloseRequested;
@@ -257,6 +258,7 @@ public sealed class LunaAppView : UserControl
             _inGame = false;
             _gameBoard?.Stop();
             _gameBoard = null;
+            _gameAskChatId = null;
             GameModeChanged?.Invoke(false);
         }
         RenderHome();
@@ -310,6 +312,7 @@ public sealed class LunaAppView : UserControl
 
         var tiles = new Grid
         {
+            Name = "SubjectGrid",
             ColumnDefinitions = new ColumnDefinitions("*,*,*"),
             RowDefinitions = new RowDefinitions("Auto,Auto"),
             Margin = new Thickness(18, 4, 18, 0)
@@ -376,20 +379,24 @@ public sealed class LunaAppView : UserControl
 
     private Control PlayWithLunaRow()
     {
-        var panel = new StackPanel { Spacing = 8, Margin = new Thickness(18, 12, 18, 0) };
+        var panel = new StackPanel { Spacing = 10, Margin = new Thickness(18, 16, 18, 0) };
+        panel.Name = "PlayRow";
         panel.Children.Add(Text(Loc.T("Games.PlayWithLuna"), 18, _palette.Accent, FontWeight.SemiBold, display: true));
         var grid = new Grid
         {
+            Name = "PlayRowGrid",
             ColumnDefinitions = new ColumnDefinitions("*,*"),
-            RowDefinitions = new RowDefinitions("Auto"),
+            RowDefinitions = new RowDefinitions("*"),
             Height = 70
         };
         var boards = GameCategoryTile(LunaGameCatalog.SpaceBoards, Color.Parse("#1fb8e0"), Color.Parse("#7a5cff"),
-            Color.Parse("#4b38b8"), Colors.White, "🚀");
+            Color.Parse("#4b38b8"), Colors.White);
+        boards.Name = "PlayCard_SpaceBoards";
         boards.Margin = new Thickness(0, 0, 6, 0);
         boards.Click += (_, _) => ShowGamePicker(LunaGameCatalog.SpaceBoards);
         var craft = GameCategoryTile(LunaGameCatalog.LunarCraft, Color.Parse("#ffb547"), Color.Parse("#ff8fb1"),
-            Color.Parse("#d9638a"), Color.Parse("#15103a"), "🌱");
+            Color.Parse("#d9638a"), Color.Parse("#15103a"));
+        craft.Name = "PlayCard_LunarCraft";
         craft.Margin = new Thickness(6, 0, 0, 0);
         craft.Click += (_, _) => ShowGamePicker(LunaGameCatalog.LunarCraft);
         grid.Children.Add(boards);
@@ -399,19 +406,25 @@ public sealed class LunaAppView : UserControl
         return panel;
     }
 
-    private Button GameCategoryTile(string categoryId, Color from, Color to, Color shadow, Color ink, string icon)
+    private Button GameCategoryTile(string categoryId, Color from, Color to, Color shadow, Color ink)
     {
         var cat = LunaGameCatalog.FindCategory(categoryId);
-        var stack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-        stack.Children.Add(Text(icon, 24, ink, FontWeight.Normal));
-        var labels = new StackPanel { Spacing = 0, VerticalAlignment = VerticalAlignment.Center };
-        labels.Children.Add(Text(Loc.T(cat.NameKey), 16, ink, FontWeight.SemiBold, display: true));
-        labels.Children.Add(Text(Loc.T(cat.DetailKey), 11, ink, FontWeight.Bold));
+        var stack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
+        stack.Children.Add(PlayCategoryArt(categoryId, ink));
+        var labels = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center };
+        var title = Text(Loc.T(cat.NameKey), 16, ink, FontWeight.SemiBold, display: true);
+        labels.Children.Add(title);
+        var detail = Text(Loc.T(cat.DetailKey), 12, ink, FontWeight.Bold, wrap: true);
+        detail.Opacity = 0.9;
+        labels.Children.Add(detail);
         stack.Children.Add(labels);
         return new Button
         {
             Content = stack,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Left,
+            VerticalContentAlignment = VerticalAlignment.Center,
             Padding = new Thickness(14, 0),
             Background = new LinearGradientBrush
             {
@@ -428,6 +441,58 @@ public sealed class LunaAppView : UserControl
             CornerRadius = new CornerRadius(18),
             Cursor = new Cursor(StandardCursorType.Hand)
         };
+    }
+
+    private static Control PlayCategoryArt(string categoryId, Color ink)
+    {
+        var canvas = new Canvas { Width = 32, Height = 32 };
+        if (categoryId == LunaGameCatalog.SpaceBoards)
+        {
+            canvas.Children.Add(new Path
+            {
+                Data = Geometry.Parse("M24 10a11 11 0 1 0 0 22a9 9 0 1 1 0-22z"),
+                Fill = LunaBrushes.B(ink),
+                Width = 32,
+                Height = 32
+            });
+            canvas.Children.Add(new Path
+            {
+                Data = Geometry.Parse("M13 9l3 4l4-5l4 5l3-4v5H13z"),
+                Fill = LunaBrushes.B(ink),
+                Width = 32,
+                Height = 32
+            });
+        }
+        else
+        {
+            var back = new Border
+            {
+                Width = 11,
+                Height = 15,
+                CornerRadius = new CornerRadius(2.5),
+                Background = LunaBrushes.B(ink),
+                RenderTransform = new RotateTransform(-10),
+                RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative)
+            };
+            Canvas.SetLeft(back, 5);
+            Canvas.SetTop(back, 10);
+            canvas.Children.Add(back);
+            var front = new Border
+            {
+                Width = 11,
+                Height = 15,
+                CornerRadius = new CornerRadius(2.5),
+                Background = LunaBrushes.B(LunaThemes.Night.Accent),
+                BorderBrush = LunaBrushes.B(ink),
+                BorderThickness = new Thickness(1.5),
+                RenderTransform = new RotateTransform(8),
+                RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative)
+            };
+            Canvas.SetLeft(front, 13);
+            Canvas.SetTop(front, 8);
+            canvas.Children.Add(front);
+        }
+        return canvas;
     }
 
     private void ShowGamePicker(string category)
@@ -583,6 +648,7 @@ public sealed class LunaAppView : UserControl
 
         SetScreen(Screen.Game);
         _inGame = true;
+        _gameAskChatId = null;
         _host.Children.Clear();
 
         var layer = new Grid();
@@ -597,6 +663,7 @@ public sealed class LunaAppView : UserControl
         };
         var boardHost = new Border
         {
+            Name = "BoardHost",
             Background = LunaBrushes.B(Color.FromArgb(90, 0, 0, 0)),
             BorderBrush = LunaBrushes.B(_palette.Border),
             BorderThickness = new Thickness(2),
@@ -607,8 +674,16 @@ public sealed class LunaAppView : UserControl
         body.Children.Add(boardHost);
         var panel = GameRightPanel(board);
         Grid.SetColumn(panel, 1);
-        panel.Margin = new Thickness(12, 0, 0, 0);
-        body.Children.Add(panel);
+        var right = new ScrollViewer
+        {
+            Name = "GameRightScroll",
+            Content = panel,
+            HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+            Margin = new Thickness(12, 0, 0, 0)
+        };
+        Grid.SetColumn(right, 1);
+        body.Children.Add(right);
         Grid.SetRow(body, 1);
         root.Children.Add(body);
 
@@ -629,28 +704,43 @@ public sealed class LunaAppView : UserControl
 
     private Control GameHeader(MoonTowerBoard board)
     {
+        // One row at the big game size; the controls wrap instead of clipping on a
+        // small 1366x768 screen or at 125/150% scaling.
         var header = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*,Auto,Auto,Auto,Auto,Auto,Auto"),
+            ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*"),
             Margin = new Thickness(14, 10, 14, 8)
         };
         var back = IconButton(BackIcon(), Loc.T("Games.Picker.Back"));
+        back.Name = "GameBack";
         back.Click += (_, _) => ShowLeaveGameDialog();
         header.Children.Add(back);
 
         var titles = new StackPanel { Spacing = 0, Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
-        titles.Children.Add(Text(Loc.T("Games.MoonTower.Name"), 22, _palette.Accent, FontWeight.SemiBold, display: true));
-        titles.Children.Add(Text(Loc.T("Games.MoonTower.Detail"), 12, _palette.Muted, FontWeight.Bold, wrap: true));
+        var title = Text(Loc.T("Games.MoonTower.Name"), 22, _palette.Accent, FontWeight.SemiBold, display: true);
+        title.Name = "GameTitle";
+        titles.Children.Add(title);
+        var subtitle = Text(Loc.T("Games.MoonTower.Detail"), 12, _palette.Muted, FontWeight.Bold, wrap: true);
+        subtitle.MaxWidth = 330;
+        subtitle.Name = "GameSubtitle";
+        titles.Children.Add(subtitle);
         Grid.SetColumn(titles, 1);
         header.Children.Add(titles);
+
+        var controls = new WrapPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(8, 0, 0, 0)
+        };
 
         var modeLabel = Text(Loc.T("Games.Mode"), 11, _palette.Muted, FontWeight.Bold);
         modeLabel.VerticalAlignment = VerticalAlignment.Center;
         modeLabel.Margin = new Thickness(0, 0, 6, 0);
-        Grid.SetColumn(modeLabel, 3);
-        header.Children.Add(modeLabel);
         _modeBox = new ComboBox
         {
+            Name = "GameModeSelect",
             ItemsSource = new[]
             {
                 Loc.T("Games.Mode.Make10"), Loc.T("Games.Mode.Make20"),
@@ -670,16 +760,22 @@ public sealed class LunaAppView : UserControl
             _gameMode = next;
             _gameBoard?.NewGame(_gameMode, _gameDifficulty);
         };
-        Grid.SetColumn(_modeBox, 4);
-        header.Children.Add(_modeBox);
+        var modeGroup = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 3, 10, 3)
+        };
+        modeGroup.Children.Add(modeLabel);
+        modeGroup.Children.Add(_modeBox);
+        controls.Children.Add(modeGroup);
 
         var levelLabel = Text(Loc.T("Games.Level"), 11, _palette.Muted, FontWeight.Bold);
         levelLabel.VerticalAlignment = VerticalAlignment.Center;
-        levelLabel.Margin = new Thickness(10, 0, 6, 0);
-        Grid.SetColumn(levelLabel, 5);
-        header.Children.Add(levelLabel);
+        levelLabel.Margin = new Thickness(0, 0, 6, 0);
         _difficultyBox = new ComboBox
         {
+            Name = "GameLevelSelect",
             ItemsSource = new[]
             {
                 Loc.T("Games.Level.Easy"), Loc.T("Games.Level.Medium"), Loc.T("Games.Level.Hard")
@@ -695,11 +791,19 @@ public sealed class LunaAppView : UserControl
             _gameDifficulty = (MoonTowerDifficulty)_difficultyBox.SelectedIndex;
             _gameBoard?.SetDifficulty(_gameDifficulty);
         };
-        Grid.SetColumn(_difficultyBox, 6);
-        header.Children.Add(_difficultyBox);
+        var levelGroup = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 3, 10, 3)
+        };
+        levelGroup.Children.Add(levelLabel);
+        levelGroup.Children.Add(_difficultyBox);
+        controls.Children.Add(levelGroup);
 
         var friends = new Button
         {
+            Name = "GameFriends",
             Content = Text(Loc.T("Games.Friends") + " · " + Loc.T("Games.ComingSoon"), 12, _palette.Muted, FontWeight.Bold),
             Height = 38,
             CornerRadius = new CornerRadius(12),
@@ -709,45 +813,54 @@ public sealed class LunaAppView : UserControl
             Padding = new Thickness(12, 0),
             IsEnabled = false,
             Opacity = 0.65,
-            Margin = new Thickness(10, 0, 0, 0)
+            Margin = new Thickness(0, 3, 10, 3)
         };
         AutomationProperties.SetName(friends, Loc.T("Games.Friends"));
-        Grid.SetColumn(friends, 7);
-        header.Children.Add(friends);
+        controls.Children.Add(friends);
 
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(10, 0, 0, 0) };
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 6,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 3, 0, 3)
+        };
         var rules = IconButton(RulesIcon(), Loc.T("Games.Rules"));
+        rules.Name = "GameRules";
         rules.Click += (_, _) => ShowRulesDialog();
         buttons.Children.Add(rules);
         var pause = IconButton(PauseIcon(), Loc.T("Games.Pause"));
+        pause.Name = "GamePause";
         pause.Click += (_, _) =>
         {
             board.SetPaused(!board.IsPaused);
             board.Save();
         };
         buttons.Children.Add(pause);
-        Grid.SetColumn(buttons, 8);
-        header.Children.Add(buttons);
+        controls.Children.Add(buttons);
+        Grid.SetColumn(controls, 2);
+        header.Children.Add(controls);
 
         return header;
     }
 
     private Control GameRightPanel(MoonTowerBoard board)
     {
-        var panel = new StackPanel { Spacing = 10 };
+        var panel = new StackPanel { Spacing = 12 };
         var bubbleRow = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
         var face = CreateMoonFace(40, sleepy: false);
         face.VerticalAlignment = VerticalAlignment.Top;
         bubbleRow.Children.Add(face);
-        _gameTip = Text(Loc.T("Games.YourTurn"), 13, _palette.Text, FontWeight.SemiBold, wrap: true);
+        _gameTip = Text(Loc.T("Games.YourTurn"), 14, _palette.Text, FontWeight.SemiBold, wrap: true);
+        _gameTip.Name = "GameTip";
         var bubble = new Border
         {
             Background = LunaBrushes.B(_palette.Surface),
             BorderBrush = LunaBrushes.B(_palette.Border),
             BorderThickness = new Thickness(2),
             CornerRadius = new CornerRadius(18, 18, 18, 6),
-            Padding = new Thickness(12, 8),
-            Margin = new Thickness(6, 0, 0, 0),
+            Padding = new Thickness(12, 9),
+            Margin = new Thickness(8, 0, 0, 0),
             Child = _gameTip
         };
         Grid.SetColumn(bubble, 1);
@@ -755,13 +868,15 @@ public sealed class LunaAppView : UserControl
         panel.Children.Add(bubbleRow);
 
         var hint = PillButton(Loc.T("Games.Hint"), _palette.Accent, _palette.AccentInk, 46);
+        hint.Name = "GameHint";
         hint.HorizontalAlignment = HorizontalAlignment.Stretch;
         hint.Click += (_, _) => ShowHint(board);
         panel.Children.Add(hint);
 
-        panel.Children.Add(Text(Loc.T("Games.Ask"), 13, _palette.Accent, FontWeight.SemiBold, display: true));
+        panel.Children.Add(Text(Loc.T("Games.Ask"), 14, _palette.Accent, FontWeight.SemiBold, display: true));
         var askBox = new TextBox
         {
+            Name = "GameAskBox",
             PlaceholderText = Loc.T("Games.Ask.Placeholder"),
             MaxLength = 500,
             Height = 70,
@@ -777,9 +892,11 @@ public sealed class LunaAppView : UserControl
         };
         panel.Children.Add(askBox);
         var ask = PillButton(Loc.T("Games.Ask.Send"), _palette.Surface, _palette.Text, 42);
+        ask.Name = "GameAskSend";
         ask.HorizontalAlignment = HorizontalAlignment.Stretch;
         panel.Children.Add(ask);
         var answer = Text("", 13, _palette.Text, FontWeight.SemiBold, wrap: true);
+        answer.Name = "GameAskAnswer";
         panel.Children.Add(answer);
         var busy = false;
         ask.Click += async (_, _) =>
@@ -792,7 +909,8 @@ public sealed class LunaAppView : UserControl
             try
             {
                 var reply = await _api.AskGameLunaAsync(new LunaGameAskRequest(text,
-                    LunaGameCatalog.MoonTower, board.StateSummary()));
+                    LunaGameCatalog.MoonTower, board.StateSummary(), _gameAskChatId));
+                _gameAskChatId = reply.ChatId;
                 answer.Foreground = LunaBrushes.B(_palette.Text);
                 answer.Text = reply.Text;
                 if (reply.Refused && reply.Notice is { Length: > 0 }) answer.Text = reply.Notice;
@@ -809,10 +927,34 @@ public sealed class LunaAppView : UserControl
             }
         };
 
-        var spacer = new Border { Height = 1 };
-        panel.Children.Add(spacer);
-        panel.Children.Add(Text(Loc.T("Games.RulesPower"), 11, _palette.Soft, FontWeight.Bold, wrap: true));
+        panel.Children.Add(LegendCard(Loc.T("Games.ScoreTitle"),
+            Loc.T("Games.ScoreLine.Place"),
+            Loc.T("Games.ScoreLine.Level"),
+            Loc.T("Games.ScoreLine.Symbol"),
+            Loc.T("Games.ScoreLine.Support")));
+        panel.Children.Add(LegendCard(Loc.T("Games.PowerTitle"),
+            Loc.T("Games.PowerLine.Rocket"),
+            Loc.T("Games.PowerLine.Meteor"),
+            Loc.T("Games.PowerLine.Eclipse"),
+            Loc.T("Games.PowerLine.DoubleStar")));
         return panel;
+    }
+
+    private Control LegendCard(string title, params string[] lines)
+    {
+        var stack = new StackPanel { Spacing = 4 };
+        stack.Children.Add(Text(title, 15, _palette.Accent, FontWeight.SemiBold, display: true));
+        foreach (var line in lines)
+            stack.Children.Add(Text(line, 12, _palette.Muted, FontWeight.SemiBold, wrap: true));
+        return new Border
+        {
+            Background = LunaBrushes.B(_palette.Surface),
+            BorderBrush = LunaBrushes.B(_palette.Border),
+            BorderThickness = new Thickness(2),
+            CornerRadius = new CornerRadius(16),
+            Padding = new Thickness(12, 10),
+            Child = stack
+        };
     }
 
     private void ShowHint(MoonTowerBoard board)
@@ -938,6 +1080,7 @@ public sealed class LunaAppView : UserControl
         _gameTip = null;
         _hint = null;
         _hintShown = false;
+        _gameAskChatId = null;
         _inGame = false;
         RenderHome();
     }
@@ -1018,6 +1161,7 @@ public sealed class LunaAppView : UserControl
         "history" => "History",
         "dictionary" => "Dictionary",
         "languages" => "Languages",
+        "games" => "Games",
         _ => "Curious"
     };
 

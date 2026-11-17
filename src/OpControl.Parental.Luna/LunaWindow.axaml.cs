@@ -863,6 +863,10 @@ public partial class LunaWindow : Window
         if (Math.Abs(Height - rect.Height) > 0.5) Height = rect.Height;
         if (Math.Abs(_scene.Width - rect.Width) > 0.5) _scene.Width = rect.Width;
         if (Math.Abs(_scene.Height - rect.Height) > 0.5) _scene.Height = rect.Height;
+        // The visible panel, its clip and the chat root must grow with the window.
+        // ResizeChat() always did this; the game bounds animation used to move and
+        // resize only the window, leaving the panel at the old chat size.
+        SetBlob(0, 0, rect.Width, rect.Height, 0);
         if (t >= 1)
         {
             _boundsAnimating = false;
@@ -871,8 +875,22 @@ public partial class LunaWindow : Window
                 _chatWidth = _restoreRect.Width;
                 _chatHeight = _restoreRect.Height;
                 ApplyWindowSize(_chatWidth, _chatHeight);
+                SetBlob(0, 0, _chatWidth, _chatHeight, 0);
             }
+            UpdateRegion();
+            var phase = _gameMode ? "enter" : "exit";
+            Dispatcher.UIThread.Post(() => LogGameLayout(phase), DispatcherPriority.Loaded);
         }
+    }
+
+    private void LogGameLayout(string phase)
+    {
+        var game = _chat.GameBoardForTest;
+        LunaLog.Write(
+            $"game_layout phase={phase} window={Width:0.#}x{Height:0.#} " +
+            $"blob={_blob.Width:0.#}x{_blob.Height:0.#} blob_visible={_blob.IsVisible} " +
+            $"chat_root={_chatRoot.Bounds.Width:0.#}x{_chatRoot.Bounds.Height:0.#} " +
+            $"game_view={(game is null ? "0x0" : $"{game.Bounds.Width:0.#}x{game.Bounds.Height:0.#}")}");
     }
 
     private void OpenChat()
@@ -907,6 +925,14 @@ public partial class LunaWindow : Window
     internal bool ChatRootVisibleForTest => _chatRoot.IsVisible && _blob.IsVisible;
     internal string ModeForTest => _mode.ToString();
     internal LunaAppView ChatViewForTest => _chat;
+    internal double BlobWidthForTest => _blob.Width;
+    internal double BlobHeightForTest => _blob.Height;
+    internal double BlobClipWidthForTest => _blobClip?.Rect.Width ?? 0;
+    internal double BlobClipHeightForTest => _blobClip?.Rect.Height ?? 0;
+    internal double ChatRootWidthForTest => _chatRoot.Bounds.Width;
+    internal double ChatRootHeightForTest => _chatRoot.Bounds.Height;
+    internal bool GameModeForTest => _gameMode;
+    internal bool BoundsAnimatingForTest => _boundsAnimating;
     internal bool SleepLayerHitTestForTest => _sleepLayer.IsHitTestVisible;
     internal double BubbleOpacityForTest => _bubbleOpacity;
     internal double BubbleScaleForTest => _bubbleScale;
@@ -953,6 +979,8 @@ public partial class LunaWindow : Window
                 _chatHeight = _restoreRect.Height;
                 Position = new PixelPoint((int)Math.Round(_restoreRect.X * scale),
                     (int)Math.Round(_restoreRect.Y * scale));
+                SetBlob(0, 0, _chatWidth, _chatHeight, 0);
+                UpdateRegion();
             }
         }
 
@@ -1452,10 +1480,13 @@ public partial class LunaWindow : Window
                 break;
 
             case Mode.Chat:
+                // The blob is the visible panel. In game mode it is the big game
+                // rect, not the remembered chat size.
                 shape = "full";
                 radius = 22;
                 x1 = 0; y1 = 0;
-                x2 = (int)Math.Ceiling(_chatWidth * s); y2 = (int)Math.Ceiling(_chatHeight * s);
+                x2 = (int)Math.Ceiling(Math.Max(_chatWidth, _blobX + _blobW) * s);
+                y2 = (int)Math.Ceiling(Math.Max(_chatHeight, _blobY + _blobH) * s);
                 break;
 
             case Mode.Retract:
