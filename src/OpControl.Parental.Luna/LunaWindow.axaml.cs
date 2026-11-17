@@ -594,6 +594,14 @@ public partial class LunaWindow : Window
         _lastTick = now;
         UpdateGameBounds(now);
 
+        // In Chat/Game the moon, sleep layer and greeting are hidden. Running the
+        // 60 fps visual updater there kept redrawing the large transparent window
+        // for no visible change (and made the Windows pointer flicker on the X1).
+        if (_mode is Mode.Chat && !_boundsAnimating)
+        {
+            return;
+        }
+
         if (now - _greetingCheckAt >= 1.0)
         {
             _greetingCheckAt = now;

@@ -7,6 +7,7 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -67,6 +68,10 @@ public sealed class MoonTowerBoard : UserControl
     private double _bounceStart;
     private readonly DispatcherTimer _bounceTimer;
     private readonly Dictionary<int, TranslateTransform> _bounceTransforms = new();
+    private readonly List<long> _renderTimes = new();
+    private long _lastRenderRateLog = -1000;
+    private int _renderCount;
+    private long _lastPointerReleaseAt = -1;
 
     public MoonTowerBoard(LunaPalette palette, string childId, string childName)
     {
@@ -77,6 +82,7 @@ public sealed class MoonTowerBoard : UserControl
         _state = MoonTowerEngine.NewGame(MoonTowerMode.Make10, Environment.TickCount);
 
         _towerBox = new Viewbox { Stretch = Stretch.Uniform, Margin = new Thickness(4) };
+        _towerCanvas.Name = "TowerCanvas";
         _towerCanvas.Width = LabelW + _state.Width * CellW + 32;
         _towerCanvas.Height = _state.Levels * CellH + 40;
         _towerBox.Child = _towerCanvas;
@@ -94,9 +100,12 @@ public sealed class MoonTowerBoard : UserControl
         var boardGrid = new Grid();
         boardGrid.Children.Add(_towerBox);
         boardGrid.Children.Add(_overlay);
-        _overlay.Background = Brushes.Transparent;
-        _overlay.PointerMoved += OnOverlayPointerMoved;
-        _overlay.PointerReleased += OnOverlayPointerReleased;
+        // The overlay is only a drawing surface for the drag ghost and the
+        // pause/end cards. A transparent background made it swallow every click
+        // meant for the legal-spot buttons under it, so it is not hit-testable
+        // unless a modal card is visible.
+        _overlay.Background = null;
+        _overlay.IsHitTestVisible = false;
         Grid.SetRow(boardGrid, 1);
         root.Children.Add(boardGrid);
 
@@ -159,6 +168,15 @@ public sealed class MoonTowerBoard : UserControl
     public event Action? SaveUpdated;
 
     public MoonTowerState State => _state;
+    internal int RenderCountForTest => _renderCount;
+    internal int? SelectedIndexForTest => _selected;
+    internal bool DraggingForTest => _dragging;
+    internal bool SwapArmedForTest => _swapArmed;
+    internal void RefreshForTest() => Render();
+    internal int LegalSpotCountForTest => _towerCanvas.Children.OfType<Button>()
+        .Count(b => b.Tag is MoonTowerMove { Kind: MoonTowerMoveKind.Place });
+    internal Button? FirstLegalSpotForTest => _towerCanvas.Children.OfType<Button>()
+        .FirstOrDefault(b => b.Tag is MoonTowerMove { Kind: MoonTowerMoveKind.Place });
     public MoonTowerDifficulty Difficulty { get; private set; } = MoonTowerDifficulty.Easy;
     public MoonTowerMode Mode => _state.Mode;
     public int ElapsedSeconds => _elapsed;
@@ -255,6 +273,15 @@ public sealed class MoonTowerBoard : UserControl
 
     private void Render()
     {
+        _renderCount++;
+        var nowMs = Environment.TickCount64;
+        _renderTimes.Add(nowMs);
+        _renderTimes.RemoveAll(t => t < nowMs - 1000);
+        if (_renderTimes.Count > 5 && nowMs - _lastRenderRateLog >= 1000)
+        {
+            _lastRenderRateLog = nowMs;
+            LunaLog.Write($"game_render_rate renders={_renderTimes.Count} window_ms=1000");
+        }
         RenderStatus();
         RenderTower();
         RenderHand();
@@ -423,7 +450,12 @@ public sealed class MoonTowerBoard : UserControl
                 };
                 AutomationProperties.SetName(spot,
                     Loc.T("Games.LevelLabel", level + 1) + " " + (start + 1));
-                spot.Click += (_, _) => PlayChildMove((MoonTowerMove)spot.Tag!);
+                spot.Click += (_, _) =>
+                {
+                    var move = (MoonTowerMove)spot.Tag!;
+                    LunaLog.Write($"game_input spot_click level={move.Level} start={move.Start} hand={move.HandIndex}");
+                    PlayChildMove(move);
+                };
                 Canvas.SetLeft(spot, X(start) + 2);
                 Canvas.SetTop(spot, Y(level) + 3);
                 _towerCanvas.Children.Add(spot);
@@ -480,17 +512,39 @@ public sealed class MoonTowerBoard : UserControl
         for (var i = 0; i < hand.Count; i++)
         {
             var block = hand[i];
-            var selected = _selected == i || (_swapArmed && _selected is null);
+            // Capture the index in a local: a lambda over the loop variable would
+            // see the final value after the loop (5), so every click and drag was
+            // delivered to an out-of-range hand index and silently did nothing.
+            var handIndex = i;
+            var selected = _selected == handIndex || (_swapArmed && _selected is null);
             var border = HandBlock(block, selected);
-            border.Name = "HandBlock_" + i;
+            border.Name = "HandBlock_" + handIndex;
             border.Opacity = myTurn ? 1 : 0.65;
-            border.Tag = i;
+            border.Tag = handIndex;
             border.Focusable = true;
             AutomationProperties.SetName(border, BlockName(block));
-            border.PointerPressed += (_, e) => OnHandPressed(e, i);
-            border.PointerMoved += (_, e) => OnHandMoved(e, i);
-            border.PointerReleased += (_, e) => OnHandReleased(e, i);
-            border.Click += (_, _) => { if (_pressHand < 0 && !_dragging) TapHand(i); };
+            // Button's class handler marks PointerPressed/Released handled, so a
+            // plain += handler never sees the press (no selection, no drag).
+            border.AddHandler(InputElement.PointerPressedEvent,
+                (sender, e) => OnHandPressed(e, handIndex, (Control)sender!),
+                RoutingStrategies.Tunnel, handledEventsToo: true);
+            border.AddHandler(InputElement.PointerMovedEvent,
+                (_, e) => OnHandMoved(e, handIndex), RoutingStrategies.Tunnel,
+                handledEventsToo: true);
+            border.AddHandler(InputElement.PointerReleasedEvent,
+                (sender, e) => OnHandReleased(e, handIndex, (Control)sender!),
+                RoutingStrategies.Tunnel, handledEventsToo: true);
+            // Button.Click is the reliable tap path (it also serves keyboard and
+            // automation). A real drag sets _lastPointerReleaseAt so its trailing
+            // Click does not toggle the block after the drop.
+            border.Click += (_, _) =>
+            {
+                if (_lastPointerReleaseAt >= 0 && Environment.TickCount64 - _lastPointerReleaseAt < 500) return;
+                LunaLog.Write($"game_input click_fallback index={handIndex}");
+                _pressHand = -1;
+                _dragging = false;
+                TapHand(handIndex);
+            };
             if (myTurn) border.Cursor = new Cursor(StandardCursorType.Hand);
             _handPanel.Children.Add(border);
         }
@@ -498,6 +552,7 @@ public sealed class MoonTowerBoard : UserControl
         if (myTurn)
         {
             var swap = ChromeButton(Loc.T("Games.Swap"), _swapArmed);
+            swap.Name = "GameSwap";
             swap.Click += (_, _) => ArmSwap();
             _handPanel.Children.Add(swap);
         }
@@ -542,13 +597,20 @@ public sealed class MoonTowerBoard : UserControl
         };
     }
 
-    private void OnHandPressed(PointerPressedEventArgs e, int index)
+    private void OnHandPressed(PointerPressedEventArgs e, int index, Control source)
     {
+        LunaLog.Write($"game_input hand_press index={index} turn={_state.Turn} paused={_paused} finished={_state.Finished}");
         if (_paused || _state.Finished || _state.Turn != MoonTowerPlayer.Child) return;
+        var point = e.GetCurrentPoint(this);
+        if (!point.Properties.IsLeftButtonPressed && e.Pointer.Type is not (PointerType.Touch or PointerType.Pen)) return;
         _pressPoint = e.GetPosition(this);
         _pressHand = index;
         _dragging = false;
-        e.Pointer.Capture(_overlay);
+        _lastPointerReleaseAt = -1;
+        // Capture the block itself, not the overlay: the overlay is not hit-testable
+        // while the board is live, and replacing the captured control on Render()
+        // would lose the drag.
+        e.Pointer.Capture(source);
     }
 
     private void OnHandMoved(PointerEventArgs e, int index)
@@ -563,13 +625,16 @@ public sealed class MoonTowerBoard : UserControl
             _selected = index;
             _meteorArmed = false;
             _swapArmed = false;
-            Render();
+            LunaLog.Write($"game_input drag_start index={index}");
+            // Render the tower only. Rebuilding the hand here would destroy the
+            // Button that currently owns the pointer capture.
+            RenderTower();
         }
         if (!_dragging) return;
         ShowGhost(index, e.GetPosition(_overlay));
     }
 
-    private void OnHandReleased(PointerReleasedEventArgs e, int index)
+    private void OnHandReleased(PointerReleasedEventArgs e, int index, Control source)
     {
         if (_pressHand != index) return;
         var wasDragging = _dragging;
@@ -577,9 +642,17 @@ public sealed class MoonTowerBoard : UserControl
         _dragging = false;
         RemoveGhost();
         e.Pointer.Capture(null);
-        if (e.InitialPressMouseButton != MouseButton.Left && e.InitialPressMouseButton != MouseButton.None) return;
-
-        TapHand(index);
+        _lastPointerReleaseAt = Environment.TickCount64;
+        if (wasDragging)
+        {
+            LunaLog.Write($"game_input drop_release index={index}");
+            DropAt(index, e.GetPosition(_towerCanvas));
+        }
+        else if (e.InitialPressMouseButton is MouseButton.Left or MouseButton.None)
+        {
+            LunaLog.Write($"game_input hand_click index={index}");
+            TapHand(index);
+        }
     }
 
     private void DropAt(int index, Point point)
@@ -588,19 +661,27 @@ public sealed class MoonTowerBoard : UserControl
         var block = _state.ChildHand[index];
         if (!block.IsPlaceable) { TapHand(index); return; }
         var column = (int)Math.Floor((point.X - X(0)) / CellW);
-        var levelFromTop = (int)Math.Floor((point.Y - Y(0)) / CellH);
+        // Y(0) is the bottom level and Y(Levels-1) the top; the old formula
+        // measured from the bottom and mirrored every drop to the wrong level.
+        var levelFromTop = (int)Math.Floor((point.Y - Y(_state.Levels - 1)) / CellH);
         var level = _state.Levels - 1 - levelFromTop;
         var length = block.Length;
-        var start = column - (length - 1) / 2;
-        for (var offset = 0; offset < length && start + length > _state.Width; offset++)
-        {
-            if (start >= 0 && start + length <= _state.Width) break;
-            start = Math.Clamp(start, 0, _state.Width - length);
-        }
+        var start = column - length / 2;
         start = Math.Clamp(start, 0, Math.Max(0, _state.Width - length));
-        if (level < 0 || level >= _state.Levels || !MoonTowerEngine.IsPlacementLegal(_state, level, start, length))
+        if (levelFromTop < 0 || levelFromTop >= _state.Levels)
+        {
+            LunaLog.Write($"game_input drop_outside level_from_top={levelFromTop}");
+            Tip?.Invoke(Loc.T("Games.Invalid"));
+            Render();
+            return;
+        }
+        var legal = level >= 0 && level < _state.Levels &&
+                    MoonTowerEngine.IsPlacementLegal(_state, level, start, length);
+        LunaLog.Write($"game_input drop index={index} level={level} start={start} legal={legal}");
+        if (!legal)
         {
             Tip?.Invoke(Loc.T("Games.Invalid"));
+            Render();
             return;
         }
         PlayChildMove(new MoonTowerMove(MoonTowerMoveKind.Place, index, level, start));
@@ -610,10 +691,12 @@ public sealed class MoonTowerBoard : UserControl
     {
         if (index < 0 || index >= _state.ChildHand.Count) return;
         var now = Environment.TickCount64;
+        LunaLog.Write($"game_input tap_enter index={index} last={_lastTapIndex} since_ms={now - _lastTapAt}");
         if (index == _lastTapIndex && now - _lastTapAt < 300) return;
-        _lastTapAt = now;
-        _lastTapIndex = index;
         var block = _state.ChildHand[index];
+        LunaLog.Write($"game_input tap index={index} swap={_swapArmed} power={block.Power}");
+        _lastTapIndex = index;
+        _lastTapAt = now;
         if (_swapArmed)
         {
             PlayChildMove(new MoonTowerMove(MoonTowerMoveKind.Swap, index));
@@ -636,12 +719,14 @@ public sealed class MoonTowerBoard : UserControl
         _selected = _selected == index ? null : index;
         _meteorArmed = false;
         _swapArmed = false;
+        LunaLog.Write($"game_input select index={index} selected={_selected}");
         Render();
     }
 
     private void ArmSwap()
     {
         _swapArmed = !_swapArmed;
+        LunaLog.Write($"game_input swap_arm active={_swapArmed}");
         _selected = null;
         _meteorArmed = false;
         Render();
@@ -653,6 +738,7 @@ public sealed class MoonTowerBoard : UserControl
         if (_paused || _state.Finished || _state.Turn != MoonTowerPlayer.Child) return;
         try
         {
+            LunaLog.Write($"game_input move kind={move.Kind} hand={move.HandIndex} level={move.Level} start={move.Start}");
             var events = MoonTowerEngine.Apply(_state, MoonTowerPlayer.Child, move);
             ResetSelection();
             StartBounce();
@@ -786,6 +872,8 @@ public sealed class MoonTowerBoard : UserControl
     private void ShowEndCard(MoonTowerResult result)
     {
         HideOverlayCards();
+        _overlay.Background = Brushes.Transparent;
+        _overlay.IsHitTestVisible = true;
         var title = result switch
         {
             MoonTowerResult.Win => Loc.T("Games.Win"),
@@ -836,6 +924,8 @@ public sealed class MoonTowerBoard : UserControl
     private void ShowPauseOverlay()
     {
         HideOverlayCards();
+        _overlay.Background = Brushes.Transparent;
+        _overlay.IsHitTestVisible = true;
         var stack = new StackPanel { Spacing = 12, HorizontalAlignment = HorizontalAlignment.Center };
         stack.Children.Add(Text(Loc.T("Games.Paused"), 24, _palette.Text, FontWeight.SemiBold, display: true));
         var resume = new Button
@@ -876,6 +966,11 @@ public sealed class MoonTowerBoard : UserControl
     {
         foreach (var card in _overlay.Children.Where(c => c is Control { Tag: "card" }).ToList())
             _overlay.Children.Remove(card);
+        if (_ghost is null)
+        {
+            _overlay.Background = null;
+            _overlay.IsHitTestVisible = false;
+        }
     }
 
     private void ShowGhost(int index, Point point)
@@ -897,24 +992,6 @@ public sealed class MoonTowerBoard : UserControl
     {
         if (_ghost is not null) _overlay.Children.Remove(_ghost);
         _ghost = null;
-    }
-
-    private void OnOverlayPointerMoved(object? sender, PointerEventArgs e)
-    {
-        if (_dragging && _pressHand >= 0) ShowGhost(_pressHand, e.GetPosition(_overlay));
-    }
-
-    private void OnOverlayPointerReleased(object? sender, PointerReleasedEventArgs e)
-    {
-        if (_pressHand < 0) return;
-        var index = _pressHand;
-        var wasDragging = _dragging;
-        _pressHand = -1;
-        _dragging = false;
-        RemoveGhost();
-        e.Pointer.Capture(null);
-        if (wasDragging) DropAt(index, e.GetPosition(_towerCanvas));
-        else TapHand(index);
     }
 
     private void OnTowerPointerReleased(object? sender, PointerReleasedEventArgs e)
