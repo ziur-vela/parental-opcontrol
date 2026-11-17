@@ -94,6 +94,7 @@ public sealed class MyOpControlWindow : Window
         _screen = ParseScreen(options.Tab);
         if (options.MessagesOnly && _screen != Screen.About) _screen = Screen.Messages;
 
+        TouchKeyboard.Attach(this);
         Title = _options.Preview ? " " : Loc.T("Client.Kid.WindowTitle");
         WindowDecorations = WindowDecorations.None;
         TransparencyLevelHint = new[] { WindowTransparencyLevel.Transparent };

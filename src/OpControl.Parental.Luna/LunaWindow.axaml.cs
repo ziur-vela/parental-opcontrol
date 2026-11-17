@@ -5,6 +5,7 @@ using System.IO;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Controls.Platform;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -298,6 +299,7 @@ public partial class LunaWindow : Window
             $"work={screen?.WorkingArea.Width}x{screen?.WorkingArea.Height}@{screen?.WorkingArea.X},{screen?.WorkingArea.Y} " +
             $"scaling={RenderScaling:0.##} window={Width}x{Height} pos={Position.X},{Position.Y}");
 
+        if (InputPane is { } inputPane) inputPane.StateChanged += OnInputPaneStateChanged;
         StartProbe(2.0);
         Dispatcher.UIThread.Post(() => TopLevel.GetTopLevel(this)?.RequestAnimationFrame(OnFirstFrame),
             DispatcherPriority.Loaded);
@@ -824,6 +826,48 @@ public partial class LunaWindow : Window
             $"chat_layout window_dip={Width:0.#}x{Height:0.#} client_dip={cs.Width:0.#}x{cs.Height:0.#} " +
             $"scaling={RenderScaling:0.##} blob={_blob.Width:0.#}x{_blob.Height:0.#} " +
             $"blob_visible={_blob.IsVisible} chat_visible={_chatRoot.IsVisible} {_chat.LayoutInfo()}");
+    }
+
+    // Touch keyboard: while it is open, shrink the chat so the text box stays above it.
+    private double _keyboardRestoreHeight = -1;
+
+    private void OnInputPaneStateChanged(object? sender, InputPaneStateEventArgs e)
+    {
+        try
+        {
+            var scale = RenderScaling > 0 ? RenderScaling : 1.0;
+            var windowTop = Position.Y / scale;
+            // The rect may be reported in screen or window coordinates; Luna's chat
+            // normally sits at the top of the screen, so both give the same answer.
+            var rectTop = e.EndRect.Y;
+            var top = rectTop > Height + 1 ? rectTop - windowTop : rectTop;
+            LunaLog.Write($"input_pane state={e.NewState} rect={e.EndRect} window_top={windowTop:0.#} " +
+                          $"keyboard_top={top:0.#} mode={_mode} game={_gameMode}");
+            if (_mode != Mode.Chat || _gameMode || _boundsAnimating) return;
+
+            if (e.NewState == InputPaneState.Open && e.EndRect.Height > 1)
+            {
+                var target = top - 8;
+                if (target >= 300 && target < _chatHeight - 1)
+                {
+                    _keyboardRestoreHeight = _chatHeight;
+                    ApplyWindowSize(_chatWidth, target);
+                    SetBlob(0, 0, _chatWidth, target, 0);
+                    UpdateRegion();
+                }
+            }
+            else if (_keyboardRestoreHeight > 0)
+            {
+                _keyboardRestoreHeight = -1;
+                ApplyWindowSize(_chatWidth, _chatHeight);
+                SetBlob(0, 0, _chatWidth, _chatHeight, 0);
+                UpdateRegion();
+            }
+        }
+        catch (Exception ex)
+        {
+            LunaLog.Write("input_pane_error " + ex.Message);
+        }
     }
 
     private void OnGameModeChanged(bool entering)

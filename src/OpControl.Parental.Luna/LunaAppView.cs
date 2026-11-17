@@ -116,6 +116,7 @@ public sealed class LunaAppView : UserControl
             Child = _host
         };
         Content = _root;
+        TouchKeyboard.Attach(this);
         AttachedToVisualTree += (_, _) =>
         {
             if (!_initialized)
